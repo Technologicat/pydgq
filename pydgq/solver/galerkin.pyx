@@ -175,7 +175,7 @@ cdef int dG( params* gp ) nogil:
     # l = quadrature point
     # m = implicit iteration (Banach fixed point iteration)
     #
-    cdef unsigned int j, k, l, m
+    cdef int j, k, l, m=-1
 
     # Initialize the Galerkin coefficients u: initially, we set u = u0, which has been saved as the array w.
     #
@@ -316,7 +316,7 @@ cdef int cG( params* gp ) nogil:
     # l = quadrature point
     # m = implicit iteration (Banach fixed point iteration)
     #
-    cdef unsigned int j, k, l, m
+    cdef int j, k, l, m=-1
 
     # Initialize the Galerkin coefficients u: initially, we set u = u0, which has been saved as the array w.
     #
