@@ -528,14 +528,14 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
 
     # Runtime sanity checking of the result
     #
-    cdef int do_denormal_check = <int>(not allow_denormals)  # if denormals not allowed, check them
+    cdef int do_denormal_check  = <int>(not allow_denormals)  # if denormals not allowed, check them
     cdef int denormal_triggered = 0
-    cdef int naninf_triggered = 0
+    cdef int naninf_triggered   = 0
 
     # Extract the underlying pointers from the PointerWrappers
     #
     cdef kernelfuncptr f = <kernelfuncptr>(pw_f.ptr)
-    cdef double* data            = <double*>(pw_data.ptr)
+    cdef double* data    = <double*>(pw_data.ptr)
 
     cdef DTYPE_t* pff
     if ff is not None:
@@ -607,9 +607,9 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
     cdef DTYPE_t[:,::1]   uass
     cdef DTYPE_t[::1]     ucorr
     cdef DTYPE_t[:,::1]   LU
-    cdef int[::1]               p
-    cdef int[::1]               mincols
-    cdef int[::1]               maxcols
+    cdef int[::1]         p
+    cdef int[::1]         mincols
+    cdef int[::1]         maxcols
     cdef DTYPE_t[::1]     qw
     cdef DTYPE_t[:,::1]   psi
     cdef DTYPE_t[:,::1]   uvis
