@@ -1,0 +1,8913 @@
+#LyX 2.1 created this file. For more info see http://www.lyx.org/
+\lyxformat 474
+\begin_document
+\begin_header
+\textclass article
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman palatino
+\font_sans default
+\font_typewriter default
+\font_math auto
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref true
+\pdf_bookmarks true
+\pdf_bookmarksnumbered false
+\pdf_bookmarksopen false
+\pdf_bookmarksopenlevel 1
+\pdf_breaklinks false
+\pdf_pdfborder true
+\pdf_colorlinks false
+\pdf_backref false
+\pdf_pdfusetitle true
+\papersize default
+\use_geometry true
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine natbib
+\cite_engine_type authoryear
+\biblio_style plain
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\use_refstyle 1
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 2cm
+\topmargin 2cm
+\rightmargin 2cm
+\bottommargin 2cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Summary and discussion on some commonly used numerical integration methods
+ for ODEs
+\end_layout
+
+\begin_layout Author
+Juha Jeronen
+\end_layout
+
+\begin_layout Standard
+\align center
+TECHNICAL NOTE
+\end_layout
+
+\begin_layout Section
+Introduction
+\end_layout
+
+\begin_layout Standard
+The main purpose of this document is to provide documentation for the time
+ integration methods available in the 
+\family sans
+tworods
+\family default
+ solver, gathering all useful material into one convenient place.
+\end_layout
+
+\begin_layout Standard
+A common target for many numerical integration methods for ordinary differential
+ equations (ODEs) is the first-order initial value problem
+\begin_inset Formula 
+\begin{align}
+\frac{\partial u}{\partial t} & =f(\,u(t),\,t\,)\;,\label{eq:IVP}\\
+u(0) & =u_{0}\;.\label{eq:IC}
+\end{align}
+
+\end_inset
+
+In this document, we will summarize, and comment on, several commonly used
+ methods for the numerical solution of problem 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IVP"
+
+\end_inset
+
+--
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IC"
+
+\end_inset
+
+, concentrating especially on nonlinear problems, where we make no assumption
+ about the structure of 
+\begin_inset Formula $f$
+\end_inset
+
+, beyond the minimal necessary continuity for each considered method.
+\end_layout
+
+\begin_layout Subsection
+Extension to ODE systems
+\begin_inset CommandInset label
+LatexCommand label
+name "sub:Extension-to-ODE"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Consider the extension of 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IVP"
+
+\end_inset
+
+--
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IC"
+
+\end_inset
+
+ into the initial value problem of a semilinear
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+In this context, a semilinear system is linear with respect to the time
+ derivative 
+\begin_inset Formula $\partial\mathbf{u}/\partial t$
+\end_inset
+
+, but the load 
+\begin_inset Formula $\mathbf{f}$
+\end_inset
+
+ is allowed to be a nonlinear function of 
+\begin_inset Formula $\mathbf{u}$
+\end_inset
+
+.
+ See e.g.
+\begin_inset Newline newline
+\end_inset
+
+
+\family sans
+
+\begin_inset CommandInset href
+LatexCommand href
+target "http://wiki.math.toronto.edu/DispersiveWiki/index.php/Semilinear"
+
+\end_inset
+
+
+\family default
+
+\begin_inset Newline newline
+\end_inset
+
+
+\family sans
+
+\begin_inset CommandInset href
+LatexCommand href
+target "https://www.ma.utexas.edu/mediawiki/index.php/Semilinear_equations"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+ system of ordinary differential equations
+\begin_inset Formula 
+\begin{equation}
+\mathbf{M}\frac{\partial\mathbf{u}}{\partial t}=\mathbf{f}(\,\mathbf{u}(t),\,t\,)\;,\label{eq:IVPsys}
+\end{equation}
+
+\end_inset
+
+
+\begin_inset Formula 
+\begin{equation}
+\mathbf{u}(0)=\mathbf{u}_{0}\;,\label{eq:ICsys}
+\end{equation}
+
+\end_inset
+
+where 
+\begin_inset Formula $\mathbf{M}$
+\end_inset
+
+ is a matrix, and 
+\begin_inset Formula $\mathbf{u}$
+\end_inset
+
+ and 
+\begin_inset Formula $\mathbf{f}$
+\end_inset
+
+ are vector-valued.
+ One must account for the fact that for each component equation 
+\begin_inset Formula $i$
+\end_inset
+
+, the load component 
+\begin_inset Formula $f_{i}$
+\end_inset
+
+ now depends on 
+\emph on
+all
+\emph default
+ components of 
+\begin_inset Formula $\mathbf{u}$
+\end_inset
+
+, making the treatment of 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IVPsys"
+
+\end_inset
+
+--
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:ICsys"
+
+\end_inset
+
+ slightly different from that of the one degree of freedom model problem
+ 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IVP"
+
+\end_inset
+
+--
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IC"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Formally, provided that 
+\begin_inset Formula $\mathbf{M}$
+\end_inset
+
+ is invertible (which is usually true in physically motivated problems,
+ and was shown above for our specific problem), we may multiply 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IVPsys"
+
+\end_inset
+
+ from the left by the inverse matrix 
+\begin_inset Formula $\mathbf{M}^{-1}$
+\end_inset
+
+, obtaining
+\begin_inset Formula 
+\begin{equation}
+\frac{\partial\mathbf{u}}{\partial t}=\mathbf{M}^{-1}\mathbf{f}(\,\mathbf{u}(t),\,t\,)\;,\label{eq:IVPsys-with-Minv}
+\end{equation}
+
+\end_inset
+
+In practice, this is obviously not possible beyond very small systems, due
+ to the prohibitive cost (in terms of both time and storage) of matrix inversion.
+\end_layout
+
+\begin_layout Standard
+A simple way to proceed from here, in practical numerics, is to recognize
+ that we have explicit access to 
+\begin_inset Formula $\mathbf{f}$
+\end_inset
+
+ (given a candidate 
+\begin_inset Formula $\mathbf{u}$
+\end_inset
+
+; in nonlinear problems fixed point iteration is often needed to obtain
+ a computable approximation), we also have 
+\begin_inset Formula $\mathbf{M}$
+\end_inset
+
+, and we need 
+\begin_inset Formula $\mathbf{M}^{-1}\mathbf{f}$
+\end_inset
+
+.
+ We define the effective load
+\begin_inset Formula 
+\begin{equation}
+\mathbf{g}(\,\mathbf{u}(t),\,t\,)=\mathbf{M}^{-1}\mathbf{f}(\,\mathbf{u}(t),\,t\,)\;,\label{eq:g}
+\end{equation}
+
+\end_inset
+
+with the help of which, equation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IVPsys-with-Minv"
+
+\end_inset
+
+ becomes
+\begin_inset Formula 
+\begin{equation}
+\frac{\partial\mathbf{u}}{\partial t}=\mathbf{g}(\,\mathbf{u}(t),\,t\,)\;.\label{eq:IVPsys-with-g}
+\end{equation}
+
+\end_inset
+
+Thus, given 
+\begin_inset Formula $\mathbf{g}$
+\end_inset
+
+, we may in principle integrate each component equation separately (unknown
+ 
+\begin_inset Formula $u_{i}$
+\end_inset
+
+ with the 
+\begin_inset Formula $i$
+\end_inset
+
+th component of the load, 
+\begin_inset Formula $g_{i}$
+\end_inset
+
+), using methods designed for a single ODE.
+ Note that as was already cautioned, we need 
+\emph on
+all
+\emph default
+ components of 
+\begin_inset Formula $\mathbf{u}$
+\end_inset
+
+ for the evaluation of each load component 
+\begin_inset Formula $g_{i}$
+\end_inset
+
+; this provides the connection between the equations in the ODE system 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IVPsys"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Multiplying 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:g"
+
+\end_inset
+
+ from the left by 
+\begin_inset Formula $\mathbf{M}$
+\end_inset
+
+, we have
+\begin_inset Formula 
+\begin{equation}
+\mathbf{M}\,\mathbf{g}=\mathbf{f}\;.\label{eq:Mgf-1}
+\end{equation}
+
+\end_inset
+
+Thus, by solving the linear equation system 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:Mgf-1"
+
+\end_inset
+
+ for the unknown vector 
+\begin_inset Formula $\mathbf{g}$
+\end_inset
+
+, we obtain the numerical value of 
+\begin_inset Formula $\mathbf{M}^{-1}\mathbf{f}$
+\end_inset
+
+ whenever it is needed.
+ This turns 
+\begin_inset Formula $\mathbf{M}^{-1}(\dots)$
+\end_inset
+
+ into a linear operator, which is much cheaper to evaluate than matrix inversion.
+\end_layout
+
+\begin_layout Standard
+It should be recognized, though, that solving 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:Mgf-1"
+
+\end_inset
+
+ may be expensive especially for nonlinear problems, where 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:Mgf-1"
+
+\end_inset
+
+ may need to be solved several times for each iteration of the fixed point
+ loop.
+ (Equation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IVPsys-with-Minv"
+
+\end_inset
+
+ is typically converted into integral form; the RHS must be evaluated at
+ the quadrature points when the integral is approximated numerically.
+ During the discussions of fixed point methods and discontinuous Galerkin,
+ below, we will see this in practice.)
+\end_layout
+
+\begin_layout Section
+Explicit methods
+\end_layout
+
+\begin_layout Standard
+Explicit methods supported by the solver are as follows.
+\end_layout
+
+\begin_layout Subsection
+Explicit Runge--Kutta methods
+\end_layout
+
+\begin_layout Standard
+Perhaps one of the best-known families of classical time integrators are
+ the Runge--Kutta (RK) methods.
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+For an introduction and a list, see e.g.
+\begin_inset Newline newline
+\end_inset
+
+
+\family sans
+
+\begin_inset CommandInset href
+LatexCommand href
+target "https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods"
+
+\end_inset
+
+
+\family default
+
+\begin_inset Newline newline
+\end_inset
+
+
+\family sans
+
+\begin_inset CommandInset href
+LatexCommand href
+target "https://en.wikipedia.org/wiki/List_of_Runge%E2%80%93Kutta_methods"
+
+\end_inset
+
+
+\begin_inset Newline newline
+\end_inset
+
+
+\begin_inset CommandInset href
+LatexCommand href
+target "http://www.scholarpedia.org/article/Runge-Kutta_methods"
+
+\end_inset
+
+
+\begin_inset Newline newline
+\end_inset
+
+
+\family default
+Some of this material is summarized here.
+\end_layout
+
+\end_inset
+
+ Some useful explicit RK methods have been collected below.
+ Instead of collecting the coefficients into a Butcher tableau, the methods
+ are here presented in an algorithmic form, ready for implementation into
+ numerical codes.
+\end_layout
+
+\begin_layout Standard
+Below, for 
+\begin_inset Formula $\mathbf{u}$
+\end_inset
+
+ and 
+\begin_inset Formula $t$
+\end_inset
+
+, the subscripts 
+\begin_inset Formula $n$
+\end_inset
+
+ and 
+\begin_inset Formula $n+1$
+\end_inset
+
+ refer to timestep numbers; e.g.
+ 
+\begin_inset Formula $\mathbf{u}_{n}\equiv\mathbf{u}(t=t_{n})$
+\end_inset
+
+.
+ The subscripts for the 
+\begin_inset Formula $\mathbf{k}_{j}$
+\end_inset
+
+ simply label the quantities.
+\end_layout
+
+\begin_layout Standard
+We will list the methods in a form directly suitable for ODE systems with
+ 
+\begin_inset Formula $\mathbf{M}$
+\end_inset
+
+ a unit matrix.
+ If this is not the case, observe that --- by the form of the problem, equation
+ 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IVP"
+
+\end_inset
+
+ --- the 
+\begin_inset Formula $\mathbf{k}_{j}=\mathbf{f}(\dots)$
+\end_inset
+
+ represent approximations to the derivative.
+ Hence, if the ODE system has a nontrivial mass matrix 
+\begin_inset Formula $\mathbf{M}$
+\end_inset
+
+, evaluating 
+\begin_inset Formula $\mathbf{f}$
+\end_inset
+
+ actually gives
+\begin_inset Formula 
+\[
+\mathbf{M}\,\mathbf{k}_{j}=\mathbf{f}(\dots)
+\]
+
+\end_inset
+
+and 
+\begin_inset Formula $\mathbf{k}_{j}$
+\end_inset
+
+ can be obtained by solving this linear equation system.
+ This solution process must be repeated for each 
+\begin_inset Formula $j$
+\end_inset
+
+ (in this setting e.g.
+ RK4 requires solving four linear equation systems per timestep).
+ Earlier comments about tricks to speed up the solution process apply.
+\end_layout
+
+\begin_layout Standard
+Note that explicit RK methods cannot be unconditionally stable.
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+This is noted in e.g.
+\begin_inset Newline newline
+\end_inset
+
+
+\family sans
+
+\begin_inset CommandInset href
+LatexCommand href
+target "https://en.wikipedia.org/wiki/Stiff_equation#General_theory"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Paragraph
+RK1
+\end_layout
+
+\begin_layout Standard
+The first-order explicit RK method is the forward Euler method:
+\begin_inset Formula 
+\begin{align}
+\mathbf{k}_{1} & =\mathbf{f}(\mathbf{u}_{n},\;t_{n})\;,\label{eq:RK1-k1}\\
+\mathbf{u}_{n+1} & =\mathbf{u}_{n}+\Delta t\,\mathbf{k}_{1}\;.\label{eq:RK1-wnp1}
+\end{align}
+
+\end_inset
+
+Due to its tendency for extreme numerical instability, this method is not
+ practically useful, and we will not consider it further.
+\end_layout
+
+\begin_layout Paragraph
+RK2
+\end_layout
+
+\begin_layout Standard
+The second-order explicit RK method is given in parametric form by
+\begin_inset Formula 
+\begin{align}
+\mathbf{k}_{1} & =\mathbf{f}(\mathbf{u}_{n},\;t_{n})\;,\label{eq:RK2-k1}\\
+\mathbf{k}_{2} & =\mathbf{f}(\mathbf{u}_{n}+\beta\,\Delta t\,\mathbf{k}_{1},\;t_{n}+\beta\,\Delta t)\;,\label{eq:RK2-k2}\\
+\mathbf{u}_{n+1} & =\mathbf{u}_{n}+\Delta t\left[(1-\frac{1}{2\beta})\mathbf{k}_{1}+\frac{1}{2\beta}\mathbf{k}_{2}\right]\;.\label{eq:RK2-wnp1}
+\end{align}
+
+\end_inset
+
+Classical choices for 
+\begin_inset Formula $\beta$
+\end_inset
+
+ are 
+\begin_inset Formula $1/2$
+\end_inset
+
+ (explicit midpoint method), 
+\begin_inset Formula $2/3$
+\end_inset
+
+ (Ralston's method), and 
+\begin_inset Formula $1$
+\end_inset
+
+ (Heun's method, also known as the explicit trapezoid rule).
+\end_layout
+
+\begin_layout Paragraph
+RK3
+\end_layout
+
+\begin_layout Standard
+Kutta's third-order method is
+\begin_inset Formula 
+\begin{align}
+\mathbf{k}_{1} & =\mathbf{f}(\mathbf{u}_{n},\;t_{n})\;,\label{eq:RK3-k1}\\
+\mathbf{k}_{2} & =\mathbf{f}(\mathbf{u}_{n}+\frac{\Delta t}{2}\mathbf{k}_{1},\;t_{n}+\frac{\Delta t}{2})\;,\label{eq:RK3-k2}\\
+\mathbf{k}_{3} & =\mathbf{f}(\mathbf{u}_{n}-\Delta t\,\mathbf{k}_{1}+2\Delta t\,\mathbf{k}_{2},\;t_{n}+\Delta t)\;,\label{eq:RK3-k3}\\
+\mathbf{u}_{n+1} & =\mathbf{u}_{n}+\frac{\Delta t}{6}(\mathbf{k}_{1}+4\mathbf{k}_{2}+\mathbf{k}_{3})\;.\label{eq:RK3-wnp1}
+\end{align}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Paragraph
+RK4
+\end_layout
+
+\begin_layout Standard
+The classical fourth-order Runge--Kutta (RK4), which is the most popular
+ of the RK methods, is
+\begin_inset Formula 
+\begin{align}
+\mathbf{k}_{1} & =\mathbf{f}(\mathbf{u}_{n},\;t_{n})\;,\label{eq:RK4-k1}\\
+\mathbf{k}_{2} & =\mathbf{f}(\mathbf{u}_{n}+\frac{\Delta t}{2}\mathbf{k}_{1},\;t_{n}+\frac{\Delta t}{2})\;,\label{eq:RK4-k2}\\
+\mathbf{k}_{3} & =\mathbf{f}(\mathbf{u}_{n}+\frac{\Delta t}{2}\mathbf{k}_{2},\;t_{n}+\frac{\Delta t}{2})\;,\label{eq:RK4-k3}\\
+\mathbf{k}_{4} & =\mathbf{f}(\mathbf{u}_{n}+\Delta t\,\mathbf{k}_{3},\;t_{n}+\Delta t)\;,\label{eq:RK4-k4}\\
+\mathbf{u}_{n+1} & =\mathbf{u}_{n}+\frac{\Delta t}{6}(\mathbf{k}_{1}+2\mathbf{k}_{2}+2\mathbf{k}_{3}+\mathbf{k}_{4})\;.\label{eq:RK4-wnp1}
+\end{align}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Paragraph
+RK4 alternative (
+\begin_inset Quotes eld
+\end_inset
+
+3/8 rule
+\begin_inset Quotes erd
+\end_inset
+
+)
+\end_layout
+
+\begin_layout Standard
+There is an alternative, less often used fourth-order explicit RK method,
+ that was also proposed by Kutta:
+\begin_inset Formula 
+\begin{align}
+\mathbf{k}_{1} & =\mathbf{f}(\mathbf{u}_{n},\;t_{n})\;,\label{eq:RK4b-k1}\\
+\mathbf{k}_{2} & =\mathbf{f}(\mathbf{u}_{n}+\frac{1}{3}\Delta t\,\mathbf{k}_{1},\;t_{n}+\frac{1}{3}\Delta t)\;,\label{eq:RK4b-k2}\\
+\mathbf{k}_{3} & =\mathbf{f}(\mathbf{u}_{n}-\frac{1}{3}\Delta t\,\mathbf{k}_{1}+\Delta t\,\mathbf{k}_{2},\;t_{n}+\frac{2}{3}\Delta t)\;,\label{eq:RK4b-k3}\\
+\mathbf{k}_{4} & =\mathbf{f}(\mathbf{u}_{n}+\Delta t\,\mathbf{k}_{1}-\Delta t\,\mathbf{k}_{2}+\Delta t\,\mathbf{k}_{3},\;t_{n}+\Delta t)\;,\label{eq:RK4b-k4}\\
+\mathbf{u}_{n+1} & =\mathbf{u}_{n}+\frac{\Delta t}{8}(\mathbf{k}_{1}+3\mathbf{k}_{2}+3\mathbf{k}_{3}+\mathbf{k}_{4})\;.\label{eq:RK4b-wnp1}
+\end{align}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Symplectic Euler (a.k.a.
+ semi-implicit Euler)
+\end_layout
+
+\begin_layout Standard
+This is a symplectic 
+\begin_inset Formula $O(\Delta t)$
+\end_inset
+
+ method introduced in 
+\begin_inset CommandInset citation
+LatexCommand citet
+key "Niiranen1999"
+
+\end_inset
+
+, closely related to the classical explicit and implicit Euler methods.
+ From the computational viewpoint, the method is explicit; hence the placement
+ in this section.
+\end_layout
+
+\begin_layout Standard
+For this method only, let us restrict our consideration to state vectors
+ of the form
+\begin_inset Formula 
+\[
+\mathbf{u}=(q_{1},\,\dot{q}_{1},\,q_{2},\,\dot{q}_{2},\,\dots q_{n},\,\dot{q}_{n})\;,
+\]
+
+\end_inset
+
+which result from second-order problems when they are reduced into first-order
+ form.
+ The subscripts for 
+\begin_inset Formula $q_{j}$
+\end_inset
+
+ and 
+\begin_inset Formula $\dot{q}_{j}$
+\end_inset
+
+ refer to vector components.
+ The timestep update is performed with the following sequence of operations:
+\begin_inset Formula 
+\begin{align*}
+\mathbf{k} & \;\leftarrow\;f(\mathbf{u}_{n},\;t_{n})\\
+\mathbf{u} & \;\leftarrow\;\mathbf{u}_{n}\\
+u_{2j} & \;\leftarrow\;u_{2j}+\Delta t\,k_{2j}\;,\quad j=1,2,\dots,n\\
+u_{2j-1} & \;\leftarrow\;u_{2j-1}+\Delta t\,u_{2j}\;,\quad j=1,2,\dots,n\\
+\mathbf{u}_{n+1} & \;\leftarrow\;\mathbf{u}\;.
+\end{align*}
+
+\end_inset
+
+The subscripts for the non-bolded quantities refer to vector components.
+ In other words, we first compute 
+\begin_inset Formula $\ddot{q}_{j}=k_{2j}$
+\end_inset
+
+, and update 
+\begin_inset Formula $\dot{q}_{j}=u_{2j}$
+\end_inset
+
+ using Forward Euler.
+ Then, we use these updated values (which now correspond to the velocities
+ at the end of the timestep) to update 
+\begin_inset Formula $q_{j}=u_{2j-1}$
+\end_inset
+
+ by Backward Euler.
+ Note that 
+\begin_inset Formula $k_{2j-1}$
+\end_inset
+
+, containing 
+\begin_inset Formula $\dot{q}_{j}$
+\end_inset
+
+ at the beginning of the timestep, are not needed.
+\end_layout
+
+\begin_layout Section
+Classical implicit methods
+\end_layout
+
+\begin_layout Standard
+Classical implicit methods supported by the solver are as follows.
+ Note that also dG and cG are implicit; these are treated in their own sections
+ further below.
+\end_layout
+
+\begin_layout Subsection
+Implicit midpoint rule
+\end_layout
+
+\begin_layout Standard
+In principle, the classical implicit midpoint rule (IMR) works as follows:
+\begin_inset Formula 
+\begin{align}
+\mathbf{k} & =\mathbf{f}(\mathbf{u}_{n+1/2},\;t_{n+1/2})\;,\label{eq:IMR-k}\\
+\mathbf{u}_{n+1} & =\mathbf{u}_{n}+\Delta t\,\mathbf{k}\;,\label{eq:IMR-wnp1}
+\end{align}
+
+\end_inset
+
+where the half-timestep (
+\begin_inset Quotes eld
+\end_inset
+
+midpoint
+\begin_inset Quotes erd
+\end_inset
+
+) value of the state vector is taken as the linear interpolant
+\begin_inset Formula 
+\begin{equation}
+\mathbf{u}_{n+1/2}\approx\frac{1}{2}(\mathbf{u}_{n}+\mathbf{u}_{n+1})\;.\label{eq:IMR-iter-desired}
+\end{equation}
+
+\end_inset
+
+The accuracy of the method is 
+\begin_inset Formula $O(\,(\Delta t)^{2}\,)$
+\end_inset
+
+; furthermore, it is known that the error tends to oscillate around zero.
+ The method is symplectic and approximately conserves energy (which are
+ useful properties for problems in Hamiltonian mechanics).
+ The method is not unconditionally stable; a problem-specific maximum timestep
+ size exists above which numerical stability is lost.
+\end_layout
+
+\begin_layout Standard
+Consider equation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IMR-iter-desired"
+
+\end_inset
+
+.
+ As in all implicit methods, there is the practical issue that 
+\begin_inset Formula $\mathbf{u}_{n+1}$
+\end_inset
+
+ is unknown (indeed, the whole aim of the method is to compute it).
+ For linear problems, the standard answer is to set up a linear equation
+ system, using 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IMR-iter-desired"
+
+\end_inset
+
+ in 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IMR-k"
+
+\end_inset
+
+, expanding 
+\begin_inset Formula $\mathbf{f}$
+\end_inset
+
+ (for each specific problem), and then moving terms with 
+\begin_inset Formula $\mathbf{u}_{n+1}$
+\end_inset
+
+ to the left-hand side and 
+\begin_inset Formula $\mathbf{u}_{n}$
+\end_inset
+
+ (and knowns) to the right-hand side.
+ The resulting linear equation system, when numerically solved, gives 
+\begin_inset Formula $\mathbf{u}_{n+1}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+From a computational viewpoint, in the linear case, the need for a computable
+ representation for 
+\begin_inset Formula $\mathbf{u}_{n+1}$
+\end_inset
+
+ has thus been sidestepped by rewriting the problem into a standard form,
+ where 
+\begin_inset Formula $\mathbf{u}_{n+1}$
+\end_inset
+
+ remains unknown, but for which standard solvers are available.
+ Obviously, in the general case of an arbitrary nonlinear problem, such
+ an approach of reduction into a standard form is not possible (since each
+ nonlinear problem class is different).
+\end_layout
+
+\begin_layout Standard
+More relevant to our case is a general approach for arbitrary nonlinear
+ problems.
+ We replace 
+\begin_inset Formula $\mathbf{u}_{n+1}$
+\end_inset
+
+ in 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IMR-iter-desired"
+
+\end_inset
+
+ with some computable approximation 
+\begin_inset Formula $\mathbf{u}^{*}$
+\end_inset
+
+:
+\begin_inset Formula 
+\begin{equation}
+\mathbf{u}_{n+1/2}\approx\frac{1}{2}(\mathbf{u}_{n}+\mathbf{u}^{*})\;.\label{eq:IMR-iter}
+\end{equation}
+
+\end_inset
+
+The result is then refined by iteration.
+ Given an initial guess for 
+\begin_inset Formula $\mathbf{u}^{*}$
+\end_inset
+
+, we evaluate the approximate 
+\begin_inset Formula $\mathbf{u}_{n+1/2}$
+\end_inset
+
+ from 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IMR-iter"
+
+\end_inset
+
+, insert it into 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IMR-k"
+
+\end_inset
+
+, and evaluate 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IMR-wnp1"
+
+\end_inset
+
+, interpreting the left-hand side (the output) as the updated value for
+ 
+\begin_inset Formula $\mathbf{u}^{*}$
+\end_inset
+
+.
+ Then we repeat, obtaining the corresponding updated 
+\begin_inset Formula $\mathbf{u}_{n+1/2}$
+\end_inset
+
+ from 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IMR-iter"
+
+\end_inset
+
+, and so on.
+ This iteration continues until 
+\begin_inset Formula $\mathbf{u}^{*}(\approx\mathbf{u}_{n+1})$
+\end_inset
+
+ has converged, or a prescribed maximum number of iterations is reached.
+\end_layout
+
+\begin_layout Standard
+The easiest choice for the initial guess for 
+\begin_inset Formula $\mathbf{u}^{*}$
+\end_inset
+
+ is to use 
+\begin_inset Formula $\mathbf{u}_{n}$
+\end_inset
+
+.
+ The requirement of contractivity in the Banach fixed point theorem is the
+ theoretical reason behind the upper limit for timestep size in this iterative
+ version of IMR for nonlinear problems; contrast this with von Neumann stability
+ analysis for the version specialized for linear problems.
+ See section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sub:The-theoretical-origin"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Paragraph*
+Algorithmic summary of IMR
+\end_layout
+
+\begin_layout Standard
+For each timestep 
+\begin_inset Formula $n$
+\end_inset
+
+, do the following:
+\end_layout
+
+\begin_layout Enumerate
+Initialize:
+\begin_inset Formula 
+\begin{align*}
+\mathbf{u}_{n+1}^{(0)} & \;\leftarrow\;\mathbf{u}_{n}\\
+i & \;\leftarrow\;0
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Enumerate
+Update:
+\begin_inset CommandInset label
+LatexCommand label
+name "enu:IMR-iteration"
+
+\end_inset
+
+
+\begin_inset Formula 
+\begin{align*}
+\mathbf{u}_{n+1/2} & \;\leftarrow\;\frac{1}{2}(\mathbf{u}_{n}+\mathbf{u}_{n+1}^{(i)})\\
+\mathbf{k} & \;\leftarrow\;\mathbf{f}(\mathbf{u}_{n+1/2},\;t_{n+1/2})\\
+i & \;\leftarrow\;i+1\\
+\mathbf{u}_{n+1}^{(i)} & \;\leftarrow\;\mathbf{u}_{n}+\Delta t\,\mathbf{k}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Enumerate
+If 
+\begin_inset Formula $\mathbf{u}_{n+1}^{(i)}$
+\end_inset
+
+ is 
+\begin_inset Quotes eld
+\end_inset
+
+close
+\begin_inset Quotes erd
+\end_inset
+
+ to 
+\begin_inset Formula $\mathbf{u}_{n+1}^{(i-1)}$
+\end_inset
+
+, the method has converged and the solution is complete.
+ Jump to step 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "enu:IMR-exit-success"
+
+\end_inset
+
+.
+\begin_inset CommandInset label
+LatexCommand label
+name "enu:IMR-convgcheck"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Enumerate
+If 
+\begin_inset Formula $i=i_{\max}$
+\end_inset
+
+, the method did not converge.
+ No solution obtained; raise an exception.
+\begin_inset CommandInset label
+LatexCommand label
+name "enu:IMR-exit-failure"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Enumerate
+Next iteration.
+ Continue from step 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "enu:IMR-iteration"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Enumerate
+Set the solution obtained as
+\begin_inset CommandInset label
+LatexCommand label
+name "enu:IMR-exit-success"
+
+\end_inset
+
+
+\begin_inset Formula 
+\[
+\mathbf{u}_{n+1}\;\leftarrow\;\mathbf{u}_{n+1}^{(i)}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Notes:
+\end_layout
+
+\begin_layout Itemize
+The superscript in the parentheses denotes the iteration number.
+\end_layout
+
+\begin_layout Itemize
+At step 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "enu:IMR-convgcheck"
+
+\end_inset
+
+ and later, the variable 
+\begin_inset Formula $i$
+\end_inset
+
+ holds the current number of iterations taken.
+\end_layout
+
+\begin_layout Itemize
+On failed exit, step 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "enu:IMR-exit-failure"
+
+\end_inset
+
+, sometimes the closest obtained solution may be useful even though it did
+ not converge (e.g.
+ if the tolerance is set all the way down to floating point equality; a
+ numerical limit cycle due to roundoff and cancellation may prevent exact
+ convergence).
+\end_layout
+
+\begin_layout Itemize
+In practice, it does not make sense to store the intermediate iterates 
+\begin_inset Formula $\mathbf{u}_{n+1}^{(i)}$
+\end_inset
+
+ (unless for technical purposes such as convergence monitoring or debugging);
+ only the latest and previous iterates are needed.
+\end_layout
+
+\begin_layout Subsection
+Backward Euler
+\end_layout
+
+\begin_layout Standard
+Sometimes unconditional stability and high numerical dissipation may be
+ desirable properties.
+ The simplest method that fits this target is classical backward Euler (BE;
+ also called implicit Euler).
+ We may formulate it as
+\begin_inset Formula 
+\begin{align}
+\mathbf{k} & =\mathbf{f}(\mathbf{u}_{n+1},\;t_{n+1})\label{eq:BE-k}\\
+\mathbf{u}_{n+1} & =\mathbf{u}_{n}+\Delta t\,\mathbf{k}\;,\label{eq:BE-wnp1}
+\end{align}
+
+\end_inset
+
+The iterative approximation is simply
+\begin_inset Formula 
+\begin{equation}
+\mathbf{u}_{n+1}\approx\mathbf{u}^{*}\;,\label{eq:BE-iter}
+\end{equation}
+
+\end_inset
+
+and the iteration proceeds using the same procedure as above.
+ The accuracy is 
+\begin_inset Formula $O(\Delta t)$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+If the fixed-point iteration process is used to implement BE for a general
+ nonlinear problem, the initial guess for 
+\begin_inset Formula $\mathbf{u}^{*}$
+\end_inset
+
+ (at each timestep) must be chosen such that it falls into the basin of
+ attraction of the sought-after fixed point.
+ This introduces a practical issue, because the contractivity of the iterative
+ procedure 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:BE-iter"
+
+\end_inset
+
+, 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:BE-k"
+
+\end_inset
+
+, 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:BE-wnp1"
+
+\end_inset
+
+ will likely fail above some critical timestep size for this iterative BE
+ for nonlinear problems (where the initial guess becomes too inaccurate),
+ even though the classical linear version of BE poses no limitation on timestep
+ size (the classical von Neumann stability analysis result being a-stability).See
+ section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sub:The-theoretical-origin"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Paragraph*
+Algorithmic summary of BE
+\end_layout
+
+\begin_layout Standard
+For each timestep 
+\begin_inset Formula $n$
+\end_inset
+
+, do the following:
+\end_layout
+
+\begin_layout Enumerate
+Initialize:
+\begin_inset Formula 
+\begin{align*}
+\mathbf{u}_{n+1}^{(0)} & \;\leftarrow\;\mathbf{u}_{n}\\
+i & \;\leftarrow\;0
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Enumerate
+Update:
+\begin_inset CommandInset label
+LatexCommand label
+name "enu:BE-iteration"
+
+\end_inset
+
+
+\begin_inset Formula 
+\begin{align*}
+\mathbf{k} & \;\leftarrow\;f(\mathbf{u}_{n+1}^{(i)},\;t_{n+1})\\
+i & \;\leftarrow\;i+1\\
+\mathbf{u}_{n+1}^{(i)} & \;\leftarrow\;\mathbf{u}_{n}+\Delta t\,\mathbf{k}
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Enumerate
+If 
+\begin_inset Formula $\mathbf{u}_{n+1}^{(i)}$
+\end_inset
+
+ is 
+\begin_inset Quotes eld
+\end_inset
+
+close
+\begin_inset Quotes erd
+\end_inset
+
+ to 
+\begin_inset Formula $\mathbf{u}_{n+1}^{(i-1)}$
+\end_inset
+
+, the method has converged and the solution is complete.
+ Jump to step 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "enu:BE-exit-success"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Enumerate
+If 
+\begin_inset Formula $i=i_{\max}$
+\end_inset
+
+, the method did not converge.
+ No solution obtained; raise an exception.
+\begin_inset CommandInset label
+LatexCommand label
+name "enu:BE-exit-failure"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Enumerate
+Next iteration.
+ Continue from step 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "enu:BE-iteration"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Enumerate
+Set the solution obtained as
+\begin_inset CommandInset label
+LatexCommand label
+name "enu:BE-exit-success"
+
+\end_inset
+
+
+\begin_inset Formula 
+\[
+\mathbf{u}_{n+1}\;\leftarrow\;\mathbf{u}_{n+1}^{(i)}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The same algorithmic notes apply as to IMR.
+\end_layout
+
+\begin_layout Subsection
+General theory: implicit methods and the Banach fixed point theorem
+\begin_inset CommandInset label
+LatexCommand label
+name "sub:The-theoretical-origin"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+As an example, let us again consider the iterative version of IMR presented
+ above.
+ Mathematically, the iteration procedure 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IMR-iter"
+
+\end_inset
+
+, 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IMR-k"
+
+\end_inset
+
+, 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IMR-wnp1"
+
+\end_inset
+
+ is based on contractive self-maps on metric spaces.
+ One iteration of the procedure maps a metric space to itself.
+ Recall that a metric space
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+
+\family sans
+\begin_inset CommandInset href
+LatexCommand href
+target "https://en.wikipedia.org/wiki/Metric_space#Definition"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+ is an ordered pair 
+\begin_inset Formula $(X,d)$
+\end_inset
+
+, where 
+\begin_inset Formula $X$
+\end_inset
+
+ is a set, and 
+\begin_inset Formula $d$
+\end_inset
+
+ is a metric, defining how to measure distance between any two points in
+ 
+\begin_inset Formula $X$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+The Banach fixed point theorem states that on a metric space, if a self-map
+ is contractive, then a fixed point exists for the map, and moreover, the
+ fixed point is unique.
+ In symbols, let 
+\begin_inset Formula $(X,d)$
+\end_inset
+
+ be a metric space.
+ For a contractive self-map 
+\begin_inset Formula $T:\;X\rightarrow X$
+\end_inset
+
+, there exists a unique point 
+\begin_inset Formula $x^{*}$
+\end_inset
+
+ such that 
+\begin_inset Formula $T(x^{*})=x^{*}$
+\end_inset
+
+.
+ The mapping 
+\begin_inset Formula $T$
+\end_inset
+
+ is contractive if it satisfies the Lipschitz condition 
+\begin_inset Formula $d(\,T(x_{1}),\,T(x_{2})\,)\le q\,d(x_{1},x_{2})$
+\end_inset
+
+, where 
+\begin_inset Formula $q\in[0,1)$
+\end_inset
+
+ is the Lipschitz constant (of the mapping 
+\begin_inset Formula $T$
+\end_inset
+
+), and 
+\begin_inset Formula $x_{1},x_{2}\in X$
+\end_inset
+
+ are arbitrary.
+\end_layout
+
+\begin_layout Standard
+Note that Lipschitz continuity is a fairly stringent requirement, and it
+ may also depend on the domain of the map.
+ For example, in one dimension, the map 
+\begin_inset Formula $x\mapsto x^{2}$
+\end_inset
+
+ is Lipschitz on any finite interval, but on the whole of 
+\begin_inset Formula $\mathbb{R}$
+\end_inset
+
+ it is not.
+ Note also that this particular example is contractive only in the set 
+\begin_inset Formula $\left|x\right|\le1$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+This topic is closely related to the Picard--Lindelöf theorem
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+
+\family sans
+\begin_inset CommandInset href
+LatexCommand href
+target "https://en.wikipedia.org/wiki/Picard%E2%80%93Lindel%C3%B6f_theorem"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+, which is concerned with the existence and uniqueness of solutions to the
+ first-order initial value problem.
+ Indeed, the Banach fixed point theorem is invoked in the proof of the Picard--L
+indelöf theorem.
+\end_layout
+
+\begin_layout Standard
+The iterative IMR procedure presented above is also essentially a discrete
+ application of the Picard--Lindelöf idea of recasting the first-order initial
+ value problem 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IVP"
+
+\end_inset
+
+--
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IC"
+
+\end_inset
+
+ as a fixed-point problem for an integral operator.
+ Observe that equation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IMR-wnp1"
+
+\end_inset
+
+ is a discrete approximation of the integral
+\begin_inset Formula 
+\begin{equation}
+\mathbf{u}_{n+1}=\mathbf{u}_{n}+\int_{t_{n}}^{t_{n+1}}\mathbf{f}(\,\mathbf{u}(t),\,t\,)\;\mathrm{d}t\;,\label{eq:wnp1-general-integral-form}
+\end{equation}
+
+\end_inset
+
+which obviously comes from the fundamental theorem of calculus, after using
+ the standard form of the problem, equation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IVP"
+
+\end_inset
+
+, to represent the derivative.
+ Equation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:wnp1-general-integral-form"
+
+\end_inset
+
+ is the integral that is considered in the Picard--Lindelöf theorem.
+ Note that the initial value 
+\begin_inset Formula $\mathbf{u}_{n}$
+\end_inset
+
+ in 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:wnp1-general-integral-form"
+
+\end_inset
+
+ is effectively a constant, but the 
+\begin_inset Formula $\mathbf{u}(t)$
+\end_inset
+
+ in the integrand may need to be evaluated anywhere in the interval 
+\begin_inset Formula $[t_{n},t_{n+1}]$
+\end_inset
+
+, depending on the details of the numerical method.
+\end_layout
+
+\begin_layout Standard
+The same observation holds for the formula for 
+\begin_inset Formula $\mathbf{u}_{n+1}$
+\end_inset
+
+ in the backward Euler method, given in equation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:BE-wnp1"
+
+\end_inset
+
+.
+ In the theoretical framework, as an implicit method, it belongs in the
+ same category as IMR.
+\end_layout
+
+\begin_layout Standard
+The observation also holds for the formulas for 
+\begin_inset Formula $\mathbf{w}_{n+1}$
+\end_inset
+
+ in the explicit RK methods, namely equations 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:RK1-wnp1"
+
+\end_inset
+
+, 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:RK2-wnp1"
+
+\end_inset
+
+, 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:RK3-wnp1"
+
+\end_inset
+
+, 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:RK4-wnp1"
+
+\end_inset
+
+ and 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:RK4b-wnp1"
+
+\end_inset
+
+.
+ Being explicit methods, however, the approximation to the integral is there
+ constructed in such a way that no 
+\begin_inset Quotes eld
+\end_inset
+
+future data
+\begin_inset Quotes erd
+\end_inset
+
+ is needed.
+ For explicit RK methods, although they too can be thought of as being based
+ on rewriting the problem in the integral form 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:wnp1-general-integral-form"
+
+\end_inset
+
+, there is no need to invoke the fixed point theorem, since all needed quantitie
+s can be computed by an explicit sequence of operations.
+\end_layout
+
+\begin_layout Standard
+To produce a practical numerical method for 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:wnp1-general-integral-form"
+
+\end_inset
+
+, two things must be specified.
+ First, because the 
+\begin_inset Formula $\mathbf{u}(t)$
+\end_inset
+
+ in the integrand is unknown, it must be modeled.
+ A function (or algorithm) is specified to construct an approximate 
+\begin_inset Formula $\widetilde{\mathbf{u}}(t)\approx\mathbf{u}(t)$
+\end_inset
+
+, given some discrete set of data, e.g.
+ point values at a set of points in the interval 
+\begin_inset Formula $[t_{n},t_{n+1}]$
+\end_inset
+
+, or alternatively, coefficients for a Galerkin representation.
+ Thus, at each timestep, we seek to solve the approximate problem
+\begin_inset Formula 
+\begin{equation}
+\mathbf{u}_{n+1}\approx\mathbf{u}_{n}+\int_{t_{n}}^{t_{n+1}}\mathbf{f}(\,\widetilde{\mathbf{u}}(t),\,t\,)\;\mathrm{d}t\;.\label{eq:wnp1-general-approx}
+\end{equation}
+
+\end_inset
+
+In any reasonable model, at the beginning of the timestep, 
+\begin_inset Formula $\widetilde{\mathbf{u}}(t_{n})=\mathbf{u}_{n}$
+\end_inset
+
+.
+ Of course, in an implicit method, also 
+\begin_inset Formula $\widetilde{\mathbf{u}}(t_{n+1})=\mathbf{u}_{n+1}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+In this view, the choice of the model 
+\begin_inset Formula $\widetilde{\mathbf{u}}(t)$
+\end_inset
+
+ is the critical difference between explicit and implicit methods.
+ In explicit methods, the model is constructed such that for any fixed 
+\begin_inset Formula $\tau\in(t_{n},t_{n+1}]$
+\end_inset
+
+, the function value 
+\begin_inset Formula $\widetilde{\mathbf{u}}(\tau)$
+\end_inset
+
+ is based on information at 
+\begin_inset Formula $t<\tau$
+\end_inset
+
+ (i.e.
+ 
+\begin_inset Quotes eld
+\end_inset
+
+old
+\begin_inset Quotes erd
+\end_inset
+
+ information) only.
+ Implicit methods lift this restriction, allowing (for any 
+\begin_inset Formula $\tau$
+\end_inset
+
+) the use of information from anywhere in 
+\begin_inset Formula $[t_{n},t_{n+1}]$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Secondly, an algorithm to evaluate the integral must be specified.
+ A typical choice is a quadrature formula, approximating the integral as
+ a sum of weighted values of the integrand at a pre-selected set of points.
+\end_layout
+
+\begin_layout Standard
+Now, to bring 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:wnp1-general-approx"
+
+\end_inset
+
+ into a form where fixed point theorems are applicable, we define the self-map
+ (on the space where the instantaneous field values 
+\begin_inset Formula $\mathbf{u}_{n+1}$
+\end_inset
+
+ live)
+\begin_inset Formula 
+\begin{equation}
+\mathbf{u}_{n+1}^{(i+1)}=\mathbf{u}_{n}+\int_{t_{n}}^{t_{n+1}}\mathbf{f}(\,\widetilde{\mathbf{u}}^{(i)}(t),\,t\,)\;\mathrm{d}t\;,\label{eq:iterative}
+\end{equation}
+
+\end_inset
+
+where the superscript in parentheses indexes the iterate sequence.
+ Considering the class of methods which approximate the integral as a quadrature
+ --- indeed, such as IMR and BE --- we further approximate
+\begin_inset Formula 
+\begin{equation}
+\mathbf{u}_{n+1}^{(i+1)}\approx\mathbf{u}_{n}+\Delta t\overset{N}{\underset{k=1}{\sum}}q_{k}\,\mathbf{f}(\,\widetilde{\mathbf{u}}^{(i)}(\tau_{k}),\,\tau_{k}\,)\;,\quad\tau_{k}\equiv t_{n}+p_{k}\Delta t\;,\label{eq:IMRBE}
+\end{equation}
+
+\end_inset
+
+where 
+\begin_inset Formula $N$
+\end_inset
+
+ is the number of quadrature points, 
+\begin_inset Formula $q_{k}$
+\end_inset
+
+ are their weights and 
+\begin_inset Formula $p_{k}\in[0,1]$
+\end_inset
+
+ their positions on the standard unit interval.
+\end_layout
+
+\begin_layout Standard
+In collocation methods (i.e.
+ methods considering function values on a discrete set of points), the model
+ iterate 
+\begin_inset Formula $\widetilde{\mathbf{u}}^{(i)}(t)$
+\end_inset
+
+ depends on 
+\begin_inset Formula $\mathbf{u}_{n}$
+\end_inset
+
+, 
+\begin_inset Formula $\mathbf{u}_{n+1}^{(i)}$
+\end_inset
+
+, and possibly a set of in-between point values that must be determined
+ internally.
+ In the case of IMR and BE, only the endpoint values are used.
+ For these methods, we choose 
+\begin_inset Formula $\widetilde{\mathbf{u}}^{(i)}(t)$
+\end_inset
+
+ as the linear interpolant (expressed on the standard unit interval)
+\begin_inset Formula 
+\begin{equation}
+\widetilde{\mathbf{u}}^{(i)}(p)=(1-p)\,\mathbf{u}_{n}+p\,\mathbf{u}_{n+1}^{(i)}\;,\quad p\in[0,1]\;,\label{eq:wip}
+\end{equation}
+
+\end_inset
+
+transforming the quadrature 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IMRBE"
+
+\end_inset
+
+ into
+\begin_inset Formula 
+\begin{equation}
+\mathbf{u}_{n+1}^{(i+1)}=\mathbf{u}_{n}+\Delta t\overset{N}{\underset{k=1}{\sum}}q_{k}\,\mathbf{f}(\,(1-p_{k})\,\mathbf{u}_{n}+p_{k}\,\mathbf{u}_{n+1}^{(i)}\,,\,\tau_{k}\,)\;,\quad\tau_{k}\equiv t_{n}+p_{k}\Delta t\;.\label{eq:wnp1-final}
+\end{equation}
+
+\end_inset
+
+In IMR, the quadrature is simply the midpoint rule 
+\begin_inset Formula $N=1$
+\end_inset
+
+, 
+\begin_inset Formula $p_{1}=1/2$
+\end_inset
+
+, 
+\begin_inset Formula $q_{1}=1$
+\end_inset
+
+, leading to
+\begin_inset Formula 
+\begin{equation}
+\mathbf{u}_{n+1}^{(i+1)}=\mathbf{u}_{n}+\Delta t\,\mathbf{f}(\,\frac{1}{2}\mathbf{u}_{n}+\frac{1}{2}\mathbf{u}_{n+1}^{(i)}\,,\,t_{n}+\frac{1}{2}\Delta t\,)\;,\label{eq:IMR-final}
+\end{equation}
+
+\end_inset
+
+which matches 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IMR-k"
+
+\end_inset
+
+, 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IMR-wnp1"
+
+\end_inset
+
+ and 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IMR-iter"
+
+\end_inset
+
+, as expected.
+\end_layout
+
+\begin_layout Standard
+One the left-hand side of 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:wnp1-final"
+
+\end_inset
+
+ we have only 
+\begin_inset Formula $i+1$
+\end_inset
+
+, and on the right-hand side only 
+\begin_inset Formula $i$
+\end_inset
+
+.
+ Hence 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:wnp1-final"
+
+\end_inset
+
+ can be explicitly iterated to produce a sequence of values 
+\begin_inset Formula $\mathbf{u}_{n+1}^{(i+1)}$
+\end_inset
+
+, 
+\begin_inset Formula $i=0,1,2,\dots$
+\end_inset
+
+; it is the mapping 
+\begin_inset Formula $T:\;\mathbf{u}_{n+1}^{(i)}\mapsto\mathbf{u}_{n+1}^{(i+1)}$
+\end_inset
+
+ for which a fixed point is being sought.
+ By the Banach fixed point theorem, if 
+\begin_inset Formula $T$
+\end_inset
+
+ is contractive (i.e.
+ the mapped points 
+\begin_inset Formula $T(\mathbf{u}_{n+1}^{(i_{1})})$
+\end_inset
+
+ and 
+\begin_inset Formula $T(\mathbf{u}_{n+1}^{(i_{2})})$
+\end_inset
+
+ are closer together than the original points 
+\begin_inset Formula $\mathbf{u}_{n+1}^{(i_{1})}$
+\end_inset
+
+ and 
+\begin_inset Formula $\mathbf{u}_{n+1}^{(i_{2})}$
+\end_inset
+
+, for any choice of original points), it has a unique fixed point.
+ Moreover, the fixed point is the solution 
+\begin_inset Formula $\mathbf{u}_{n+1}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Note that in 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:wnp1-final"
+
+\end_inset
+
+, 
+\begin_inset Formula $\mathbf{f}$
+\end_inset
+
+ and 
+\begin_inset Formula $\mathbf{u}_{n}$
+\end_inset
+
+ can be considered fixed (given by the problem setup and the initial condition,
+ respectively), whereas 
+\begin_inset Formula $\mathbf{u}_{n+1}^{(0)}$
+\end_inset
+
+ (the initial guess) and 
+\begin_inset Formula $\Delta t$
+\end_inset
+
+ (the timestep size) are free.
+\end_layout
+
+\begin_layout Standard
+As a final remark to equation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:wnp1-final"
+
+\end_inset
+
+, the technique of relaxation is sometimes offered as a convergence aid
+ for fixed point iteration methods.
+ For example, for IMR, we replace the update procedure 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IMR-final"
+
+\end_inset
+
+ with this modified version:
+\begin_inset Formula 
+\begin{equation}
+\widehat{\mathbf{u}}_{n+1}^{(i+1)}=\mathbf{u}_{n}+\Delta t\,\mathbf{f}(\,\frac{1}{2}\mathbf{u}_{n}+\frac{1}{2}\mathbf{u}_{n+1}^{(i)}\,,\,t_{n}+\frac{1}{2}\Delta t\,)\;,\label{eq:IMR-final-with-relaxation}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\mathbf{u}_{n+1}^{(i+1)}=(1-\alpha)\mathbf{u}_{n+1}^{(i)}+\alpha\widehat{\mathbf{u}}_{n+1}^{(i+1)}\;,\quad\alpha\in(0,1)\;\text{given}.\label{eq:relaxation}
+\end{equation}
+
+\end_inset
+
+The first equation is the same as 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IMR-final"
+
+\end_inset
+
+; we have simply renamed the left-hand side.
+ Subtracting 
+\begin_inset Formula $\mathbf{u}_{n+1}^{(i)}$
+\end_inset
+
+ from 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:relaxation"
+
+\end_inset
+
+, we see that
+\begin_inset Formula 
+\begin{equation}
+\mathbf{u}_{n+1}^{(i+1)}-\mathbf{u}_{n+1}^{(i)}=\alpha(\widehat{\mathbf{u}}_{n+1}^{(i+1)}-\mathbf{u}_{n+1}^{(i)})\;.\label{eq:dist}
+\end{equation}
+
+\end_inset
+
+The application of the classical relaxation technique thus makes the distance
+ between successive iterates smaller.
+ Compared to the version without relaxation, this obviously has two effects:
+ contractivity is improved, but on the other hand, convergence requires
+ more iterations, because the steps are smaller.
+ Despite the slower convergence, as is well known, this may be useful in
+ cases where contractivity would otherwise fail.
+ (The same remark applies to any iterative implicit method, replacing 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IMR-final-with-relaxation"
+
+\end_inset
+
+ with the appropriate update formula.)
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+At this point, we must mention that based on the Picard--Lindelöf theorem
+ and Ostrowski estimates, a very promising implicit method of reliable integrati
+on for the first-order initial value problem has been recently developed
+ by [ref Matculevich et al.].
+ The method provides error bounds that are both computable and guaranteed,
+ and is the first known method that can integrate, 
+\emph on
+down to a prescribed error tolerance
+\emph default
+, the first-order initial value problem 
+\begin_inset Formula $\partial u/\partial t=f(\,u(t),\,t\,)$
+\end_inset
+
+, 
+\begin_inset Formula $u(0)=u_{0}$
+\end_inset
+
+.
+ Methods to do this for 
+\emph on
+known
+\emph default
+ functions have been available for a long time; practically all numerical
+ quadrature codes provide some form of guaranteed error control.
+ What is new is the ability to do this for 
+\emph on
+unknown
+\emph default
+ functions, of which we know only that they are solutions of the first-order
+ initial value problem.
+\end_layout
+
+\begin_layout Plain Layout
+Curiously, we see that both the classical iterative solution procedure for
+ implicit 
+\begin_inset Formula $\mathbf{u}_{n+1}$
+\end_inset
+
+ for arbitrary nonlinear problems, and the new method by [ref Matculevich
+ et al.], can be considered to have a common theoretical origin in the Picard--Li
+ndelöf problem recasting approach, although classical methods such as IMR
+ are rarely developed in such a form.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+IMR is often presented as a tool specifically for linear problems, trading
+ away generality for power.
+ Interestingly, this also leads to developing the method into a completely
+ different direction --- and even giving it a different theoretical origin,
+ in finite differences.
+ (Although 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IMR-final"
+
+\end_inset
+
+ can be re-interpreted as a finite difference expression, equation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:wnp1-general-integral-form"
+
+\end_inset
+
+ --- or indeed the whole derivation of 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IMR-final"
+
+\end_inset
+
+ --- makes no use of finite differences!)
+\end_layout
+
+\begin_layout Standard
+Specialization to linear problems enables additional formal manipulations
+ to be performed, leading, as is well known, to linear equation systems
+ and von Neumann stability analysis (which gives the classical upper limit
+ on timestep size).
+ These two versions of IMR do not have much in common, beside the core idea
+ of seeking an implicit approximation at the midpoint --- which is formally
+ encoded into equations 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IMR-k"
+
+\end_inset
+
+--
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IMR-iter-desired"
+
+\end_inset
+
+, common to both forms.
+\end_layout
+
+\begin_layout Standard
+We note that the speed of convergence of the sequence of fixed point iterates
+ 
+\begin_inset Formula $x_{n}$
+\end_inset
+
+ (unrelated to the use of 
+\begin_inset Formula $n$
+\end_inset
+
+ to index the timestep above) is characterized by the following equivalent
+ expressions
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+
+\family sans
+\begin_inset CommandInset href
+LatexCommand href
+target "https://en.wikipedia.org/wiki/Banach_fixed-point_theorem"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+:
+\begin_inset Formula 
+\begin{align}
+d(x^{*},x_{n}) & \le\frac{q^{n}}{1-q}d(x_{1},x_{0})\;,\label{eq:est1}\\
+d(x^{*},x_{n+1}) & \le\frac{q}{1-q}d(x_{n+1},x_{n})\;,\label{eq:est2}\\
+d(x^{*},x_{n+1}) & \le q\,d(x^{*},x_{n})\;.\label{eq:est3}
+\end{align}
+
+\end_inset
+
+Any value of 
+\begin_inset Formula $q\in[0,1)$
+\end_inset
+
+ satisfying these relations for a given contractive mapping 
+\begin_inset Formula $T$
+\end_inset
+
+ is a Lipschitz constant of 
+\begin_inset Formula $T$
+\end_inset
+
+; the smallest possible value is the best Lipschitz constant of 
+\begin_inset Formula $T$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Relations 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:est1"
+
+\end_inset
+
+--
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:est3"
+
+\end_inset
+
+ suggest that the points 
+\begin_inset Formula $x_{n}$
+\end_inset
+
+ form a geometric sequence converging toward the limit point 
+\begin_inset Formula $x^{*}$
+\end_inset
+
+.
+ (This also suggests a linear convergence rate, as is well known for fixed
+ point procedures; the geometric nature of the sequence, roughly speaking,
+ adds a constant number of correct digits in each iteration.)
+\end_layout
+
+\begin_layout Standard
+If the sequence is (at least approximately) geometric, 
+\begin_inset Formula $q$
+\end_inset
+
+ can be approximated in a simple manner as
+\begin_inset Formula 
+\begin{equation}
+q\approx\frac{d(x_{n+1},x_{n})}{d(x_{n},x_{n-1})}\;.\label{eq:q}
+\end{equation}
+
+\end_inset
+
+The expression 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:q"
+
+\end_inset
+
+ should stay approximately constant throughout the iteration.
+ One can then use 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:est1"
+
+\end_inset
+
+ or 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:est2"
+
+\end_inset
+
+ to estimate the remaining distance to the (unknown) fixed point, providing
+ a computable 
+\emph on
+error indicator
+\emph default
+ that can be used for error control.
+ (This is not an 
+\emph on
+error estimator
+\emph default
+, since 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:q"
+
+\end_inset
+
+ makes no guarantees.) The test 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:q"
+
+\end_inset
+
+ also tells us when contractivity has failed (and hence, when the sequence
+ 
+\begin_inset Formula $x_{n}$
+\end_inset
+
+ cannot be guaranteed to converge).
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+ Also, if we wish, this allows us to implement adaptive relaxation, where
+ the solver monitors the value of 
+\begin_inset Formula $q$
+\end_inset
+
+ and adjusts 
+\begin_inset Formula $\alpha$
+\end_inset
+
+ to improve contractivity only where needed.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Contractivity may be local.
+ Typically, for fixed-point procedures arising in numerical integration
+ of differential equations, contractivity occurs if the timestep 
+\begin_inset Formula $\Delta t$
+\end_inset
+
+ is 
+\begin_inset Quotes eld
+\end_inset
+
+small enough
+\begin_inset Quotes erd
+\end_inset
+
+ and/or the initial guess for 
+\begin_inset Formula $\mathbf{u}^{*}$
+\end_inset
+
+ (iterate 
+\begin_inset Formula $x_{0}$
+\end_inset
+
+) is 
+\begin_inset Quotes eld
+\end_inset
+
+close enough
+\begin_inset Quotes erd
+\end_inset
+
+ to the solution.
+ In this case, the set 
+\begin_inset Formula $X$
+\end_inset
+
+ must be chosen appropriately such that 
+\begin_inset Formula $T$
+\end_inset
+
+ remains contractive within it; then 
+\begin_inset Formula $X$
+\end_inset
+
+ can be considered the 
+\begin_inset Quotes eld
+\end_inset
+
+basin of attraction
+\begin_inset Quotes erd
+\end_inset
+
+
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+
+\family sans
+\begin_inset CommandInset href
+LatexCommand href
+target "http://www.scholarpedia.org/article/Basin_of_attraction"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+ of the fixed point.
+\end_layout
+
+\begin_layout Standard
+The implied comparison with dynamical systems (which typically have several
+ basins of attraction) may however be a bit misleading, so the following
+ must be emphasized.
+ The Picard--Lindelöf theorem states that the solution of the first-order
+ initial value problem 
+\begin_inset Formula $\partial u/\partial t=f(\,u(t),\,t\,)$
+\end_inset
+
+, 
+\begin_inset Formula $u(t_{0})=u_{0}$
+\end_inset
+
+ exists 
+\emph on
+and is unique
+\emph default
+ on an interval 
+\begin_inset Formula $t\in[t_{0}-\varepsilon,\,t_{0}+\varepsilon]$
+\end_inset
+
+ for some 
+\begin_inset Formula $\varepsilon>0$
+\end_inset
+
+, if the load function 
+\begin_inset Formula $f$
+\end_inset
+
+ is uniformly Lipschitz continuous in 
+\begin_inset Formula $u$
+\end_inset
+
+ (i.e.
+ Lipschitz continuous with the same constant independent of 
+\begin_inset Formula $t$
+\end_inset
+
+), and continuous in 
+\begin_inset Formula $t$
+\end_inset
+
+.
+ (Concerning the design of numerical methods, it may be of interest to note
+ that in the proof, the Banach fixed point theorem is invoked with the initial
+ iterate set to 
+\begin_inset Formula $u(t)=u_{0}$
+\end_inset
+
+ for the whole interval.)
+\end_layout
+
+\begin_layout Standard
+Obviously, different initial values 
+\begin_inset Formula $\mathbf{u}_{n}$
+\end_inset
+
+ will typically lead to different solutions 
+\begin_inset Formula $\mathbf{u}_{n+1}$
+\end_inset
+
+ (otherwise the problem would not be very interesting).
+ What the Banach and PL theorems say is only that 
+\emph on
+for a given initial value
+\emph default
+ (
+\begin_inset Formula $\mathbf{u}_{n}$
+\end_inset
+
+), the choice of the initial iterate (
+\begin_inset Formula $x_{0}$
+\end_inset
+
+, initial guess for 
+\begin_inset Formula $\mathbf{u}^{*}$
+\end_inset
+
+) within the set 
+\begin_inset Formula $X$
+\end_inset
+
+ does not matter; if contractivity holds, the unique solution 
+\begin_inset Formula $\mathbf{u}_{n+1}$
+\end_inset
+
+ (corresponding to the given initial 
+\begin_inset Formula $\mathbf{u}_{n}$
+\end_inset
+
+) will be found.
+\end_layout
+
+\begin_layout Standard
+This is also the theoretical origin of the upper limit on timestep size
+ for this iterative version of IMR.
+ Contrast this with the version of IMR specialized for linear problems,
+ where the upper limit arises via von Neumann stability analysis.
+ There is no requirement for these maximum possible timestep sizes to be
+ the same!
+\end_layout
+
+\begin_layout Standard
+What typically happens outside the basin of attraction is that the contractivity
+ of the iterative procedure is violated, and the sequence fails to converge
+ (unless, by pure luck, one of the non-converging iterates happens to fall
+ into the basin of attraction).
+\begin_inset Note Note
+status collapsed
+
+\begin_layout Plain Layout
+In general, we may also have several (non-overlapping) sets 
+\begin_inset Formula $X_{j}$
+\end_inset
+
+, each of which with its own contractive self-map 
+\begin_inset Formula $T_{j}$
+\end_inset
+
+ and its own fixed point.
+ The basins of attraction are then the sets 
+\begin_inset Formula $X_{j}$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Thus we arrive at an important practical consideration: unless the iterative
+ procedure 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IMR-iter"
+
+\end_inset
+
+, 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IMR-k"
+
+\end_inset
+
+, 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IMR-wnp1"
+
+\end_inset
+
+ has a globally contractive self-map (for any given problem), the initial
+ guess for 
+\begin_inset Formula $\mathbf{u}^{*}$
+\end_inset
+
+ must be made to fall into the basin of attraction of the sought-after fixed
+ point 
+\begin_inset Formula $\mathbf{u}_{n+1}$
+\end_inset
+
+ of the procedure.
+ This sets an upper limit on the timestep size for iterative IMR, and similarly
+ for other implicit methods based on the application of the Banach fixed
+ point theorem.
+\end_layout
+
+\begin_layout Standard
+If we use an explicit integration method to generate the initial guess,
+ this basin-of-attraction consideration is separate from the usual stability
+ limit (with regard to timestep size) of that method
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+This is true regardless of how the stability limit was derived.
+ (Keep in mind that the classical von Neumann stability analysis is not
+ directly applicable to nonlinear problems.)
+\end_layout
+
+\end_inset
+
+, since that method will not be used for the actual integration.
+ The stability limit only tells us whether integration 
+\emph on
+using that method
+\emph default
+ would remain stable.
+ But here, the relevant question is entirely different: whether our iterative
+ procedure, with the given initial guess (however inaccurate or even qualitative
+ly wrong), will converge to the fixed point 
+\begin_inset Formula $\mathbf{u}_{n+1}$
+\end_inset
+
+ or not.
+ For nonlinear problems, this question is highly nontrivial.
+\end_layout
+
+\begin_layout Standard
+Is there only one basin of attraction?
+\begin_inset Note Note
+status collapsed
+
+\begin_layout Plain Layout
+If 
+\begin_inset Formula $\Delta t$
+\end_inset
+
+, 
+\begin_inset Formula $\mathbf{w}_{n}$
+\end_inset
+
+, and 
+\begin_inset Formula $f$
+\end_inset
+
+ are kept fixed, the mapping 
+\begin_inset Formula $T:\;\mathbf{w}_{n+1}^{(i)}\mapsto\mathbf{w}_{n+1}^{(i+1)}$
+\end_inset
+
+ also remains fixed.
+ The critical question is thus whether there are several sets 
+\begin_inset Formula $X_{j}$
+\end_inset
+
+ in the space where the 
+\begin_inset Formula $\mathbf{w}_{n+1}^{(i)}$
+\end_inset
+
+ live, such that each 
+\begin_inset Formula $X_{j}$
+\end_inset
+
+ maps to itself under 
+\begin_inset Formula $T$
+\end_inset
+
+, with the constraint that 
+\begin_inset Formula $T$
+\end_inset
+
+ is contractive on 
+\begin_inset Formula $X_{j}$
+\end_inset
+
+.
+ If this occurs, then 
+\begin_inset Formula $(X_{j},d)$
+\end_inset
+
+ can be considered a metric space separately for each 
+\begin_inset Formula $j$
+\end_inset
+
+, and thus we may invoke the Banach fixed point theorem separately for each
+ 
+\begin_inset Formula $j$
+\end_inset
+
+ (meaning that there could be multiple solutions depending on the choice
+ of 
+\begin_inset Formula $\mathbf{w}_{n+1}^{(0)}$
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Plain Layout
+But consider the union of the 
+\begin_inset Formula $X_{j}$
+\end_inset
+
+, which by the assumptions is also a set that maps to itself...
+ what goes wrong here?
+\end_layout
+
+\end_inset
+
+ By the Picard--Lindelöf theorem, if the timestep is 
+\begin_inset Quotes eld
+\end_inset
+
+small enough
+\begin_inset Quotes erd
+\end_inset
+
+, existence and uniqueness hold for the solution of the first-order initial
+ value problem.
+ Thus, it follows that, with 
+\begin_inset Formula $\Delta t$
+\end_inset
+
+ small enough, and with 
+\begin_inset Formula $\mathbf{u}_{n}$
+\end_inset
+
+ and 
+\begin_inset Formula $\mathbf{f}$
+\end_inset
+
+ kept fixed (i.e.
+ under the constraint that we keep the problem fixed), there can be no competing
+ basins of attraction leading to other solutions.
+ However, this does assume that the approximations made when constructing
+ the numerical integration method have not changed the qualitative behavior,
+ which may not be the case.
+\end_layout
+
+\begin_layout Standard
+Finally, what about global existence and uniqueness of the solution on 
+\begin_inset Formula $t\in[0,t_{\mathrm{f}}]$
+\end_inset
+
+, where 
+\begin_inset Formula $t_{\mathrm{f}}$
+\end_inset
+
+ is the end time of the simulation (
+\begin_inset Formula $t_{\mathrm{f}}$
+\end_inset
+
+ may be large)? The key observation here is that we may treat each timestep
+ as a separate initial value problem.
+ For example, on the interval 
+\begin_inset Formula $t\in[t_{n},t_{n+1}]$
+\end_inset
+
+ (of length 
+\begin_inset Formula $\Delta t$
+\end_inset
+
+), we use the initial condition 
+\begin_inset Formula $\mathbf{u}(t_{n})=\mathbf{u}_{n}$
+\end_inset
+
+, and the duration of integration (for which we need existence and uniqueness
+ of the solution, considering only this subproblem) is only 
+\begin_inset Formula $\Delta t$
+\end_inset
+
+.
+ Then, performing the integration (i.e.
+ solving one timestep), we obtain the final value 
+\begin_inset Formula $\mathbf{u}(t_{n+1})=\mathbf{u}_{n+1}$
+\end_inset
+
+; this is the initial condition for the next timestep.
+ Thus, even if the 
+\begin_inset Formula $\varepsilon$
+\end_inset
+
+ in the Picard--Lindelöf theorem sometimes turns out to be small, this does
+ not pose a problem for the global existence and uniqueness of the solution.
+\end_layout
+
+\begin_layout Section
+Discontinuous Galerkin
+\end_layout
+
+\begin_layout Standard
+The family of discontinuous Galerkin (dG) methods seeks a weak solution
+ of the initial value problem 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IVP"
+
+\end_inset
+
+--
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IC"
+
+\end_inset
+
+.
+ We begin by multiplying 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IVP"
+
+\end_inset
+
+ by a test function 
+\begin_inset Formula $w(t)$
+\end_inset
+
+, and integrate in time from 
+\begin_inset Formula $0$
+\end_inset
+
+ to the simulation end time 
+\begin_inset Formula $t_{\mathrm{f}}$
+\end_inset
+
+:
+\begin_inset Formula 
+\begin{equation}
+\int_{0}^{t_{\mathrm{f}}}\frac{\partial u}{\partial t}w\;\mathrm{d}t=\int_{0}^{t_{\mathrm{f}}}f(\,u(t),\,t\,)\,w\;\mathrm{d}t\;,\quad\forall w\;.\label{eq:weak}
+\end{equation}
+
+\end_inset
+
+The quantifier is taken over admissible test functions 
+\begin_inset Formula $w$
+\end_inset
+
+ (in some technically appropriate sense).
+\end_layout
+
+\begin_layout Standard
+Unlike in finite elements, which are typically used for second-order boundary
+ value problems (or initial boundary value problems), integration by parts
+ would not do us much good here, since 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:weak"
+
+\end_inset
+
+ only needs the first derivative.
+ In a pure Galerkin method, the same set of functions is used as both the
+ basis functions of 
+\begin_inset Formula $u$
+\end_inset
+
+, and as the test functions 
+\begin_inset Formula $w$
+\end_inset
+
+.
+ In such a setting, moving the derivative from 
+\begin_inset Formula $u$
+\end_inset
+
+ to 
+\begin_inset Formula $w$
+\end_inset
+
+ would not gain us anything.
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+ (Discontinuous Petrov--Galerkin methods, where the test functions are chosen
+ to be different from the basis functions, also exist.)
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Instead, looking at what this integration buys us, the idea is to relax
+ the requirements on 
+\begin_inset Formula $u$
+\end_inset
+
+ (and 
+\begin_inset Formula $w$
+\end_inset
+
+): we seek a solution in 
+\begin_inset Formula $C^{-1}$
+\end_inset
+
+, i.e.
+ allow 
+\begin_inset Formula $u$
+\end_inset
+
+ (and 
+\begin_inset Formula $w$
+\end_inset
+
+) to have finite jumps (discontinuities) across the element boundaries.
+ This complicates the method slightly, because we must account for 
+\begin_inset Quotes eld
+\end_inset
+
+derivatives of finite discontinuities
+\begin_inset Quotes erd
+\end_inset
+
+, i.e.
+ Dirac deltas.
+\end_layout
+
+\begin_layout Standard
+In order to develop the argument further, some background is first needed.
+ The following five sections cover the necessary topics.
+ In the first two, we will briefly review the basics.
+ The rest are focused on issues getting successively closer to the problem
+ at hand.
+ We will continue with the problem itself in section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sub:DG-Developing-the-weak"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Piecewise continuous functions and jumps
+\end_layout
+
+\begin_layout Standard
+Let 
+\begin_inset Formula $v(t)$
+\end_inset
+
+ be a left-continuous or right-continuous function with a jump at 
+\begin_inset Formula $t_{0}$
+\end_inset
+
+,
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+v(t)=\begin{cases}
+v_{-}(t)\;, & t\le t_{0}\;\text{(if L.C.)}\;,\quad t<t_{0}\;\text{(if R.C.)}\;,\\
+v_{+}(t)\;, & t>t_{0}\;\text{(if L.C.)}\;,\quad t\ge t_{0}\;\text{(if R.C.)}\;,
+\end{cases}\label{eq:v}
+\end{equation}
+
+\end_inset
+
+where 
+\begin_inset Formula $v_{-}(t)$
+\end_inset
+
+ and 
+\begin_inset Formula $v_{+}(t)$
+\end_inset
+
+ are continuous (i.e.
+ at least 
+\begin_inset Formula $C^{0}$
+\end_inset
+
+) functions.
+\end_layout
+
+\begin_layout Standard
+According to the theory of distributions (generalized functions), the derivative
+ of 
+\begin_inset Formula $v(t)$
+\end_inset
+
+ can be written as
+\begin_inset Formula 
+\begin{equation}
+\frac{\partial v}{\partial t}(t)=\begin{cases}
+{\displaystyle \frac{\partial v_{-}}{\partial t}}(t)\;, & t<t_{0}\;,\\
+\underset{\varepsilon\rightarrow0^{+}}{\lim}\left(v_{+}(t_{0}+\varepsilon)-v_{-}(t_{0}-\varepsilon)\right)\delta(t-t_{0})\;, & t=t_{0}\;,\\
+{\displaystyle \frac{\partial v_{+}}{\partial t}}(t)\;, & t>t_{0}\;,
+\end{cases}\label{eq:dvdt}
+\end{equation}
+
+\end_inset
+
+where 
+\begin_inset Formula $\delta(\dots)$
+\end_inset
+
+ is the Dirac delta distribution.
+ Generalization of 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:v"
+
+\end_inset
+
+--
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:dvdt"
+
+\end_inset
+
+ to any finite number of discontinuities is obvious.
+\end_layout
+
+\begin_layout Standard
+To shorten the notation, the limit expression in 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:dvdt"
+
+\end_inset
+
+ is often abbreviated by defining the 
+\emph on
+jump operator
+\emph default
+ 
+\begin_inset Formula $[\dots]$
+\end_inset
+
+, which maps functions to functions:
+\begin_inset Formula 
+\begin{equation}
+[F](t):=\underset{\varepsilon\rightarrow0^{+}}{\lim}\left(F(t+\varepsilon)-F(t-\varepsilon)\right)\;.\label{eq:vjump}
+\end{equation}
+
+\end_inset
+
+Note that if 
+\begin_inset Formula $F$
+\end_inset
+
+ is continuous at a point 
+\begin_inset Formula $t$
+\end_inset
+
+, then at that point 
+\begin_inset Formula $[F](t)=F(t)$
+\end_inset
+
+; for continuous functions 
+\begin_inset Formula $[\dots]$
+\end_inset
+
+ is the identity operator.
+ In general, it is of course assumed that 
+\begin_inset Formula $F$
+\end_inset
+
+ is sufficiently mildly behaved so that the left and right limits exist
+ at the point 
+\begin_inset Formula $t$
+\end_inset
+
+, so that the definition 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:vjump"
+
+\end_inset
+
+ actually makes sense.
+ (This of course is true for 
+\begin_inset Formula $v(t)$
+\end_inset
+
+ defined above.)
+\end_layout
+
+\begin_layout Standard
+Inserting 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:vjump"
+
+\end_inset
+
+ in 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:dvdt"
+
+\end_inset
+
+, we have the (hopefully) more readable notation
+\begin_inset Formula 
+\begin{equation}
+\frac{\partial v}{\partial t}(t)=\begin{cases}
+{\displaystyle \frac{\partial v_{-}}{\partial t}}(t)\;, & t<t_{0}\;,\\{}
+[v](t_{0})\,\delta(t-t_{0})\;, & t=t_{0}\;,\\
+{\displaystyle \frac{\partial v_{+}}{\partial t}}(t)\;, & t>t_{0}\;,
+\end{cases}\;.\label{eq:dvdt-2}
+\end{equation}
+
+\end_inset
+
+Observe that 
+\begin_inset Formula $[v](t_{0})$
+\end_inset
+
+ can be treated simply as a number, which is in principle explicitly obtainable
+ from the definitions 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:vjump"
+
+\end_inset
+
+ and 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:v"
+
+\end_inset
+
+ (just take the right and left limits of 
+\begin_inset Formula $v(t)$
+\end_inset
+
+ at 
+\begin_inset Formula $t_{0}$
+\end_inset
+
+ and subtract them).
+ Thus, as well as the jump operator 
+\begin_inset Formula $[\dots]$
+\end_inset
+
+, we may speak of 
+\emph on
+the jump
+\emph default
+ 
+\begin_inset Formula $[v](t_{0})$
+\end_inset
+
+ --- i.e.
+ the result, when the jump operator is applied to a given function at a
+ given point.
+\end_layout
+
+\begin_layout Subsection
+The Dirac delta distribution and the Heaviside step function
+\end_layout
+
+\begin_layout Standard
+Formally, the Dirac delta is given by
+\begin_inset Formula 
+\begin{equation}
+\delta(\tau)=\begin{cases}
++\infty\;, & \tau=0\;,\\
+0\;, & \tau\ne0\;,
+\end{cases}\label{eq:dirac-delta}
+\end{equation}
+
+\end_inset
+
+with the constraint
+\begin_inset Formula 
+\begin{equation}
+\int_{-\infty}^{+\infty}\delta(\tau)\;\mathrm{d}\tau=1\;,\label{eq:delta-normalization}
+\end{equation}
+
+\end_inset
+
+which defines the singularity to be of 
+\begin_inset Quotes eld
+\end_inset
+
+unit mass
+\begin_inset Quotes erd
+\end_inset
+
+ (when the delta distribution is interpreted as the density function of
+ an ideal point mass).
+ The Dirac delta distribution satisfies the property
+\begin_inset Formula 
+\begin{equation}
+\int_{-\infty}^{+\infty}f(\tau)\,\delta(\tau)\;\mathrm{d}\tau=f(0)\;.\label{eq:property}
+\end{equation}
+
+\end_inset
+
+Importantly, the Dirac delta distribution is not square integrable (
+\begin_inset Formula $\delta\not\in L^{2}(\mathbb{R})$
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+Strictly speaking, 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:property"
+
+\end_inset
+
+ is an abuse of notation, because no function (in the classical sense) satisfyin
+g 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:property"
+
+\end_inset
+
+ exists.
+ What equation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:property"
+
+\end_inset
+
+ actually means, must be defined in some mathematically rigorous fashion.
+ One option is to define 
+\begin_inset Formula $\delta$
+\end_inset
+
+ as a measure.
+ When given a subset 
+\begin_inset Formula $A$
+\end_inset
+
+ of the real line 
+\begin_inset Formula $\mathbb{R}$
+\end_inset
+
+, we define 
+\begin_inset Formula $\delta(A)=1$
+\end_inset
+
+ if 
+\begin_inset Formula $0\in A$
+\end_inset
+
+, and 
+\begin_inset Formula $\delta(A)=0$
+\end_inset
+
+ otherwise.
+ Then we take the left-hand side of 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:property"
+
+\end_inset
+
+ to mean the integral of 
+\begin_inset Formula $f$
+\end_inset
+
+ against this measure, 
+\begin_inset Formula $\int_{-\infty}^{+\infty}f(\tau)\delta\{\mathrm{d}\tau\}$
+\end_inset
+
+.
+ Alternatively, one may use the theory of distributions, where distributions
+ are integral functionals; then 
+\begin_inset Quotes eld
+\end_inset
+
+
+\begin_inset Formula $\delta(\tau)$
+\end_inset
+
+
+\begin_inset Quotes erd
+\end_inset
+
+ does not need to exist as an independent object outside the context of
+ the integral 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:property"
+
+\end_inset
+
+.
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+
+\family sans
+\begin_inset CommandInset href
+LatexCommand href
+target "https://en.wikipedia.org/wiki/Dirac_delta_function#Definitions"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The Dirac delta can be understood as a limit of a sequence of functions.
+ For example, consider the following sequence of piecewise constant functions
+ (with two jumps):
+\begin_inset Formula 
+\begin{equation}
+d_{n}(\tau):=\begin{cases}
+0\;, & \tau<-1/2n\;,\\
+n\;, & -1/2n<\tau<+1/2n\;,\\
+0\;, & \tau>+1/2n\;,
+\end{cases}\label{eq:dn}
+\end{equation}
+
+\end_inset
+
+where 
+\begin_inset Formula $n=1,2,\dots$
+\end_inset
+
+ Left- or right-continuity does not matter for this example, so we have
+ simply left 
+\begin_inset Formula $d_{n}(\tau)$
+\end_inset
+
+ undefined at the discontinuities.
+ Geometrically, 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:dn"
+
+\end_inset
+
+ describes a sequence of rectangles, which become narrower and higher as
+ 
+\begin_inset Formula $n$
+\end_inset
+
+ increases.
+ The width and height are chosen such that the area remains constant; each
+ 
+\begin_inset Formula $d_{n}(\tau)$
+\end_inset
+
+ satisfies the normalization 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:delta-normalization"
+
+\end_inset
+
+.
+ At 
+\begin_inset Formula $n\rightarrow\infty$
+\end_inset
+
+, the limit of the sequence 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:dn"
+
+\end_inset
+
+ is the Dirac delta.
+\end_layout
+
+\begin_layout Standard
+One may also use
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+
+\family sans
+\begin_inset CommandInset href
+LatexCommand href
+target "https://en.wikipedia.org/wiki/Dirac_delta_function"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+ a sequence of zero-centered normal distributions
+\begin_inset Formula 
+\[
+\rho_{a}(\tau):=\frac{1}{a\sqrt{\pi}}\exp(-x^{2}/a^{2})\;,
+\]
+
+\end_inset
+
+as 
+\begin_inset Formula $a\rightarrow0$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+A close relative of the Dirac delta distribution is the Heaviside step function:
+\begin_inset Formula 
+\begin{equation}
+H(t)=\begin{cases}
+0\;, & t\le t_{0}\;\text{(if L.C.)}\;,\quad t<t_{0}\;\text{(if R.C.)}\;,\\
+1\;, & t>t_{0}\;\text{(if L.C.)}\;,\quad t\ge t_{0}\;\text{(if R.C.)}\;,
+\end{cases}\label{eq:Heaviside}
+\end{equation}
+
+\end_inset
+
+These are related as follows.
+ Observe that if 
+\begin_inset Formula $b<0$
+\end_inset
+
+, then
+\begin_inset Formula 
+\begin{equation}
+\int_{-\infty}^{b}\delta(\tau)\,\mathrm{d}\tau=0\;,\quad b<0\;,\label{eq:blt0}
+\end{equation}
+
+\end_inset
+
+because 
+\begin_inset Formula $\delta(\tau)=0$
+\end_inset
+
+ for all 
+\begin_inset Formula $\tau<0$
+\end_inset
+
+.
+ On the other hand, for any 
+\begin_inset Formula $b\ne0$
+\end_inset
+
+, by 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:property"
+
+\end_inset
+
+ we have
+\begin_inset Formula 
+\begin{equation}
+1=\int_{-\infty}^{\infty}\delta(\tau)\,\mathrm{d}\tau=\int_{-\infty}^{b}\delta(\tau)\,\mathrm{d}\tau+\int_{b}^{+\infty}\delta(\tau)\,\mathrm{d}\tau\;.\label{eq:delta-split}
+\end{equation}
+
+\end_inset
+
+Consider the case 
+\begin_inset Formula $b>0$
+\end_inset
+
+.
+ The second term vanishes (because 
+\begin_inset Formula $\delta(\tau)=0$
+\end_inset
+
+ for all 
+\begin_inset Formula $\tau>0$
+\end_inset
+
+).
+ Only the first term remains, with the result
+\begin_inset Formula 
+\begin{equation}
+\int_{-\infty}^{b}\delta(\tau)\,\mathrm{d}\tau=1\;,\quad b>0\;.\label{eq:bgt0}
+\end{equation}
+
+\end_inset
+
+Comparing 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:blt0"
+
+\end_inset
+
+, 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:bgt0"
+
+\end_inset
+
+ and 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:Heaviside"
+
+\end_inset
+
+, we see that at least for any 
+\begin_inset Formula $b\ne0$
+\end_inset
+
+, the Heaviside step function is the cumulative distribution function of
+ the Dirac delta distribution:
+\begin_inset Formula 
+\begin{equation}
+\int_{-\infty}^{b}\delta(\tau)\,\mathrm{d}\tau=H(b)\;,\quad b\ne0\;.\label{eq:integral-of-delta-temp}
+\end{equation}
+
+\end_inset
+
+To cover the final case 
+\begin_inset Formula $b=0$
+\end_inset
+
+, as always when dealing with infinities, one must be careful.
+ The singularity must be counted only once.
+ One way to do this is to modify 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:delta-split"
+
+\end_inset
+
+ to read
+\begin_inset Formula 
+\begin{equation}
+1=\int_{-\infty}^{\infty}\delta(\tau)\,\mathrm{d}\tau=\underset{\varepsilon\rightarrow0^{+}}{\lim}\left(\int_{-\infty}^{\varepsilon}\delta(\tau)\,\mathrm{d}\tau+\int_{\varepsilon}^{+\infty}\delta(\tau)\,\mathrm{d}\tau\right)\;,\label{eq:delta-split-modified-pos}
+\end{equation}
+
+\end_inset
+
+which places the split unambiguously on one side of the origin (here the
+ positive side).
+ Then we evaluate the integrals and take the limit, in that order.
+ The first term remains, while the second one vanishes.
+ Considering that the result is similar in form to 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:integral-of-delta-temp"
+
+\end_inset
+
+ (but now with 
+\begin_inset Formula $b=0$
+\end_inset
+
+), we conclude that 
+\begin_inset Formula $H(0)=1$
+\end_inset
+
+.
+ Thus placing the split on the positive side of the origin, as in 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:delta-split-modified-pos"
+
+\end_inset
+
+, corresponds to choosing 
+\begin_inset Formula $H$
+\end_inset
+
+ to be right-continuous.
+\end_layout
+
+\begin_layout Standard
+If, on the other hand, the split is placed on the negative side of the origin,
+\begin_inset Formula 
+\begin{equation}
+1=\int_{-\infty}^{\infty}\delta(\tau)\,\mathrm{d}\tau=\underset{\varepsilon\rightarrow0^{+}}{\lim}\left(\int_{-\infty}^{-\varepsilon}\delta(\tau)\,\mathrm{d}\tau+\int_{-\varepsilon}^{+\infty}\delta(\tau)\,\mathrm{d}\tau\right)\;,\label{eq:delta-split-modified-neg}
+\end{equation}
+
+\end_inset
+
+then the first term, which (as above) tentatively defines 
+\begin_inset Formula $H(0)$
+\end_inset
+
+, is zero.
+ Hence this choice corresponds to choosing 
+\begin_inset Formula $H$
+\end_inset
+
+ to be left-continuous.
+\end_layout
+
+\begin_layout Standard
+We conclude that
+\begin_inset Formula 
+\begin{equation}
+\int_{-\infty}^{b}\delta(\tau)\,\mathrm{d}\tau=H(b)\label{eq:H-is-the-integral-of-delta}
+\end{equation}
+
+\end_inset
+
+for any 
+\begin_inset Formula $b$
+\end_inset
+
+, with the case 
+\begin_inset Formula $b=0$
+\end_inset
+
+ requiring special interpretation as explained above.
+ (If 
+\begin_inset Formula $H$
+\end_inset
+
+ is L.C., then also the LHS is zero; if 
+\begin_inset Formula $H$
+\end_inset
+
+ is R.C., then the LHS is 
+\begin_inset Formula $1$
+\end_inset
+
+.)
+\end_layout
+
+\begin_layout Standard
+Finally, considering 
+\begin_inset Formula $b$
+\end_inset
+
+ as a variable and formally differentiating 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:H-is-the-integral-of-delta"
+
+\end_inset
+
+ with respect to 
+\begin_inset Formula $b$
+\end_inset
+
+, it is seen (only formally!) that
+\begin_inset Formula 
+\begin{equation}
+\delta(b)=\frac{\partial H}{\partial b}(b)\;.\label{eq:delta-is-the-derivative-of-H}
+\end{equation}
+
+\end_inset
+
+Rigorously showing 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:delta-is-the-derivative-of-H"
+
+\end_inset
+
+ requires further development beyond the scope of this short review.
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+Equation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:delta-is-the-derivative-of-H"
+
+\end_inset
+
+ holds at least in the distributional sense.
+\begin_inset Newline newline
+\end_inset
+
+
+\family sans
+
+\begin_inset CommandInset href
+LatexCommand href
+target "https://en.wikipedia.org/wiki/Heaviside_step_function"
+
+\end_inset
+
+
+\family default
+
+\begin_inset Newline newline
+\end_inset
+
+
+\family sans
+
+\begin_inset CommandInset href
+LatexCommand href
+target "https://en.wikipedia.org/wiki/Distribution_%28mathematics%29#Differentiation"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+The continuous part
+\end_layout
+
+\begin_layout Standard
+It is useful to define the 
+\emph on
+continuous part
+\emph default
+ of 
+\begin_inset Formula $v(t)$
+\end_inset
+
+, denoted here 
+\begin_inset Formula $\widehat{v}(t)$
+\end_inset
+
+:
+\begin_inset Formula 
+\begin{equation}
+\widehat{v}(t):=v(t)-[v](t_{0})\,H(t-t_{0})\;,\label{eq:contpart}
+\end{equation}
+
+\end_inset
+
+where 
+\begin_inset Formula $H(\dots)$
+\end_inset
+
+ is the Heaviside step function.
+ The jump 
+\begin_inset Formula $[v](t_{0})$
+\end_inset
+
+ is simply a number obtainable from 
+\begin_inset Formula $v(t)$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+To justify the name, it must be shown that 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:contpart"
+
+\end_inset
+
+ is indeed continuous.
+ The continuity follows from 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:v"
+
+\end_inset
+
+.
+ Obviously, at any fixed 
+\begin_inset Formula $t\ne t_{0}$
+\end_inset
+
+, 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:contpart"
+
+\end_inset
+
+ is continuous, because 
+\begin_inset Formula $v$
+\end_inset
+
+ is, and the Heaviside function is then constant in a small neighborhood
+ of 
+\begin_inset Formula $t$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Thus we only need to show continuity at the point 
+\begin_inset Formula $t=t_{0}$
+\end_inset
+
+.
+ The limit from the left is
+\begin_inset Formula 
+\begin{align}
+\underset{\varepsilon\rightarrow0^{+}}{\lim}\widehat{v}(t_{0}-\varepsilon)\; & =\;v_{-}(t_{0})-[v](t_{0})\,\underset{\varepsilon\rightarrow0^{+}}{\lim}H(-\varepsilon)\nonumber \\
+ & =\;v_{-}(t_{0})\;,\label{eq:limleft}
+\end{align}
+
+\end_inset
+
+where we have used the fact that 
+\begin_inset Formula $H(-t)$
+\end_inset
+
+ is zero for all 
+\begin_inset Formula $t>0$
+\end_inset
+
+.
+ In order to have continuity, 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:limleft"
+
+\end_inset
+
+ must match the limit from the right,
+\begin_inset Formula 
+\begin{align}
+\underset{\varepsilon\rightarrow0^{+}}{\lim}\widehat{v}(t_{0}+\varepsilon)\; & =\;v_{+}(t_{0})-[v](t_{0})\,\underset{\varepsilon\rightarrow0^{+}}{\lim}H(+\varepsilon)\nonumber \\
+ & =\;v_{+}(t_{0})-[v](t_{0})\nonumber \\
+ & =\;v_{+}(t_{0})-(v_{+}(t_{0})-v_{-}(t_{0}))\nonumber \\
+ & =\;v_{-}(t_{0})\;,\label{eq:limright}
+\end{align}
+
+\end_inset
+
+where we have used 
+\begin_inset Formula $H(t)=1$
+\end_inset
+
+ for all 
+\begin_inset Formula $t>0$
+\end_inset
+
+.
+ Thus continuity holds also at 
+\begin_inset Formula $t_{0}$
+\end_inset
+
+.
+ Here it does not matter whether 
+\begin_inset Formula $H$
+\end_inset
+
+ is taken to be left- or right-continuous, because it is never evaluated
+ at 
+\begin_inset Formula $\varepsilon=0$
+\end_inset
+
+; only the one-sided limits are needed.
+\end_layout
+
+\begin_layout Standard
+Now we may reinterpret the definition of 
+\begin_inset Formula $\widehat{v}(t)$
+\end_inset
+
+, equation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:contpart"
+
+\end_inset
+
+, as decomposing 
+\begin_inset Formula $v(t)$
+\end_inset
+
+ into a continuous function and a Heaviside step function times the jump:
+\begin_inset Formula 
+\begin{equation}
+v(t)=\widehat{v}(t)+[v](t_{0})\,H(t-t_{0})\;.\label{eq:v-split}
+\end{equation}
+
+\end_inset
+
+For this interpretation to make sense at 
+\begin_inset Formula $t=t_{0}$
+\end_inset
+
+, the left- or right-continuity of 
+\begin_inset Formula $H$
+\end_inset
+
+ must be chosen to match that of 
+\begin_inset Formula $v$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Differentiation and definite integration of piecewise continuous functions
+\end_layout
+
+\begin_layout Standard
+The decomposition 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:v-split"
+
+\end_inset
+
+ allows us to rewrite 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:dvdt-2"
+
+\end_inset
+
+ as
+\begin_inset Formula 
+\begin{equation}
+\frac{\partial v}{\partial t}(t)=\frac{\partial\widehat{v}}{\partial t}(t)+[v](t_{0})\,\delta(t-t_{0})\;,\label{eq:dvdt-3}
+\end{equation}
+
+\end_inset
+
+using the relation between the Heaviside step function and the Dirac delta
+ distribution.
+ Equation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:dvdt-3"
+
+\end_inset
+
+ gives us the necessary tool to formally treat the integration of 
+\begin_inset Formula $v'(t)$
+\end_inset
+
+ over an interval 
+\begin_inset Formula $(a,b)$
+\end_inset
+
+ containing the singularity at 
+\begin_inset Formula $t_{0}$
+\end_inset
+
+ (i.e.
+ 
+\begin_inset Formula $a<t_{0}<b$
+\end_inset
+
+).
+ We have
+\begin_inset Note Note
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Formula 
+\begin{align*}
+\int_{a}^{b}v'(t)\;\mathrm{d}t & \equiv\underset{\epsilon\rightarrow0^{+}}{\lim}\left(\int_{a}^{t_{0}-\epsilon}v'(t)\;\mathrm{d}t+\int_{t_{0}-\epsilon}^{t_{0}+\epsilon}v'(t)\;\mathrm{d}t+\int_{t_{0}+\epsilon}^{b}v'(t)\;\mathrm{d}t\right)\\
+ & =\underset{\epsilon\rightarrow0^{+}}{\lim}\left(v(t_{0}-\epsilon)-v(a)+\int_{t_{0}-\epsilon}^{t_{0}+\epsilon}v'(t)\;\mathrm{d}t+v(b)-v(t_{0}+\epsilon)\right)\\
+ & =v(b)-v(a)+\underset{\epsilon\rightarrow0^{+}}{\lim}\int_{t_{0}-\epsilon}^{t_{0}+\epsilon}v'(t)\;\mathrm{d}t\\
+ & =v(b)-v(a)+[v](t_{0})\;.
+\end{align*}
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\begin_inset Formula 
+\begin{align*}
+\int_{a}^{b}v'(t)\;\mathrm{d}t & =\int_{a}^{b}\widehat{v}'(t)\;\mathrm{d}t+\int_{a}^{b}[v](t_{0})\,\delta(t-t_{0})\;\mathrm{d}t\\
+ & =\int_{a}^{b}\widehat{v}'(t)\;\mathrm{d}t+[v](t_{0})\int_{a}^{b}\delta(t-t_{0})\;\mathrm{d}t\\
+ & =\int_{a}^{b}\widehat{v}'(t)\;\mathrm{d}t+[v](t_{0})\\
+ & =\widehat{v}(b)-\widehat{v}(a)+[v](t_{0})\;.
+\end{align*}
+
+\end_inset
+
+The last integral on the second line evaluates to 
+\begin_inset Formula $1$
+\end_inset
+
+, because we are considering the case where 
+\begin_inset Formula $t_{0}\in(a,b)$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Finally, consider terms of the same form as the first term in the weak form,
+ equation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:weak"
+
+\end_inset
+
+, and let both 
+\begin_inset Formula $u$
+\end_inset
+
+ and 
+\begin_inset Formula $w$
+\end_inset
+
+ have a jump at 
+\begin_inset Formula $t_{0}\in(a,b)$
+\end_inset
+
+.
+ (This choice is motivated by the fact that we aim to construct a classical
+ Galerkin method, where the basis and test functions are taken to be the
+ same.) By 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:v-split"
+
+\end_inset
+
+ and 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:dvdt-3"
+
+\end_inset
+
+, we have
+\begin_inset Formula 
+\begin{align}
+\int_{a}^{b}u'(t)w(t)\;\mathrm{d}t & =\int_{a}^{b}\Bigl(\widehat{u}'(t)+[u](t_{0})\,\delta(t-t_{0})\Bigr)\Bigl(\widehat{w}(t)+[w](t_{0})\,H(t-t_{0})\Bigr)\;\mathrm{d}t\nonumber \\
+ & =\int_{a}^{b}\widehat{u}'(t)\widehat{w}(t)\;\mathrm{d}t\nonumber \\
+ & +[w](t_{0})\int_{a}^{b}\widehat{u}'(t)H(t-t_{0})\;\mathrm{d}t\nonumber \\
+ & +[u](t_{0})\int_{a}^{b}\widehat{w}(t)\,\delta(t-t_{0})\;\mathrm{d}t\nonumber \\
+ & +[u](t_{0})[w](t_{0})\int_{a}^{b}H(t-t_{0})\delta(t-t_{0})\;\mathrm{d}t\nonumber \\
+ & =\int_{a}^{b}\widehat{u}'(t)\widehat{w}(t)\;\mathrm{d}t+[w](t_{0})\int_{t_{0}}^{b}\widehat{u}'(t)\;\mathrm{d}t+[u](t_{0})\widehat{w}(t_{0})+[u](t_{0})[w](t_{0})H(0)\nonumber \\
+ & =\int_{a}^{b}\widehat{u}'(t)\widehat{w}(t)\;\mathrm{d}t+[w](t_{0})(\,\widehat{u}(b)-\widehat{u}(t_{0})\,)+[u](t_{0})(\,\widehat{w}(t_{0})+[w](t_{0})H(0)\,)\nonumber \\
+ & =\int_{a}^{b}\widehat{u}'(t)\widehat{w}(t)\;\mathrm{d}t+[w](t_{0})(\,\widehat{u}(b)-\widehat{u}(t_{0})\,)+[u](t_{0})\,w(t_{0})\;,\label{eq:firstterm-result}
+\end{align}
+
+\end_inset
+
+where in the last step we have used 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:v-split"
+
+\end_inset
+
+.
+ Here it does not matter whether 
+\begin_inset Formula $u$
+\end_inset
+
+ and 
+\begin_inset Formula $w$
+\end_inset
+
+ are left- or right-continuous.
+\end_layout
+
+\begin_layout Subsection
+Functions with several jumps
+\end_layout
+
+\begin_layout Standard
+Finally, let us consider how to treat functions with several discontinuities.
+ Let 
+\begin_inset Formula $u(t)$
+\end_inset
+
+ be a left-continuous function with 
+\begin_inset Formula $N\ge2$
+\end_inset
+
+ jumps, located at points 
+\begin_inset Formula $t_{k}$
+\end_inset
+
+, 
+\begin_inset Formula $k=1,2,\dots,N$
+\end_inset
+
+:
+\begin_inset Formula 
+\begin{equation}
+u(t)=\widehat{u}(t)+\underset{k=1}{\overset{N}{\sum}}[u](t_{k})\,H(t-t_{k})\;.\label{eq:u-Njumps}
+\end{equation}
+
+\end_inset
+
+Because 
+\begin_inset Formula $H(\tau)=1$
+\end_inset
+
+ for all 
+\begin_inset Formula $\tau>0$
+\end_inset
+
+, we may write for given 
+\begin_inset Formula $\kappa$
+\end_inset
+
+ and 
+\begin_inset Formula $t>t_{\kappa}$
+\end_inset
+
+ that
+\begin_inset Formula 
+\begin{equation}
+u_{\kappa}(t)=\widehat{u}(t)+c_{\kappa}+\underset{k=\kappa+1}{\overset{N}{\sum}}[u](t_{k})\,H(t-t_{k})\;,\quad1\le\kappa\le N,\;t>t_{\kappa}\;.\label{eq:u-kappa}
+\end{equation}
+
+\end_inset
+
+where
+\begin_inset Formula 
+\begin{equation}
+c_{\kappa}:=\underset{k=1}{\overset{\kappa}{\sum}}[u](t_{k})\;.\label{eq:c-kappa}
+\end{equation}
+
+\end_inset
+
+Following the convention from many programming languages, if 
+\begin_inset Formula $\kappa=N$
+\end_inset
+
+, we ignore the sum in 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:u-kappa"
+
+\end_inset
+
+ because then its start index is greater than its end index, and similarly
+ for the case 
+\begin_inset Formula $\kappa=0$
+\end_inset
+
+ in 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:c-kappa"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+If we further restrict our consideration to the interval 
+\begin_inset Formula $t\in(t_{\kappa},t_{\kappa+2})$
+\end_inset
+
+, then
+\begin_inset Formula 
+\begin{equation}
+u_{\kappa}(t)=\widehat{u}(t)+c_{\kappa}+[u](t_{\kappa+1})\,H(t-t_{\kappa+1})\;,\quad1\le\kappa\le N,\;t\in(t_{\kappa},t_{\kappa+2})\;,\label{eq:u-kappa-local}
+\end{equation}
+
+\end_inset
+
+locally returning to a form with only one discontinuity, allowing us to
+ use the equations already developed.
+ (For the purposes of 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:u-kappa-local"
+
+\end_inset
+
+, we use the convention that for any 
+\begin_inset Formula $k>N$
+\end_inset
+
+, 
+\begin_inset Formula $t_{k}=+\infty$
+\end_inset
+
+.)
+\end_layout
+
+\begin_layout Standard
+To obtain a version of 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:firstterm-result"
+
+\end_inset
+
+ for the present case, it is convenient to split the interval of integration
+ so that each subinterval contains up to one discontinuity, allowing us
+ to apply 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:firstterm-result"
+
+\end_inset
+
+ separately to each, and for this, use the form 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:u-kappa-local"
+
+\end_inset
+
+ to represent 
+\begin_inset Formula $u$
+\end_inset
+
+ (and 
+\begin_inset Formula $w$
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+Considering that the aim is to develop a timestepping method on an interval
+ 
+\begin_inset Formula $t\in[a,b]$
+\end_inset
+
+, we would like to choose the limits of integration as 
+\begin_inset Formula $I_{k}=(t_{k},t_{k+1})$
+\end_inset
+
+ for 
+\begin_inset Formula $k=0,1,\dots,N$
+\end_inset
+
+, setting 
+\begin_inset Formula $t_{0}=a$
+\end_inset
+
+ and 
+\begin_inset Formula $t_{N+1}=b$
+\end_inset
+
+.
+ However, to avoid ambiguities in handling the delta distribution, we must
+ actually use 
+\begin_inset Formula $I_{k}\equiv\underset{\varepsilon\rightarrow0^{+}}{\lim}I_{k}^{\varepsilon}$
+\end_inset
+
+, where 
+\begin_inset Formula $I_{k}^{\varepsilon}=(t_{k}-\varepsilon,t_{k+1}-\varepsilon)$
+\end_inset
+
+.
+ 
+\end_layout
+
+\begin_layout Standard
+Keep in mind that we plan to treat our solution as left-continuous.
+ To keep things in line with the intuitive picture, we require 
+\begin_inset Formula $\varepsilon<\frac{1}{2}\min\{t_{k+1}-t_{k}:\;k=0,1,\dots,N\}$
+\end_inset
+
+, guaranteeing that each interval covers only one discontinuity.
+ The epsilon in the lower limit makes the local discontinuity fall strictly
+ inside each 
+\begin_inset Formula $I_{k}^{\varepsilon}$
+\end_inset
+
+, and the one in the upper limit retains the lengths and the non-overlapping
+ property of the intervals.
+\end_layout
+
+\begin_layout Standard
+Thus, we have
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\int_{a}^{b}u'(t)w(t)\;\mathrm{d}t=\underset{\varepsilon\rightarrow0^{+}}{\lim}\underset{k=0}{\overset{N}{\sum}}\int_{t_{k}-\varepsilon}^{t_{k+1}-\varepsilon}u'(t)w(t)\;\mathrm{d}t\;.\label{eq:severaljumps}
+\end{equation}
+
+\end_inset
+
+It will however be simpler in practice to consider the case with just one
+ timestep, sidestepping the need for 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:severaljumps"
+
+\end_inset
+
+, and also avoiding the need to keep track of the constants 
+\begin_inset Formula $c_{\kappa}$
+\end_inset
+
+ for the representation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:u-kappa-local"
+
+\end_inset
+
+.
+ This is possible due to two reasons.
+\end_layout
+
+\begin_layout Standard
+First, we observe that each jump connects only adjacent intervals.
+\begin_inset Note Note
+status collapsed
+
+\begin_layout Plain Layout
+By choosing 
+\begin_inset Formula $u(t)$
+\end_inset
+
+ and 
+\begin_inset Formula $w(t)$
+\end_inset
+
+ to be left-continuous, the current timestep connects only to the previous
+ one, because then 
+\begin_inset Formula $u(t_{k+1})$
+\end_inset
+
+ 
+\begin_inset Quotes eld
+\end_inset
+
+belongs
+\begin_inset Quotes erd
+\end_inset
+
+ to the 
+\emph on
+current
+\emph default
+ timestep.
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+This holds independently of whether the method is explicit or implicit.
+ The explicit/implicit nature of the method is a separate design decision
+ that comes into play when we choose the algorithm that we use to approximate
+ the integral.
+ Note that since this is a Galerkin method, the model for the unknown 
+\begin_inset Formula $u(t)$
+\end_inset
+
+ inside the timestep is specified by the choice of the basis functions.###TODO
+ revisit this when done
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+ Due to the form of our problem 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IVP"
+
+\end_inset
+
+--
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IC"
+
+\end_inset
+
+, we may split it into a sequence of subproblems on 
+\begin_inset Formula $I_{k}$
+\end_inset
+
+, with the final value 
+\begin_inset Formula $u(t_{k+1})$
+\end_inset
+
+ from the current timestep fed into the next one as the initial condition
+ 
+\begin_inset Formula $u_{0}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Secondly, without loss of generality, in the Galerkin setup to follow later,
+ we may choose the global basis functions (and in a pure Galerkin method,
+ hence also the global test functions) to have support only on one element
+ each.
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+Note that this differs from the finite element method, where (considering
+ classical conforming variants of the method, with classical basis functions
+ such as the Lagrange interpolation polynomials) the global basis functions
+ are typically attached to nodes, and have support on the patch of elements
+ surrounding the node.
+ There the global basis functions are pieced together in a matching way
+ from local basis functions on each element belonging to the patch.
+ Here, because the method is constructed to handle discontinuities of the
+ basis across element boundaries, there is no need to perform this patching.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+If we have a function, continuous across element boundaries, having support
+ on several elements, that we would like to use in the basis, then, because
+ this is a discontinuous method, we may always split it into parts restricted
+ to individual elements (by multiplying with a suitable indicator function),
+ and use those parts instead of using the original function.
+ (If the parts are used separately, this allows more freedom than the original
+ continuous function, since the pieces may then have different values for
+ their Galerkin coefficients.
+ If used as a sum (forcing the same coefficient for each part), this reduces
+ to using the original continuous function.)
+\end_layout
+
+\begin_layout Standard
+From these two properties we conclude that the method can be designed to
+ work locally, and hence it is sufficient to develop an algorithm to treat
+ a single interval 
+\begin_inset Formula $(t_{k},t_{k+1})$
+\end_inset
+
+ at a time.
+\end_layout
+
+\begin_layout Standard
+This completes the background.
+\end_layout
+
+\begin_layout Subsection
+Developing the weak form
+\begin_inset CommandInset label
+LatexCommand label
+name "sub:DG-Developing-the-weak"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Now we have the tools required for the problem at hand.
+ Let us split the domain 
+\begin_inset Formula $[0,t_{\mathrm{f}}]$
+\end_inset
+
+ into 
+\begin_inset Formula $N$
+\end_inset
+
+ intervals 
+\begin_inset Formula $I_{k}=[t_{k},t_{k+1}]$
+\end_inset
+
+, with 
+\begin_inset Formula $t_{1}=0$
+\end_inset
+
+ and 
+\begin_inset Formula $t_{N+1}=t_{\mathrm{f}}$
+\end_inset
+
+.
+ Let 
+\begin_inset Formula $u(t)=u_{0}$
+\end_inset
+
+ for all 
+\begin_inset Formula $t<0$
+\end_inset
+
+ (to make the expression 
+\begin_inset Formula $u(-\varepsilon)$
+\end_inset
+
+ valid).
+\end_layout
+
+\begin_layout Standard
+Let 
+\begin_inset Formula $u$
+\end_inset
+
+ be left-continuous and 
+\begin_inset Formula $w$
+\end_inset
+
+ right-continuous.
+ This 
+\begin_inset Quotes eld
+\end_inset
+
+complementarity
+\begin_inset Quotes erd
+\end_inset
+
+ of the continuity types is needed so that the test at 
+\begin_inset Formula $I_{k}$
+\end_inset
+
+ will 
+\begin_inset Quotes eld
+\end_inset
+
+see
+\begin_inset Quotes erd
+\end_inset
+
+ the final value of 
+\begin_inset Formula $u$
+\end_inset
+
+ on 
+\begin_inset Formula $I_{k-1}$
+\end_inset
+
+.
+ At the start of the 
+\begin_inset Formula $k$
+\end_inset
+
+th timestep, 
+\begin_inset Formula $u(t_{k})$
+\end_inset
+
+ is the final value from the previous timestep, while 
+\begin_inset Formula $w(t_{k})$
+\end_inset
+
+ is the starting value of the test for the current timestep.
+\end_layout
+
+\begin_layout Standard
+Keep in mind that the weak form 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:weak"
+
+\end_inset
+
+ must hold separately for each choice of 
+\begin_inset Formula $w$
+\end_inset
+
+.
+ Thus, each of the test functions must be defined on the whole interval
+ 
+\begin_inset Formula $[0,t_{\mathrm{f}}]$
+\end_inset
+
+.
+ In practice, we will choose them to be zero in most of the domain, nonzero
+ on one element, and having up to two jumps (one at each endpoint of its
+ support).
+\end_layout
+
+\begin_layout Standard
+Denote 
+\begin_inset Formula $u(t_{k})=u_{0}$
+\end_inset
+
+, the initial condition for this timestep.
+ Let 
+\begin_inset Formula $\varepsilon$
+\end_inset
+
+ be arbitrary, with 
+\begin_inset Formula $0<\varepsilon<\frac{1}{2}\min\{t_{k+1}-t_{k}:\;k=0,1,\dots,N\}$
+\end_inset
+
+.
+ Consider a right-continuous test function 
+\begin_inset Formula $w$
+\end_inset
+
+ having support only on 
+\begin_inset Formula $t\in[t_{k}-\varepsilon,t_{k+1}-\varepsilon)$
+\end_inset
+
+, and having a jump at 
+\begin_inset Formula $t_{k}$
+\end_inset
+
+.
+ Equation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:weak"
+
+\end_inset
+
+, i.e.,
+\begin_inset Formula 
+\[
+\int_{0}^{t_{\mathrm{f}}}\frac{\partial u}{\partial t}w\;\mathrm{d}t=\int_{0}^{t_{\mathrm{f}}}f(\,u(t),\,t\,)\,w\;\mathrm{d}t\;,\quad\forall w\;,
+\]
+
+\end_inset
+
+for such 
+\begin_inset Formula $w$
+\end_inset
+
+ becomes
+\begin_inset Formula 
+\begin{equation}
+\underset{\varepsilon\rightarrow0^{+}}{\lim}\int_{t_{k}-\varepsilon}^{t_{\mathrm{k+1}}-\varepsilon}\frac{\partial u}{\partial t}w\;\mathrm{d}t=\underset{\varepsilon\rightarrow0^{+}}{\lim}\int_{t_{k}-\varepsilon}^{t_{\mathrm{k+1}}-\varepsilon}f(\,u(t),\,t\,)\,w\;\mathrm{d}t\;,\label{eq:weak-Ik}
+\end{equation}
+
+\end_inset
+
+because elsewhere 
+\begin_inset Formula $w=0$
+\end_inset
+
+.
+ As was explained above, we must use limits in order to place the singularity
+ in 
+\begin_inset Formula $u'(t)$
+\end_inset
+
+ strictly inside the domain of integration.
+ This is also needed to count only the singularity at 
+\begin_inset Formula $t_{k}$
+\end_inset
+
+.
+ Because 
+\begin_inset Formula $u$
+\end_inset
+
+ is L.C.
+ and we approach 
+\begin_inset Formula $t_{k+1}$
+\end_inset
+
+ from the left, 
+\emph on
+within this timestep
+\emph default
+ 
+\begin_inset Formula $u'(t)$
+\end_inset
+
+ has no singularity at 
+\begin_inset Formula $t_{k+1}$
+\end_inset
+
+ (in the sense of the limit in 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:weak-Ik"
+
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+On the right-hand side of 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:weak-Ik"
+
+\end_inset
+
+, by the problem definition 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IVP"
+
+\end_inset
+
+--
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IC"
+
+\end_inset
+
+, the load function 
+\begin_inset Formula $f$
+\end_inset
+
+ involves no time differentiations of 
+\begin_inset Formula $u$
+\end_inset
+
+ or 
+\begin_inset Formula $w$
+\end_inset
+
+.
+ These functions are 
+\begin_inset Formula $C^{-1}$
+\end_inset
+
+ continuous.
+ Thus, if 
+\begin_inset Formula $f$
+\end_inset
+
+ itself is at least 
+\begin_inset Formula $C^{-1}$
+\end_inset
+
+ continuous in 
+\begin_inset Formula $u$
+\end_inset
+
+ and 
+\begin_inset Formula $t$
+\end_inset
+
+, then the integrand will not be worse than 
+\begin_inset Formula $C^{-1}$
+\end_inset
+
+, and hence does not need any special handling.
+ This allows us to immediately drop the limit from the right-hand side:
+\begin_inset Formula 
+\[
+\underset{\varepsilon\rightarrow0^{+}}{\lim}\int_{t_{k}-\varepsilon}^{t_{\mathrm{k+1}}-\varepsilon}\frac{\partial u}{\partial t}w\;\mathrm{d}t=\int_{t_{k}}^{t_{\mathrm{k+1}}}f(\,u(t),\,t\,)\,w\;\mathrm{d}t\;.
+\]
+
+\end_inset
+
+The left-hand side now has exactly one singularity, which is strictly inside
+ the domain of integration, so we may apply 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:firstterm-result"
+
+\end_inset
+
+, obtaining
+\begin_inset Formula 
+\[
+\underset{\varepsilon\rightarrow0^{+}}{\lim}\left\{ \int_{t_{k}-\varepsilon}^{t_{k+1}-\varepsilon}\frac{\partial\widehat{u}}{\partial t}\widehat{w}\;\mathrm{d}t+[w](t_{k})(\,\widehat{u}(t_{k+1}-\varepsilon)-\widehat{u}(t_{k})\,)+[u](t_{k})\,w(t_{k})\right\} =\int_{t_{k}}^{t_{k+1}}f(\,u(t),\,t\,)\,w\;\mathrm{d}t\;.
+\]
+
+\end_inset
+
+Evaluating the limit on the left-hand side yields, obviously,
+\begin_inset Formula 
+\begin{equation}
+\int_{t_{k}}^{t_{k+1}}\frac{\partial\widehat{u}}{\partial t}\widehat{w}\;\mathrm{d}t+[w](t_{k})(\,\widehat{u}(t_{k+1})-\widehat{u}(t_{k})\,)+[u](t_{k})\,w(t_{k})=\int_{t_{k}}^{t_{k+1}}f(\,u(t),\,t\,)\,w\;\mathrm{d}t\;.\label{eq:weak3}
+\end{equation}
+
+\end_inset
+
+Note that 
+\begin_inset Formula $w$
+\end_inset
+
+, which was defined to have support on 
+\begin_inset Formula $t\in[t_{k}-\varepsilon,t_{k+1}-\varepsilon)$
+\end_inset
+
+, because 
+\begin_inset Formula $\varepsilon\rightarrow0$
+\end_inset
+
+, has now converged into having support on 
+\begin_inset Formula $t\in[t_{k},t_{k+1})$
+\end_inset
+
+.
+ (We could have denoted the original by 
+\begin_inset Formula $w_{\varepsilon}$
+\end_inset
+
+ and its limit by 
+\begin_inset Formula $w$
+\end_inset
+
+, but the presentation may look clearer without the extra subscript.)
+\end_layout
+
+\begin_layout Standard
+Equation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:weak3"
+
+\end_inset
+
+ still contains a mix of 
+\begin_inset Formula $u$
+\end_inset
+
+, 
+\begin_inset Formula $\widehat{u}$
+\end_inset
+
+, 
+\begin_inset Formula $w$
+\end_inset
+
+ and 
+\begin_inset Formula $\widehat{w}$
+\end_inset
+
+.
+ We make the following observations:
+\begin_inset Formula 
+\begin{align}
+u(t_{k}) & =u_{0}\qquad\text{(initial condition for this timestep)}\;,\label{eq:ICthis}\\
+\widehat{u}(t_{k}) & =u(t_{k})\qquad\text{(}u\text{ L.C.)}\;,\label{eq:uLC}\\
+\widehat{u}(t) & =u(t)-[u](t_{k})\;,\quad t\in(t_{k},t_{k+1}]\qquad\text{(eq. \eqref{eq:contpart}, }u\text{ L.C.)}\;,\label{eq:urepr}\\
+\widehat{w}(t) & =w(t)-[w](t_{k})\;,\quad t\in[t_{k},t_{k+1})\qquad\text{(eq. \eqref{eq:contpart}, }w\text{ R.C.)}\;.\label{eq:wrepr}
+\end{align}
+
+\end_inset
+
+It also holds that
+\begin_inset Formula 
+\begin{equation}
+[w](t_{k})=w(t_{k})\qquad\text{(because }\underset{\epsilon\rightarrow0^{+}}{\lim}w(t_{k}-\epsilon)=0\text{)}\;,\label{eq:wjump}
+\end{equation}
+
+\end_inset
+
+which may be useful in implementing numerics (since it allows us to process
+ each element locally).
+\end_layout
+
+\begin_layout Standard
+The expression 
+\begin_inset Formula $\widehat{u}(t_{k+1})-\widehat{u}(t_{k})$
+\end_inset
+
+ may be treated using one-sided limits of 
+\begin_inset Formula $u$
+\end_inset
+
+ from inside the timestep:
+\begin_inset Formula 
+\begin{align}
+\widehat{u}(t_{k+1})-\widehat{u}(t_{k})\; & =\;(u(t_{k+1})-[u](t_{k}))-u(t_{k})\nonumber \\
+ & =\;u(t_{k+1})-(u(t_{k})+[u](t_{k}))\nonumber \\
+ & =\;\underset{\varepsilon\rightarrow0^{+}}{\lim}u(t_{k+1}-\varepsilon)-\underset{\varepsilon\rightarrow0^{+}}{\lim}u(t_{k}+\varepsilon)\;,\label{eq:uhatdiff}
+\end{align}
+
+\end_inset
+
+where in the last form we have used the left-continuity of 
+\begin_inset Formula $u$
+\end_inset
+
+ (hence 
+\begin_inset Formula $u(t_{k+1})$
+\end_inset
+
+ agrees with the limit from the left).
+ This holds very generally; in the context of multiple timesteps, if there
+ is any offset between 
+\begin_inset Formula $u$
+\end_inset
+
+ and 
+\begin_inset Formula $\widehat{u}$
+\end_inset
+
+ due to the history of jumps at earlier timesteps, in 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:uhatdiff"
+
+\end_inset
+
+ this offset is cancelled by the subtraction; what matters is only how much
+ the continuous part 
+\begin_inset Formula $\widehat{u}$
+\end_inset
+
+ --- or indeed 
+\begin_inset Formula $u$
+\end_inset
+
+ itself --- changes across the timestep.
+ (This can be made rigorous using 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:u-Njumps"
+
+\end_inset
+
+.)
+\begin_inset Note Note
+status collapsed
+
+\begin_layout Plain Layout
+Note also that on 
+\begin_inset Formula $I_{k}$
+\end_inset
+
+, the continuous part 
+\begin_inset Formula $\widehat{u}$
+\end_inset
+
+ is defined --- by 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:contpart"
+
+\end_inset
+
+, for left-continuous 
+\begin_inset Formula $u$
+\end_inset
+
+ (and 
+\begin_inset Formula $H$
+\end_inset
+
+) --- precisely to ignore the upcoming discontinuity at 
+\begin_inset Formula $t_{k+1}$
+\end_inset
+
+.
+ 
+\end_layout
+
+\end_inset
+
+
+\begin_inset Note Note
+status collapsed
+
+\begin_layout Plain Layout
+
+\series bold
+OLD, does not make sense
+\end_layout
+
+\begin_layout Plain Layout
+The right-hand side of 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:weak3"
+
+\end_inset
+
+ does not need any special treatment, because 
+\begin_inset Formula $f$
+\end_inset
+
+ and 
+\begin_inset Formula $w$
+\end_inset
+
+ are never differentiated in 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:weak"
+
+\end_inset
+
+, and finite discontinuities do not matter as far as integration is concerned.
+ Conveniently, the discontinuities have been chosen to be located on timestep
+ boundaries, so on each timestep, we may treat the RHS as locally continuous.
+\end_layout
+
+\begin_layout Plain Layout
+If we choose our quadratures (to approximate the integrals in numerics)
+ so as not to use function values from the boundary points 
+\begin_inset Formula $t_{k}$
+\end_inset
+
+ and 
+\begin_inset Formula $t_{k+1}$
+\end_inset
+
+, we can treat both the RHS and the first term on the LHS in 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:weak3"
+
+\end_inset
+
+ using the exact same machinery as for continuous finite elements.
+ (For the original integral, removing single points from the domain does
+ not matter, because we have already separately handled the only singularity,
+ and for the remaining non-singular part, the Lebesgue integral over a set
+ of measure zero is always zero.)
+\end_layout
+
+\begin_layout Plain Layout
+Alternatively, if we wish to use quadratures that refer to the boundary
+ points, then care must be taken to take a one-sided limit from inside the
+ interval being handled.
+\end_layout
+
+\begin_layout Plain Layout
+In continuous finite elements, adjacent timesteps are connected by the continuit
+y of the global basis functions (i.e.
+ the way the appropriate local basis functions on adjacent elements are
+ glued together).
+ Here, the first term on the left-hand side and the term on the right-hand
+ side in equation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:weak3"
+
+\end_inset
+
+ are local to the interval 
+\begin_inset Formula $(t_{k},t_{k+1})$
+\end_inset
+
+.
+ The connection is instead provided by the jump term, which refers to both
+ 
+\begin_inset Formula $u_{-}^{(k+1)}$
+\end_inset
+
+ and 
+\begin_inset Formula $u_{+}^{(k+1)}$
+\end_inset
+
+.
+ Due to 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:u-connecting-timesteps"
+
+\end_inset
+
+, 
+\begin_inset Formula $u_{-}^{(k+1)}=u_{+}^{(k)}$
+\end_inset
+
+, connecting the adjacent timesteps.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Rewriting 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:weak3"
+
+\end_inset
+
+, i.e.
+\begin_inset Formula 
+\[
+\int_{t_{k}}^{t_{k+1}}\frac{\partial\widehat{u}}{\partial t}\widehat{w}\;\mathrm{d}t+[w](t_{k})(\,\widehat{u}(t_{k+1})-\widehat{u}(t_{k})\,)+[u](t_{k})\,w(t_{k})=\int_{t_{k}}^{t_{k+1}}f(\,u(t),\,t\,)\,w\;\mathrm{d}t\;,
+\]
+
+\end_inset
+
+with the help of 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:urepr"
+
+\end_inset
+
+, 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:wrepr"
+
+\end_inset
+
+ and 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:uhatdiff"
+
+\end_inset
+
+ to eliminate 
+\begin_inset Formula $\widehat{u}$
+\end_inset
+
+ and 
+\begin_inset Formula $\widehat{w}$
+\end_inset
+
+, we have
+\begin_inset Formula 
+\begin{equation}
+\int_{t_{k}}^{t_{k+1}}\frac{\partial u(t)}{\partial t}\bigl(w(t)-[w](t_{k})\bigr)\;\mathrm{d}t+[w](t_{k})\bigl(\,\underset{\varepsilon\rightarrow0^{+}}{\lim}u(t_{k+1}-\varepsilon)-\underset{\varepsilon\rightarrow0^{+}}{\lim}u(t_{k}+\varepsilon)\,\bigr)+[u](t_{k})\,w(t_{k})=\int_{t_{k}}^{t_{k+1}}f(\,u(t),\,t\,)\,w\;\mathrm{d}t\;.\label{eq:weak4}
+\end{equation}
+
+\end_inset
+
+When manipulating the equations, it is important to keep in mind that 
+\begin_inset Formula $u$
+\end_inset
+
+ is L.C., whereas 
+\begin_inset Formula $w$
+\end_inset
+
+ is R.C.
+ Here we have used the fact that 
+\begin_inset Formula $\partial\widehat{u}/\partial t=\partial u/\partial t$
+\end_inset
+
+ on 
+\begin_inset Formula $t\in(t_{k},t_{k+1}]$
+\end_inset
+
+, because the jump is a constant.
+ (Hence, when doing numerics, we must be careful in the first term not to
+ evaluate 
+\begin_inset Formula $\partial u/\partial t$
+\end_inset
+
+ at 
+\begin_inset Formula $t_{k}$
+\end_inset
+
+ when it is written in this way!)
+\end_layout
+
+\begin_layout Standard
+Noting further that 
+\begin_inset Formula $[w](t_{k})$
+\end_inset
+
+ is a constant, and 
+\begin_inset Formula $u$
+\end_inset
+
+ is continuous on 
+\begin_inset Formula $t\in(t_{k},t_{k+1}]$
+\end_inset
+
+, we may evaluate the second term in the first integral, obtaining
+\begin_inset Formula 
+\begin{multline*}
+\int_{t_{k}}^{t_{k+1}}\frac{\partial u(t)}{\partial t}w(t)\;\mathrm{d}t-[w](t_{k})\bigl(\,u(t_{k+1})-\underset{\varepsilon\rightarrow0^{+}}{\lim}u(t_{k}+\varepsilon)\,\bigr)\\
++[w](t_{k})\bigl(\,u(t_{k+1})-\underset{\varepsilon\rightarrow0^{+}}{\lim}u(t_{k}+\varepsilon)\,\bigr)+[u](t_{k})\,w(t_{k})=\int_{t_{k}}^{t_{k+1}}f(\,u(t),\,t\,)\,w\;\mathrm{d}t\;.
+\end{multline*}
+
+\end_inset
+
+Now the terms involving 
+\begin_inset Formula $[w](t_{k})$
+\end_inset
+
+ cancel, yielding the perhaps familiar-looking weak form for piecewise continuou
+s 
+\begin_inset Formula $u$
+\end_inset
+
+ and 
+\begin_inset Formula $w$
+\end_inset
+
+:
+\begin_inset Formula 
+\begin{equation}
+\int_{t_{k}}^{t_{k+1}}\frac{\partial u(t)}{\partial t}w(t)\;\mathrm{d}t+[u](t_{k})\,w(t_{k})=\int_{t_{k}}^{t_{k+1}}f(\,u(t),\,t\,)\,w\;\mathrm{d}t\;.\label{eq:weak5}
+\end{equation}
+
+\end_inset
+
+To recap: when deriving 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:weak5"
+
+\end_inset
+
+, we have taken the solution 
+\begin_inset Formula $u$
+\end_inset
+
+ as left-continuous and the test function 
+\begin_inset Formula $w$
+\end_inset
+
+ as right-continuous, with jumps occurring at timestep boundaries.
+\end_layout
+
+\begin_layout Standard
+So far we have treated the weak initial value problem, first in the context
+ of general piecewise continuous functions having finite discontinuities
+ at timestep boundaries, and then with test functions having their support
+ restricted to 
+\begin_inset Formula $[t_{k},t_{k+1})$
+\end_inset
+
+.
+ Now we are in a position to introduce the Galerkin component of the method.
+\end_layout
+
+\begin_layout Standard
+First, let 
+\begin_inset Formula $\phi_{n}(t)$
+\end_inset
+
+, 
+\begin_inset Formula $n=1,2,\dots$
+\end_inset
+
+ be a set of (at least 
+\begin_inset Formula $C^{0}$
+\end_inset
+
+) continuous functions defined on the closed interval 
+\begin_inset Formula $[t_{k},t_{k+1}]$
+\end_inset
+
+.
+ Let us define the half-open intervals 
+\begin_inset Formula $L_{k}=(t_{k},t_{k+1}]$
+\end_inset
+
+ and 
+\begin_inset Formula $R_{k}=[t_{k},t_{k+1})$
+\end_inset
+
+ (mnemonic: the name denotes the open side).
+ Let 
+\begin_inset Formula $\chi_{A}(t)$
+\end_inset
+
+ denote the indicator function of a set 
+\begin_inset Formula $A$
+\end_inset
+
+:
+\begin_inset Formula 
+\begin{equation}
+\chi_{A}(t)=\begin{cases}
+1\;, & t\in A\;,\\
+0\;, & t\not\in A\;.
+\end{cases}\label{eq:chi-A}
+\end{equation}
+
+\end_inset
+
+We define
+\begin_inset Formula 
+\begin{align}
+\varphi_{n}(t) & :=\chi_{L_{k}}(t)\phi_{n}(t)\;,\label{eq:phin}\\
+\psi_{n}(t) & :=\chi_{R_{k}}(t)\phi_{n}(t)\;,\label{eq:psin}
+\end{align}
+
+\end_inset
+
+making 
+\begin_inset Formula $\varphi_{n}$
+\end_inset
+
+ (respectively 
+\begin_inset Formula $\psi_{n}$
+\end_inset
+
+) suitable as a basis for left-continuous (resp.
+ right-continuous) functions.
+ (The only thing the multiplication by 
+\begin_inset Formula $\chi$
+\end_inset
+
+ does is that it removes the inappropriate endpoint from the support.) In
+ the Galerkin spirit, in all other respects the bases are the same.
+\end_layout
+
+\begin_layout Standard
+We now represent 
+\begin_inset Formula $u$
+\end_inset
+
+ as a Galerkin series,
+\begin_inset Formula 
+\begin{equation}
+u(t):=\overset{\infty}{\underset{m=1}{\sum}}u_{m}\varphi_{m}(t)\;,\label{eq:galerkin}
+\end{equation}
+
+\end_inset
+
+where 
+\begin_inset Formula $u_{m}$
+\end_inset
+
+ are the Galerkin coefficients, and 
+\begin_inset Formula $\varphi_{m}(t)$
+\end_inset
+
+ are the global basis functions.
+ We choose the test functions 
+\begin_inset Formula $w_{i}$
+\end_inset
+
+ as
+\begin_inset Formula 
+\begin{equation}
+w_{i}(t):=\psi_{i}(t)\;,\quad i=1,2,\dots\label{eq:testfunc}
+\end{equation}
+
+\end_inset
+
+i.e.
+ otherwise the same as the basis for 
+\begin_inset Formula $u$
+\end_inset
+
+, but with right-continuity.
+\end_layout
+
+\begin_layout Standard
+Differing from continuous Galerkin methods (such as the finite element method),
+ because now there is no requirement of continuity across the timestep boundarie
+s, we may actually take the local basis functions --- of course appropriately
+ positioned and scaled on the 
+\begin_inset Formula $t$
+\end_inset
+
+ axis separately for each element, as the time integration proceeds ---
+ as the global basis functions.
+ (In practice, we will of course scale each timestep onto a reference element
+ on 
+\begin_inset Formula $[0,1]$
+\end_inset
+
+.)
+\end_layout
+
+\begin_layout Standard
+Inserting 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:galerkin"
+
+\end_inset
+
+--
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:testfunc"
+
+\end_inset
+
+ into 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:weak5"
+
+\end_inset
+
+ obtains
+\begin_inset Formula 
+\begin{multline}
+\int_{t_{k}}^{t_{k+1}}\frac{\partial}{\partial t}\left(\overset{\infty}{\underset{m=1}{\sum}}u_{m}\varphi_{m}(t)\right)\;\psi_{i}(t)\;\mathrm{d}t+\biggl(\Big(\overset{\infty}{\underset{m=1}{\sum}}u_{m}\underset{\varepsilon\rightarrow0^{+}}{\lim}\varphi_{m}(t_{k}+\varepsilon)\Bigr)-u_{0}\biggr)\psi_{i}(t_{k})\\
+=\int_{t_{k}}^{t_{k+1}}f\bigl(\,\overset{\infty}{\underset{n=1}{\sum}}u_{m}\varphi_{m}(t),\,t\,\bigr)\,\psi_{i}(t)\;\mathrm{d}t\;,\quad\forall i=1,2,\dots\;,\label{eq:weak-with-galerkin}
+\end{multline}
+
+\end_inset
+
+where 
+\begin_inset Formula $u_{0}$
+\end_inset
+
+ is the initial condition for this timestep.
+\end_layout
+
+\begin_layout Standard
+Because there are no discontinuities remaining in the first term, we may
+ rearrange it as
+\begin_inset Formula 
+\begin{align}
+\int_{t_{k}}^{t_{k+1}}\frac{\partial}{\partial t}\left(\overset{\infty}{\underset{m=1}{\sum}}u_{m}\varphi_{m}(t)\right)\;\psi_{i}\;\mathrm{d}t & =\int_{t_{k}}^{t_{k+1}}\psi_{i}\;\overset{\infty}{\underset{m=1}{\sum}}u_{m}\frac{\partial\varphi_{m}}{\partial t}(t)\;\mathrm{d}t\nonumber \\
+ & =\overset{\infty}{\underset{m=1}{\sum}}u_{m}\int_{t_{k}}^{t_{k+1}}\psi_{i}\;\frac{\partial\varphi_{m}}{\partial t}(t)\;\mathrm{d}t\;,\label{eq:rearrange-first-term}
+\end{align}
+
+\end_inset
+
+first using the fact that every continuous function on 
+\begin_inset Formula $[0,1]$
+\end_inset
+
+ (which is our reference element) is a uniform limit of polynomials, so
+ that we may exchange differentiation and infinite summation
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+
+\family sans
+\begin_inset CommandInset href
+LatexCommand href
+target "http://math.stackexchange.com/questions/147869/interchanging-the-order-of-differentiation-and-summation"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+, and then using Tonelli's and Fubini's theorems to justify the exchange
+ of integration and infinite summation
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+
+\family sans
+\begin_inset CommandInset href
+LatexCommand href
+target "http://math.stackexchange.com/questions/83721/when-can-a-sum-and-integral-be-interchanged"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+The final step of the theoretical derivation of the dG procedure is to apply
+ 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:rearrange-first-term"
+
+\end_inset
+
+ to 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:weak-with-galerkin"
+
+\end_inset
+
+.
+ In practical numerics, we then formally truncate the Galerkin series (choosing
+ a discrete subspace of the function space), obtaining
+\begin_inset Formula 
+\begin{multline}
+\overset{M}{\underset{m=1}{\sum}}u_{m}\int_{t_{k}}^{t_{k+1}}\psi_{i}\;\frac{\partial\varphi_{m}}{\partial t}(t)\;\mathrm{d}t+\biggl(\Big(\overset{M}{\underset{m=1}{\sum}}u_{m}\underset{\varepsilon\rightarrow0^{+}}{\lim}\varphi_{m}(t_{k}+\varepsilon)\Bigr)-u_{0}\biggr)\psi_{i}(t_{k})\\
+=\int_{t_{k}}^{t_{k+1}}f\bigl(\,\overset{M}{\underset{m=1}{\sum}}u_{m}\varphi_{m}(t),\,t\,\bigr)\,\psi_{i}(t)\;\mathrm{d}t\;,\quad\forall i=1,2,\dots,M\;,\label{eq:DG-practical}
+\end{multline}
+
+\end_inset
+
+where 
+\begin_inset Formula $M$
+\end_inset
+
+ is the total number of basis functions 
+\begin_inset Formula $\phi_{n}$
+\end_inset
+
+ in the discrete basis.
+\end_layout
+
+\begin_layout Standard
+Transferring terms and recognizing that this can be formally written as
+ a linear equation system, we have
+\begin_inset Formula 
+\begin{equation}
+\mathbf{A}\mathbf{u}=\mathbf{b}(\mathbf{u})\;,\label{eq:lineqsys}
+\end{equation}
+
+\end_inset
+
+where 
+\begin_inset Formula $\mathbf{u}$
+\end_inset
+
+ is an 
+\begin_inset Formula $M$
+\end_inset
+
+-element vector consisting of the coefficients 
+\begin_inset Formula $u_{m}$
+\end_inset
+
+, and
+\begin_inset Formula 
+\begin{equation}
+A_{im}=\int_{t_{k}}^{t_{k+1}}\psi_{i}(t)\;\frac{\partial\varphi_{m}}{\partial t}(t)\;\mathrm{d}t+\psi_{i}(t_{k})\underset{\varepsilon\rightarrow0^{+}}{\lim}\varphi_{m}(t_{k}+\varepsilon)\;,\label{eq:Ajn-DG}
+\end{equation}
+
+\end_inset
+
+
+\begin_inset Formula 
+\begin{equation}
+b_{i}(\mathbf{u})=\int_{t_{k}}^{t_{k+1}}f\bigl(\,\overset{M}{\underset{m=1}{\sum}}u_{m}\varphi_{m}(t),\,t\,\bigr)\,\psi_{i}(t)\;\mathrm{d}t+\psi_{i}(t_{k})u_{0}\;.\label{eq:bj-DG}
+\end{equation}
+
+\end_inset
+
+Treating the one degree of freedom model problem 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IVP"
+
+\end_inset
+
+--
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IC"
+
+\end_inset
+
+ has lead to an equation system with 
+\begin_inset Formula $M$
+\end_inset
+
+ equations, because there are 
+\begin_inset Formula $M$
+\end_inset
+
+ basis functions modeling the behavior of this degree of freedom across
+ a single timestep.
+\end_layout
+
+\begin_layout Standard
+Equations 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:lineqsys"
+
+\end_inset
+
+--
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:bj-DG"
+
+\end_inset
+
+, in principle, allow us to solve for the Galerkin coefficients 
+\begin_inset Formula $u_{m}$
+\end_inset
+
+ for this timestep.
+ Together with relation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:galerkin"
+
+\end_inset
+
+ (similarly truncated), we obtain the behavior of 
+\begin_inset Formula $u(t)$
+\end_inset
+
+ for all 
+\begin_inset Formula $t\in(t_{k},t_{k+1}]$
+\end_inset
+
+.
+ Especially, evaluating 
+\begin_inset Formula $u(t_{k+1})$
+\end_inset
+
+ from 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:galerkin"
+
+\end_inset
+
+ then gives us the initial condition for the next timestep.
+\end_layout
+
+\begin_layout Standard
+The limit expression in 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:Ajn-DG"
+
+\end_inset
+
+ is easier to evaluate than it looks; it is simply 
+\begin_inset Formula $\phi_{m}(t_{k})$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Note that in general, for nonlinear problems, 
+\begin_inset Formula $\mathbf{b}$
+\end_inset
+
+ depends on 
+\begin_inset Formula $\mathbf{u}$
+\end_inset
+
+; we have thus presented the method in this form.
+ Fixed point iteration (for the Galerkin coefficients 
+\begin_inset Formula $\mathbf{u}$
+\end_inset
+
+) is thus needed to evaluate the load vector 
+\begin_inset Formula $\mathbf{b}$
+\end_inset
+
+.
+ If 
+\begin_inset Formula $f$
+\end_inset
+
+ is linear, its linear dependence on 
+\begin_inset Formula $\mathbf{u}$
+\end_inset
+
+ would of course be extracted and transferred into 
+\begin_inset Formula $\mathbf{A}$
+\end_inset
+
+ (but here we concentrate on the general nonlinear case).
+\end_layout
+
+\begin_layout Standard
+The final step in practical numerics (for this single degree of freedom
+ problem) is to rewrite the integrals in 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:Ajn-DG"
+
+\end_inset
+
+--
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:bj-DG"
+
+\end_inset
+
+ using quadratures on the reference element 
+\begin_inset Formula $[0,1]$
+\end_inset
+
+.
+ The standard tools from finite elements methods can be used for this.
+\end_layout
+
+\begin_layout Subsection
+Extension to ODE systems
+\end_layout
+
+\begin_layout Standard
+The general treatment from section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sub:Extension-to-ODE"
+
+\end_inset
+
+ applies also here.
+ In this section, we work out the details specifically for dG.
+\end_layout
+
+\begin_layout Standard
+The weak form of the problem, equation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:weak"
+
+\end_inset
+
+, does not require many changes.
+ Understanding the testing of a vector-valued quantity by a vector-valued
+ test function as projection into the direction of the test function, we
+ write
+\begin_inset Formula 
+\begin{equation}
+\int_{0}^{t_{\mathrm{f}}}\frac{\partial\mathbf{u}}{\partial t}\cdot\mathbf{w}\;\mathrm{d}t=\int_{0}^{t_{\mathrm{f}}}\bigl(\,\mathbf{M}^{-1}\mathbf{f}(\,\mathbf{u}(t),\,t\,)\,\bigr)\cdot\mathbf{w}\;\mathrm{d}t\;,\quad\forall\mathbf{w}\;,\label{eq:weak-vec}
+\end{equation}
+
+\end_inset
+
+where 
+\begin_inset Formula $\mathbf{w}$
+\end_inset
+
+ is a vector-valued test function, and the dot denotes the usual Euclidean
+ inner product.
+\end_layout
+
+\begin_layout Standard
+Again, by defining the effective load
+\begin_inset Formula 
+\begin{equation}
+\mathbf{g}(\,\mathbf{u}(t),\,t\,)=\mathbf{M}^{-1}\mathbf{f}(\,\mathbf{u}(t),\,t\,)\;,\label{eq:gutt}
+\end{equation}
+
+\end_inset
+
+we have
+\begin_inset Formula 
+\begin{equation}
+\int_{0}^{t_{\mathrm{f}}}\frac{\partial\mathbf{u}}{\partial t}\cdot\mathbf{w}\;\mathrm{d}t=\int_{0}^{t_{\mathrm{f}}}\bigl(\,\mathbf{g}(\,\mathbf{u}(t),\,t\,)\,\bigr)\cdot\mathbf{w}\;\mathrm{d}t\;,\quad\forall\mathbf{w}\;.\label{eq:weak-vec-2}
+\end{equation}
+
+\end_inset
+
+Let us look at the contribution of a single component of the test, 
+\begin_inset Formula $w_{j}$
+\end_inset
+
+:
+\begin_inset Formula 
+\begin{equation}
+\int_{0}^{t_{\mathrm{f}}}\frac{\partial u_{j}}{\partial t}w_{j}\;\mathrm{d}t=\int_{0}^{t_{\mathrm{f}}}\bigl(\,g_{j}(\,u_{1}(t),u_{2}(t),\dots,\,t\,)\,\bigr)w_{j}\;\mathrm{d}t\;,\quad\forall w_{j}\;.\label{eq:weak-vec-2-compform}
+\end{equation}
+
+\end_inset
+
+Obviously, the previous machinery applies directly to each of the equations
+ 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:weak-vec-2-compform"
+
+\end_inset
+
+, producing equations of the form 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:weak5"
+
+\end_inset
+
+.
+ (No assumptions were made about 
+\begin_inset Formula $f$
+\end_inset
+
+ beyond 
+\begin_inset Formula $C^{-1}$
+\end_inset
+
+ continuity.)
+\end_layout
+
+\begin_layout Standard
+After summing the results over 
+\begin_inset Formula $j$
+\end_inset
+
+, and finally using 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:gutt"
+
+\end_inset
+
+ to replace 
+\begin_inset Formula $\mathbf{g}$
+\end_inset
+
+ with its definition, we have the result
+\begin_inset Formula 
+\begin{equation}
+\int_{t_{k}}^{t_{k+1}}\frac{\partial\mathbf{u}(t)}{\partial t}\cdot\mathbf{w}(t)\;\mathrm{d}t+[\mathbf{u}](t_{k})\cdot\mathbf{w}(t_{k})=\int_{t_{k}}^{t_{k+1}}\mathbf{M}^{-1}\mathbf{f}(\,\mathbf{u}(t),\,t\,)\cdot\mathbf{w}\;\mathrm{d}t\;,\quad\forall\mathbf{w}.\label{eq:weak5-vec}
+\end{equation}
+
+\end_inset
+
+As before, from here we may proceed by treating 
+\begin_inset Formula $\mathbf{M}^{-1}\mathbf{f}$
+\end_inset
+
+ as an effective load, and solving the linear equation system 
+\begin_inset Formula $\mathbf{M}\,\mathbf{g}=\mathbf{f}$
+\end_inset
+
+ for 
+\begin_inset Formula $\mathbf{g}$
+\end_inset
+
+ whenever its numerical value is needed.
+\end_layout
+
+\begin_layout Standard
+Because the degrees of freedom have been decoupled on the left-hand side,
+ it is convenient to test them individually, taking the test functions 
+\begin_inset Formula $\mathbf{w}$
+\end_inset
+
+ as 
+\begin_inset Formula $w_{ji}$
+\end_inset
+
+, 
+\begin_inset Formula $j=1,2,\dots,N$
+\end_inset
+
+ (indexing the degrees of freedom), 
+\begin_inset Formula $i=1,2,\dots,M$
+\end_inset
+
+ (indexing the set of test functions in a timestep): 
+\begin_inset Formula $w_{1i}(t)=(\,w_{i}(t),\,0,\,0,\dots,\,0\,)$
+\end_inset
+
+, 
+\begin_inset Formula $w_{2i}(t)=(\,0,\,w_{i}(t),\,0,\,0,\dots,\,0\,)$
+\end_inset
+
+, 
+\begin_inset Formula $\dots$
+\end_inset
+
+, 
+\begin_inset Formula $w_{Ni}(t)=(\,0,\,0,\,0,\dots,\,0,\,w_{i}(t)\,)$
+\end_inset
+
+, where 
+\begin_inset Formula $w_{i}(t)$
+\end_inset
+
+, 
+\begin_inset Formula $i=1,2,\dots,M$
+\end_inset
+
+, are the test functions 
+\begin_inset Formula $\psi_{i}(t)$
+\end_inset
+
+ for a scalar quantity on the timestep.
+ This produces 
+\begin_inset Formula $NM$
+\end_inset
+
+ equations in total (as indeed expected, there being 
+\begin_inset Formula $N$
+\end_inset
+
+ space degrees of freedom, and 
+\begin_inset Formula $M$
+\end_inset
+
+ equations per space degree of freedom for one timestep).
+\end_layout
+
+\begin_layout Standard
+Note that each evaluation of 
+\begin_inset Formula $\mathbf{g}$
+\end_inset
+
+ --- i.e.
+ each quadrature point for the integral on the right-hand side --- will
+ require the solution of a (possibly large) linear equation system.
+ Furthermore, because 
+\begin_inset Formula $\mathbf{u}(t)$
+\end_inset
+
+ is unknown at any point 
+\begin_inset Formula $t>t_{k}$
+\end_inset
+
+, for nonlinear problems this expensive solution of multiple linear equation
+ systems (for 
+\begin_inset Formula $\mathbf{g}$
+\end_inset
+
+) must occur for each iteration inside the fixed point iteration loop.
+ Thus, for a general semilinear system of ODEs, dG (at least when implemented
+ the way described here) can be expensive.
+\end_layout
+
+\begin_layout Standard
+For linear problems, of course, it is possible to avoid the need for fixed
+ point iteration in implicit integration methods, making dG much cheaper.
+\end_layout
+
+\begin_layout Standard
+Finally, if the space discretization is such as to make 
+\begin_inset Formula $\mathbf{M}$
+\end_inset
+
+ the unit matrix, then 
+\begin_inset Formula $\mathbf{g}=\mathbf{f}$
+\end_inset
+
+ and 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:weak5-vec"
+
+\end_inset
+
+ becomes somewhat cheaper to solve.
+ One particularly simple implementation for nonlinear problems of this form
+ is to just use 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:lineqsys"
+
+\end_inset
+
+--
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:bj-DG"
+
+\end_inset
+
+ (in principle) independently for each space degree of freedom, again with
+ fixed point iteration to make it possible to explicitly evaluate the right-hand
+ side.
+ The only required modification is that the last available iterate from
+ all space degrees of freedom is needed to evaluate 
+\begin_inset Formula $f$
+\end_inset
+
+ (each space degree of freedom 
+\begin_inset Formula $u_{j}(t)$
+\end_inset
+
+ has its own Galerkin coefficients in time, 
+\begin_inset Formula $(u_{j})_{m}$
+\end_inset
+
+, replacing the original 
+\begin_inset Formula $f$
+\end_inset
+
+ with 
+\begin_inset Formula $f(\,u_{1}(t),\,u_{2}(t),\,\dots,\,t\,)=f\bigl(\,\overset{M}{\underset{m=1}{\sum}}(u_{1})_{m}\varphi_{m}(t),\overset{M}{\underset{m=1}{\sum}}(u_{2})_{m}\varphi_{m}(t),\dots,\,t\,\bigr)$
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Subsection
+Choosing the basis
+\end_layout
+
+\begin_layout Standard
+As the basis functions 
+\begin_inset Formula $\phi_{n}(t)$
+\end_inset
+
+, polymomials are a typical choice.
+ One often speaks of the dG(
+\begin_inset Formula $q$
+\end_inset
+
+) method, where 
+\begin_inset Formula $q$
+\end_inset
+
+ is the polynomial order of the basis.
+\end_layout
+
+\begin_layout Subsubsection
+dG(0)
+\end_layout
+
+\begin_layout Standard
+The basis of zeroth-order discontinuous Galerkin consists of just the constant
+ 
+\begin_inset Formula $1$
+\end_inset
+
+ on each element.
+ Looking at equation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:weak5"
+
+\end_inset
+
+, i.e.
+\begin_inset Formula 
+\[
+\int_{t_{k}}^{t_{k+1}}\frac{\partial u(t)}{\partial t}w(t)\;\mathrm{d}t+[u](t_{k})\,w(t_{k})=\int_{t_{k}}^{t_{k+1}}f(\,u(t),\,t\,)\,w\;\mathrm{d}t\;,
+\]
+
+\end_inset
+
+we see that if 
+\begin_inset Formula $w\equiv1$
+\end_inset
+
+, we have
+\begin_inset Formula 
+\[
+\int_{t_{k}}^{t_{k+1}}\frac{\partial u(t)}{\partial t}\;\mathrm{d}t+[u](t_{k})=\int_{t_{k}}^{t_{k+1}}f(\,u(t),\,t\,)\;\mathrm{d}t\;.
+\]
+
+\end_inset
+
+Furthermore, if the basis of 
+\begin_inset Formula $u$
+\end_inset
+
+ is piecewise constant, then inside the timestep 
+\begin_inset Formula $\partial u/\partial t\rightarrow0$
+\end_inset
+
+ (recall that the first term concerns only values inside the current timestep),
+ and we are left with
+\begin_inset Formula 
+\[
+[u](t_{k})=\int_{t_{k}}^{t_{k+1}}f(\,u(t),\,t\,)\;\mathrm{d}t\;,
+\]
+
+\end_inset
+
+or in other words,
+\begin_inset Formula 
+\begin{equation}
+u_{k+1}-u_{k}=\int_{t_{k}}^{t_{k+1}}f(\,u(t),\,t\,)\;\mathrm{d}t\;,\label{eq:DG0-reduces-to-classical}
+\end{equation}
+
+\end_inset
+
+where we have denoted 
+\begin_inset Formula $u(t_{k+1})=u_{k+1}$
+\end_inset
+
+ and 
+\begin_inset Formula $u(t_{k})=u_{k}$
+\end_inset
+
+, and used the fact that 
+\begin_inset Formula $u$
+\end_inset
+
+ is piecewise constant and left-continuous.
+ (Hence 
+\begin_inset Formula $u(t_{k})$
+\end_inset
+
+ is the 
+\begin_inset Quotes eld
+\end_inset
+
+old
+\begin_inset Quotes erd
+\end_inset
+
+ value.
+ The value immediately after the jump is 
+\begin_inset Formula $\underset{\varepsilon\rightarrow0^{+}}{\lim}u(t_{k}+\varepsilon)=u(t_{k+1})$
+\end_inset
+
+, which also justifies the label 
+\begin_inset Formula $u_{k+1}$
+\end_inset
+
+ for the 
+\begin_inset Quotes eld
+\end_inset
+
+new
+\begin_inset Quotes erd
+\end_inset
+
+ value at timestep 
+\begin_inset Formula $k$
+\end_inset
+
+.) Equation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:DG0-reduces-to-classical"
+
+\end_inset
+
+ coincides with the integral formula 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:wnp1-general-integral-form"
+
+\end_inset
+
+, which is simply the integral version of the original problem statement
+ 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IVP"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Strictly speaking, in the dG(0) basis, 
+\begin_inset Formula $u(t)$
+\end_inset
+
+ is constant on 
+\begin_inset Formula $(t_{k},t_{k+1}]$
+\end_inset
+
+, so actually the match with classical methods is not perfect.
+ It is possible to rigorously obtain backward Euler from 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:DG0-reduces-to-classical"
+
+\end_inset
+
+ by sampling the integrand only at 
+\begin_inset Formula $t_{k+1}$
+\end_inset
+
+, but e.g.
+ IMR and forward Euler model 
+\begin_inset Formula $u(t)$
+\end_inset
+
+ (inside the RHS integral) differently.
+\end_layout
+
+\begin_layout Subsubsection
+dG(1)
+\end_layout
+
+\begin_layout Standard
+The next simplest choice of basis are the linear polynomials on 
+\begin_inset Formula $[0,1]$
+\end_inset
+
+,
+\begin_inset Formula 
+\begin{align*}
+p_{1}(x) & =1-x\;,\\
+p_{2}(x) & =x\;,
+\end{align*}
+
+\end_inset
+
+representing linear interpolation on the element.
+\end_layout
+
+\begin_layout Subsubsection
+dG(q)
+\end_layout
+
+\begin_layout Standard
+One convenient choice for arbitrary 
+\begin_inset Formula $q$
+\end_inset
+
+, considered the modern approach to polynomial-based Galerkin methods, are
+ the 
+\emph on
+hierarchical basis functions
+\emph default
+, derived from the 
+\emph on
+Legendre polynomials
+\emph default
+.
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+
+\family sans
+\begin_inset CommandInset href
+LatexCommand href
+target "https://en.wikipedia.org/wiki/Legendre_polynomials"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+ The discontinous Galerkin implementation in the solver uses this form of
+ dG(
+\begin_inset Formula $q$
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+The Legendre polynomials themselves are polynomials on 
+\begin_inset Formula $[-1,1]$
+\end_inset
+
+ (note the interval!) that are orthogonal in the 
+\begin_inset Formula $L^{2}$
+\end_inset
+
+ sense:
+\begin_inset Formula 
+\begin{equation}
+\int_{-1}^{1}P_{m}(x)P_{n}(x)\,\mathrm{d}x=\frac{2}{2n+1}\delta_{mn}\;,\label{eq:legendre-polynomials-orthogonality}
+\end{equation}
+
+\end_inset
+
+where 
+\begin_inset Formula $\delta_{mn}$
+\end_inset
+
+ is the Kronecker delta.
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+ Orthogonality is desirable, as it improves the linear independence of the
+ discretized linear equation system 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:lineqsys"
+
+\end_inset
+
+, and thus may allow for higher polynomial orders before the computation
+ fails due to floating point precision issues (provided that the polynomials
+ themselves can be evaluated at high precision).
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The Legendre polynomials are given by the recurrence relation
+\begin_inset Formula 
+\begin{align}
+P_{0}(x) & =1\;,\label{eq:Legendre-P0}\\
+P_{1}(x) & =x\;,\label{eq:Legendre-P1}\\
+(n+1)P_{n+1}(x) & =(2n+1)xP_{n}(x)-nP_{n-1}(x)\;,\label{eq:Legendre-Pnp1}
+\end{align}
+
+\end_inset
+
+where 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:Legendre-Pnp1"
+
+\end_inset
+
+ is known as 
+\emph on
+Bonnet's recursion formula
+\emph default
+.
+ Among possible direct representations are
+\begin_inset Formula 
+\begin{align}
+P_{n}(x) & =\frac{1}{2^{n}}\underset{k=0}{\overset{n}{\sum}}\binom{n}{k}^{2}(x-1)^{n-k}(x+1)^{k}\nonumber \\
+ & =\underset{k=0}{\overset{n}{\sum}}\binom{n}{k}\binom{-n-1}{k}\left(\frac{1-x}{2}\right)^{k}\nonumber \\
+ & =2^{n}\underset{k=0}{\overset{n}{\sum}}x^{k}\binom{n}{k}\binom{\frac{1}{2}(n+k-1)}{n}\;.\label{eq:Legendre-Pn}
+\end{align}
+
+\end_inset
+
+The polynomials have been normalized such that 
+\begin_inset Formula $P_{n}(1)=1$
+\end_inset
+
+ (this is the usual normalization).
+\end_layout
+
+\begin_layout Standard
+A shift onto 
+\begin_inset Formula $[0,1]$
+\end_inset
+
+ is possible by defining 
+\begin_inset Formula $\widetilde{P}_{n}(x)=P_{n}(2x-1)$
+\end_inset
+
+.
+ For the shifted version,
+\begin_inset Formula 
+\begin{equation}
+\int_{-1}^{1}\widetilde{P}_{m}(x)\widetilde{P}_{n}(x)\,\mathrm{d}x=\frac{1}{2n+1}\delta_{mn}\;.\label{eq:legendre-shifted-orthogonality}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+The hierarchical basis
+\end_layout
+
+\begin_layout Standard
+We will use zero-based indexing to match the notation used in the solver
+ code.
+ The first basis function is 
+\begin_inset Formula $N_{0}$
+\end_inset
+
+, and matrix element indexing starts at 
+\begin_inset Formula $A_{00}$
+\end_inset
+
+ (for any matrix 
+\begin_inset Formula $\mathbf{A}$
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+On the reference element 
+\begin_inset Formula $[-1,1]$
+\end_inset
+
+, the hierarchical basis is defined as
+\begin_inset Formula 
+\begin{align}
+N_{0}(x) & =\frac{1}{2}(1-x)\;,\label{eq:N0}\\
+N_{1}(x) & =\frac{1}{2}(1+x)\;,\label{eq:N1}\\
+N_{j}(x) & =\psi_{j}(x)\;,\quad j=2,3,\dots\label{eq:Nj}
+\end{align}
+
+\end_inset
+
+where 
+\begin_inset Formula $x\in[-1,1]$
+\end_inset
+
+, the bubble functions are defined as
+\begin_inset Formula 
+\begin{equation}
+\psi_{j}(x):=\sqrt{\frac{1}{2}(2j-1)}\int_{-1}^{x}P_{j-1}(t)\,\mathrm{d}t\;,\label{eq:psi-def}
+\end{equation}
+
+\end_inset
+
+and 
+\begin_inset Formula $P_{n}(t)$
+\end_inset
+
+ are the Legendre polynomials using the standard normalization (i.e.
+ 
+\begin_inset Formula $P_{n}(1)=1$
+\end_inset
+
+ for all 
+\begin_inset Formula $n$
+\end_inset
+
+).
+ (Note that although 
+\begin_inset Formula $j\ge2$
+\end_inset
+
+ in 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:Nj"
+
+\end_inset
+
+, formula 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:psi-def"
+
+\end_inset
+
+ requires only 
+\begin_inset Formula $j\ge1$
+\end_inset
+
+ to be valid.
+ We will use this later.)
+\end_layout
+
+\begin_layout Standard
+The integral in 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:psi-def"
+
+\end_inset
+
+ can be evaluated analytically.
+ For any 
+\begin_inset Formula $n\ge1$
+\end_inset
+
+, the following recursion formula holds: 
+\begin_inset Formula 
+\begin{equation}
+(2n+1)P_{n}(x)=\frac{\partial}{\partial x}(\,P_{n+1}(x)-P_{n-1}(x)\,)\;.\label{eq:recursion-formula-P-derivatives-1}
+\end{equation}
+
+\end_inset
+
+By integrating both sides of 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:recursion-formula-P-derivatives-1"
+
+\end_inset
+
+ from 
+\begin_inset Formula $-1$
+\end_inset
+
+ to 
+\begin_inset Formula $x$
+\end_inset
+
+ (and relabeling the dummy variable as 
+\begin_inset Formula $t$
+\end_inset
+
+), we obtain
+\begin_inset Formula 
+\[
+(2n+1)\int_{-1}^{x}P_{n}(t)\,\mathrm{d}t=P_{n+1}(x)-P_{n-1}(x)-\left(\,P_{n+1}(-1)-P_{n-1}(-1)\,\right)\;.
+\]
+
+\end_inset
+
+It holds that 
+\begin_inset Formula $P_{n+1}(\pm1)=P_{n-1}(\pm1)$
+\end_inset
+
+ for any 
+\begin_inset Formula $n\ge1$
+\end_inset
+
+.
+ The parenthetical expression vanishes, and we have
+\begin_inset Formula 
+\begin{equation}
+(2n+1)\int_{-1}^{x}P_{n}(t)\,\mathrm{d}t=P_{n+1}(x)-P_{n-1}(x)\;.\label{eq:wehave}
+\end{equation}
+
+\end_inset
+
+Choosing 
+\begin_inset Formula $n=j-1$
+\end_inset
+
+,
+\begin_inset Formula 
+\[
+(\,2(j-1)+1\,)\int_{-1}^{x}P_{j-1}(t)\,\mathrm{d}t=P_{j}(x)-P_{j-2}(x)\;,
+\]
+
+\end_inset
+
+i.e.
+\begin_inset Formula 
+\[
+(2j-1)\int_{-1}^{x}P_{j-1}(t)\,\mathrm{d}t=P_{j}(x)-P_{j-2}(x)\;,
+\]
+
+\end_inset
+
+and rearranging, we have
+\begin_inset Formula 
+\[
+\int_{-1}^{x}P_{j-1}(t)\,\mathrm{d}t=\frac{1}{(2j-1)}\left(\,P_{j}(x)-P_{j-2}(x)\,\right)\;.
+\]
+
+\end_inset
+
+The definition 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:psi-def"
+
+\end_inset
+
+ thus becomes
+\begin_inset Formula 
+\[
+\psi_{j}(x)=\sqrt{\frac{1}{2}(2j-1)}\int_{-1}^{x}P_{j-1}(t)\,\mathrm{d}t=\sqrt{\frac{1}{2}(2j-1)}\frac{1}{(2j-1)}\left(\,P_{j}(x)-P_{j-2}(x)\,\right)\;.
+\]
+
+\end_inset
+
+Simplifying, we have the result
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+\psi_{j}(x)=\frac{1}{\sqrt{2(2j-1)}}\left(\,P_{j}(x)-P_{j-2}(x)\,\right)\;,\quad j\ge2\;.\label{eq:psij-explicit}
+\end{equation}
+
+\end_inset
+
+Equation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:psij-explicit"
+
+\end_inset
+
+ shows that the functions 
+\begin_inset Formula $\psi_{j}(x)$
+\end_inset
+
+ for 
+\begin_inset Formula $j\ge2$
+\end_inset
+
+ are bubbles; the parenthetical expression vanishes both at 
+\begin_inset Formula $-1$
+\end_inset
+
+ and at 
+\begin_inset Formula $+1$
+\end_inset
+
+ for any 
+\begin_inset Formula $j\ge2$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+For the special case 
+\begin_inset Formula $j=1$
+\end_inset
+
+ (which is not part of the basis), directly from 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:psi-def"
+
+\end_inset
+
+ by using 
+\begin_inset Formula $P_{0}(x)\equiv1$
+\end_inset
+
+ we have 
+\begin_inset Formula 
+\begin{equation}
+\psi_{1}(x)=\frac{1}{\sqrt{2}}(x+1)\;.\label{eq:psi-one}
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+We will also need the derivative of 
+\begin_inset Formula $\psi_{j}$
+\end_inset
+
+, which we obtain from 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:psi-def"
+
+\end_inset
+
+ (by differentiation of a definite integral by its upper limit) as
+\begin_inset Formula 
+\begin{equation}
+\psi_{j}'(x)=\left(\sqrt{\frac{1}{2}(2j-1)}\;\,\right)P_{j-1}(x)\;.\label{eq:psijder}
+\end{equation}
+
+\end_inset
+
+The integral of 
+\begin_inset Formula $\psi_{j}$
+\end_inset
+
+ is
+\begin_inset Formula 
+\begin{equation}
+\int_{-1}^{x}\psi_{j}(t)\,\mathrm{d}t=\frac{1}{\sqrt{2(2j-1)}}\int_{-1}^{x}\left(\,P_{j}(t)-P_{j-2}(t)\,\right)\mathrm{d}t\;,\quad j\ge2\;.\label{eq:int-temp}
+\end{equation}
+
+\end_inset
+
+It follows from 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:psi-def"
+
+\end_inset
+
+ that
+\begin_inset Formula 
+\[
+\int_{-1}^{x}P_{j}(t)\,\mathrm{d}t=\frac{1}{\sqrt{\frac{1}{2}(2j+1)}}\psi_{j+1}(x)\;,
+\]
+
+\end_inset
+
+and hence also
+\begin_inset Formula 
+\[
+\int_{-1}^{x}P_{j-2}(t)\,\mathrm{d}t=\frac{1}{\sqrt{\frac{1}{2}(2j-3)}}\psi_{j-1}(x)
+\]
+
+\end_inset
+
+if we allow for the definition of 
+\begin_inset Quotes eld
+\end_inset
+
+
+\begin_inset Formula $\psi_{1}$
+\end_inset
+
+
+\begin_inset Quotes erd
+\end_inset
+
+.
+ Thus we may rewrite 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:int-temp"
+
+\end_inset
+
+ as
+\begin_inset Formula 
+\begin{equation}
+\int_{-1}^{x}\psi_{j}(t)\,\mathrm{d}t=\frac{1}{\sqrt{2(2j-1)}}\left(\frac{1}{\sqrt{\frac{1}{2}(2j+1)}}\psi_{j+1}(x)-\frac{1}{\sqrt{\frac{1}{2}(2j-3)}}\psi_{j-1}(x)\right)\;.\label{eq:psijint-explicit}
+\end{equation}
+
+\end_inset
+
+Especially, since for 
+\begin_inset Formula $j\ge2$
+\end_inset
+
+ the 
+\begin_inset Formula $\psi_{j}$
+\end_inset
+
+ are bubbles, at 
+\begin_inset Formula $x=1$
+\end_inset
+
+ the expression 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:psijint-explicit"
+
+\end_inset
+
+ vanishes for all 
+\begin_inset Formula $j\ge3$
+\end_inset
+
+.
+ For 
+\begin_inset Formula $j=2$
+\end_inset
+
+, we note that by 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:psi-one"
+
+\end_inset
+
+, we have 
+\begin_inset Formula $\psi_{1}(1)=\sqrt{2}$
+\end_inset
+
+ (in the last term above), and hence
+\begin_inset Formula 
+\[
+\int_{-1}^{1}\psi_{2}(t)\,\mathrm{d}t=-\frac{1}{\sqrt{2\cdot3}}\frac{1}{\sqrt{\frac{1}{2}}}\sqrt{2}=-\sqrt{\frac{2}{3}}\;.
+\]
+
+\end_inset
+
+We will need this for a special case at the end.
+\end_layout
+
+\begin_layout Standard
+Finally, we recall the 
+\begin_inset Formula $L^{2}$
+\end_inset
+
+-orthogonality of the Legendre polynomials on 
+\begin_inset Formula $(-1,1)$
+\end_inset
+
+:
+\begin_inset Formula 
+\begin{equation}
+\int_{-1}^{1}P_{m}\,P_{n}\,\mathrm{d}t=\frac{2}{2n+1}\,\delta_{mn}\;,\label{eq:L2-ortho}
+\end{equation}
+
+\end_inset
+
+where 
+\begin_inset Formula $\delta_{mn}$
+\end_inset
+
+ is the Kronecker delta and 
+\begin_inset Formula $m,n\ge0$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsubsection*
+Alternative explicit representation
+\end_layout
+
+\begin_layout Standard
+As was noted above, Legendre polynomials 
+\begin_inset Formula $P_{n}(x)$
+\end_inset
+
+ follow Bonnet's recurrence formula, equation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:Legendre-Pnp1"
+
+\end_inset
+
+, repeated here for convenience:
+\begin_inset Formula 
+\begin{equation}
+(n+1)P_{n+1}(x)=(2n+1)xP_{n}(x)-nP_{n-1}(x)\;.\label{eq:Bonnet}
+\end{equation}
+
+\end_inset
+
+Considering the 
+\begin_inset Formula $\psi_{j}$
+\end_inset
+
+, by 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:psij-explicit"
+
+\end_inset
+
+, for any 
+\begin_inset Formula $j\ge2$
+\end_inset
+
+ it holds that
+\begin_inset Formula 
+\[
+\sqrt{2(2j-1)}\psi_{j}(x)=P_{j}(x)-P_{j-2}(x)\;.
+\]
+
+\end_inset
+
+From 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:Bonnet"
+
+\end_inset
+
+, we observe that if we set 
+\begin_inset Formula $j=n+1$
+\end_inset
+
+ (whence 
+\begin_inset Formula $n=j-1$
+\end_inset
+
+), we have
+\begin_inset Formula 
+\[
+jP_{j}=(2(j-1)+1)P_{j-1}-(j-1)P_{j-2}=(2j-1)xP_{j-1}-(j-1)P_{j-2}\;.
+\]
+
+\end_inset
+
+By subtracting 
+\begin_inset Formula $jP_{j-2}$
+\end_inset
+
+ from both sides,
+\begin_inset Formula 
+\[
+j\cdot(\,P_{j}-P_{j-2}\,)=(2j-1)xP_{j-1}-(2j-1)P_{j-2}=(2j-1)(\,xP_{j-1}-P_{j-2}\,)\;.
+\]
+
+\end_inset
+
+This gives us an alternative explicit representation for 
+\begin_inset Formula $\psi_{j}(x)$
+\end_inset
+
+:
+\begin_inset Formula 
+\begin{equation}
+\psi_{j}(x)=\frac{\sqrt{2j-1}}{j\sqrt{2}}(\,xP_{j-1}(x)-P_{j-2}(x)\,)\;.\label{eq:psij-explicit-alt}
+\end{equation}
+
+\end_inset
+
+Numerically, neither one seems better a priori; as 
+\begin_inset Formula $j$
+\end_inset
+
+ increases, both 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:psij-explicit"
+
+\end_inset
+
+ and 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:psij-explicit-alt"
+
+\end_inset
+
+ have cancellation problems at some parts of the domain.
+\end_layout
+
+\begin_layout Subsubsection*
+Numerical evaluation of the basis functions
+\end_layout
+
+\begin_layout Standard
+For up to 
+\begin_inset Formula $n=24$
+\end_inset
+
+ or so, standard double precision floating point (with 53-bit mantissa)
+ is sufficient.
+ This was tested in two ways.
+\end_layout
+
+\begin_layout Standard
+The first test used 
+\family sans
+numpy.polynomial.legendre.leg2poly()
+\family default
+, 
+\family sans
+numpy.polynomial.Polynomial
+\family default
+, and the 
+\family sans
+integ()
+\family default
+ method of 
+\family sans
+Polynomial
+\family default
+ objects, evaluating the definition 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:psi-def"
+
+\end_inset
+
+ directly.
+ Note that 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:psi-def"
+
+\end_inset
+
+ must not be integrated numerically; rounding errors accumulate, and thus
+ for high degrees, when integrated numerically, the result will miss zero
+ at the right endpoint.
+ Much better is to observe that 
+\begin_inset Formula $\psi_{j}$
+\end_inset
+
+ is a polynomial, treating the integration as an exact operation on the
+ coefficients.
+\end_layout
+
+\begin_layout Standard
+In the second test, similar results were obtained by Legendre series evaluation
+ (
+\family sans
+np.polynomial.legendre
+\family default
+) of the explicit solution 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:psij-explicit"
+
+\end_inset
+
+.
+ The problem in this form is cancellation; whether one uses 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:psij-explicit"
+
+\end_inset
+
+ or 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:psij-explicit-alt"
+
+\end_inset
+
+, there are some parts of the domain 
+\begin_inset Formula $[-1,1]$
+\end_inset
+
+ where one must subtract numbers that are almost equal in order to obtain
+ the value of 
+\begin_inset Formula $\psi_{j}$
+\end_inset
+
+.
+ Since the Legendre polynomials 
+\begin_inset Formula $P_{n}$
+\end_inset
+
+ are oscillatory for 
+\begin_inset Formula $n\ge2$
+\end_inset
+
+, the higher 
+\begin_inset Formula $j$
+\end_inset
+
+ is, the more problematic regions appear.
+ Above 
+\begin_inset Formula $n=30$
+\end_inset
+
+, accuracy is completely lost (as one can observe from the computed values
+ of the 
+\begin_inset Formula $P_{n}$
+\end_inset
+
+ near 
+\begin_inset Formula $x=1$
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+In either case, the problem is that the coefficients of the Legendre polynomials
+ 
+\begin_inset Formula $P_{n}$
+\end_inset
+
+ grow very quickly as the degree 
+\begin_inset Formula $n$
+\end_inset
+
+ increases, and that the 
+\begin_inset Formula $P_{n}$
+\end_inset
+
+ are oscillatory --- making 
+\begin_inset Formula $\psi_{j}$
+\end_inset
+
+ difficult to evaluate, even if one were to use 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:psi-def"
+
+\end_inset
+
+ with analytically computed 
+\begin_inset Formula $P_{j-1}$
+\end_inset
+
+, exact arithmetic for the coefficients, and analytical integration for
+ polynomials.
+\end_layout
+
+\begin_layout Standard
+For high degrees, an easy practical approach is to use SymPy's mpmath module
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+
+\family sans
+\begin_inset CommandInset href
+LatexCommand href
+target "http://docs.sympy.org/0.7.1/modules/mpmath/index.html"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+, which provides an arbitrary-precision floating point library.
+ The library includes 
+\family sans
+sympy.mpmath.legendre
+\family default
+ for evaluating Legendre polynomials.
+ The arbitrary precision (and even for 53-bit results, higher internal working
+ precision) makes it possible to evaluate 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:psij-explicit"
+
+\end_inset
+
+ directly without worrying about cancellation.
+ This was tested up to 
+\begin_inset Formula $q=300$
+\end_inset
+
+ and the results seemed very accurate.
+ The downside is that it is very slow, because it is running in pure software.
+ Making a precomputed table of course helps in practice; this is implemented
+ in 
+\family sans
+precalc.py
+\family default
+.
+\begin_inset Note Note
+status collapsed
+
+\begin_layout Subsubsection
+Chebyshev polynomials
+\end_layout
+
+\begin_layout Plain Layout
+The Chebyshev polynomials
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+
+\family sans
+\begin_inset CommandInset href
+LatexCommand href
+target "https://en.wikipedia.org/wiki/Chebyshev_polynomials"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+ are another option.
+ The 
+\emph on
+Chebyshev polynomials of the first kind
+\emph default
+, on 
+\begin_inset Formula $[-1,1]$
+\end_inset
+
+, are given by the recurrence relation
+\begin_inset Formula 
+\begin{align}
+T_{0}(x) & =1\;,\label{eq:Chebyshev-T0}\\
+T_{1}(x) & =x\;,\label{eq:Chebyshev-T1}\\
+T_{n+1}(x) & =2xT_{n}(x)-T_{n-1}(x)\;.\label{eq:Chebyshev-Tnp1}
+\end{align}
+
+\end_inset
+
+can also be used.
+ These are 
+\begin_inset Formula $L^{2}$
+\end_inset
+
+-orthogonal with respect to the weight 
+\begin_inset Formula $1/\sqrt{1-x^{2}}$
+\end_inset
+
+:
+\begin_inset Formula 
+\[
+\int_{-1}^{1}T_{n}(x)T_{m}(x)\frac{1}{\sqrt{1-x^{2}}}\,\mathrm{d}x=\begin{cases}
+0\;, & \text{if }n\ne m\;,\\
+\pi\;, & \text{if }n=m=0\;,\\
+\pi/2\;, & \text{if }n=m\ne0\;.
+\end{cases}
+\]
+
+\end_inset
+
+The 
+\emph on
+Chebyshev polynomials of the second kind
+\emph default
+, on 
+\begin_inset Formula $[-1,1]$
+\end_inset
+
+, are given by the recurrence relation
+\begin_inset Formula 
+\begin{align}
+U_{0}(x) & =1\;,\label{eq:Chebyshev-U0}\\
+U_{1}(x) & =2x\;,\label{eq:Chebyshev-U1}\\
+U_{n+1}(x) & =2xU_{n}(x)-U_{n-1}(x)\;.\label{eq:Chebyshev-Unp1}
+\end{align}
+
+\end_inset
+
+These are 
+\begin_inset Formula $L^{2}$
+\end_inset
+
+-orthogonal with respect to the weight 
+\begin_inset Formula $\sqrt{1-x^{2}}$
+\end_inset
+
+:
+\begin_inset Formula 
+\[
+\int_{-1}^{1}U_{n}(x)U_{m}(x)\sqrt{1-x^{2}}\,\mathrm{d}x=\begin{cases}
+0\;, & \text{if }n\ne m\;,\\
+\pi/2\;, & \text{if }n=m\;.
+\end{cases}
+\]
+
+\end_inset
+
+Chebyshev polynomials (especially 
+\begin_inset Formula $T_{n}(x)$
+\end_inset
+
+) are often used in interpolation and in spectral methods.
+\end_layout
+
+\begin_layout Subsubsection
+Other choices?
+\end_layout
+
+\begin_layout Plain Layout
+We may also try to custom-design a basis to take into account the form of
+ the first term in the weak form,
+\begin_inset Formula 
+\[
+\int_{t_{k}}^{t_{k+1}}\frac{\partial u(t)}{\partial t}w(t)\;\mathrm{d}t\;.
+\]
+
+\end_inset
+
+It is observed that if 
+\begin_inset Formula $\partial u/\partial t$
+\end_inset
+
+ and 
+\begin_inset Formula $w$
+\end_inset
+
+ can be made 
+\begin_inset Formula $L^{2}$
+\end_inset
+
+-orthogonal on 
+\begin_inset Formula $(t_{k},t_{k+1})$
+\end_inset
+
+, then equation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:Ajn-DG"
+
+\end_inset
+
+,
+\begin_inset Formula 
+\[
+A_{im}=\int_{t_{k}}^{t_{k+1}}\psi_{i}(t)\;\frac{\partial\varphi_{m}}{\partial t}(t)\;\mathrm{d}t+\psi_{i}(t_{k})\underset{\varepsilon\rightarrow0^{+}}{\lim}\varphi_{m}(t_{k}+\varepsilon)\;,
+\]
+
+\end_inset
+
+which defines the matrix 
+\begin_inset Formula $\mathbf{A}$
+\end_inset
+
+ in 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:lineqsys"
+
+\end_inset
+
+, would reduce into an 
+\begin_inset Quotes eld
+\end_inset
+
+almost diagonal
+\begin_inset Quotes erd
+\end_inset
+
+ form
+\begin_inset Formula 
+\begin{equation}
+A_{im}=\beta_{i}\delta_{im}+\psi_{i}(t_{k})\underset{\varepsilon\rightarrow0^{+}}{\lim}\varphi_{m}(t_{k}+\varepsilon)\;,\label{eq:A-almostdiag-tentative}
+\end{equation}
+
+\end_inset
+
+where 
+\begin_inset Formula $\beta_{i}$
+\end_inset
+
+ is a constant and 
+\begin_inset Formula $\delta_{im}$
+\end_inset
+
+ is the Kronecker delta.
+\end_layout
+
+\begin_layout Plain Layout
+Using the Petrov--Galerkin approach of choosing the basis and test function
+ sets differently, 
+\begin_inset Formula $L^{2}$
+\end_inset
+
+-orthogonality can be achieved at least by choosing 
+\begin_inset Formula $\varphi_{m}=\int P_{m-1}(t)\,\mathrm{d}t$
+\end_inset
+
+ (note indefinite integration) and 
+\begin_inset Formula $\psi_{i}=P_{i-1}$
+\end_inset
+
+, making 
+\begin_inset Formula $\psi_{i}\,\varphi_{m}'$
+\end_inset
+
+ a product of two Legendre polynomials.
+ However, without a more detailed analysis, it is not clear whether the
+ basis consisting of integrals of the Legendre polynomials can represent
+ all the functions that the Legendre polynomials themselves can.
+ For example, how about the constant function? The basis can be augmented
+ by a constant function to fix this particular issue, but other issues may
+ remain.
+\end_layout
+
+\begin_layout Plain Layout
+At first glance it seems that another option is to try 
+\begin_inset Formula $\varphi_{m}=P_{m-1}$
+\end_inset
+
+ and 
+\begin_inset Formula $\psi_{i}=P_{i-1}'$
+\end_inset
+
+, which also makes 
+\begin_inset Formula $\psi_{i}\,\varphi_{m}'$
+\end_inset
+
+ a product of Legendre polynomials.
+ This is seen from the recursion formula
+\begin_inset Formula 
+\begin{equation}
+(2n+1)P_{n}(x)=\frac{\partial}{\partial x}(\,P_{n+1}(x)-P_{n-1}(x)\,)\;,\label{eq:recursion-formula-P-derivatives}
+\end{equation}
+
+\end_inset
+
+which, by solving for 
+\begin_inset Formula $(\partial/\partial x)P_{n+1}(x)$
+\end_inset
+
+ and then applying recursively, leads to the representation
+\begin_inset Formula 
+\begin{equation}
+\frac{\partial}{\partial x}P_{n+1}(x)=(2n+1)P_{n}(x)+(2(n-1)+1)P_{n-2}(x)+(2(n-4)+1)P_{n-4}(x)+\dots\label{eq:ddxPnp1-repr}
+\end{equation}
+
+\end_inset
+
+which bottoms out when it eventually reaches 
+\begin_inset Formula $P_{1}$
+\end_inset
+
+ or 
+\begin_inset Formula $P_{0}$
+\end_inset
+
+, which can be differentiated explicitly.
+\end_layout
+
+\begin_layout Plain Layout
+Observe that 
+\begin_inset Formula $(\partial/\partial x)P_{n+1}(x)$
+\end_inset
+
+ will involve 
+\emph on
+all
+\emph default
+ of 
+\begin_inset Formula $P_{n}$
+\end_inset
+
+, 
+\begin_inset Formula $P_{n-2}$
+\end_inset
+
+, 
+\begin_inset Formula $P_{n-4}$
+\end_inset
+
+, ...
+ and hence e.g.
+ 
+\begin_inset Formula $(\partial/\partial x)P_{n+1}(x)$
+\end_inset
+
+ and 
+\begin_inset Formula $(\partial/\partial x)P_{n+3}(x)$
+\end_inset
+
+ will not be orthogonal, because they share most of the terms (up to constant
+ factors involving 
+\begin_inset Formula $n$
+\end_inset
+
+) in their corresponding representations 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:ddxPnp1-repr"
+
+\end_inset
+
+.
+ Thus the second option does not work.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Useful matrices for Galerkin applications
+\end_layout
+
+\begin_layout Standard
+Because the coefficients of the Legendre polynomials 
+\begin_inset Formula $P_{n}$
+\end_inset
+
+ grow very quickly as the degree 
+\begin_inset Formula $n$
+\end_inset
+
+ increases, for reasons of numerical stability it is preferable to use a
+ semi-analytical method, where the integrals in the Galerkin matrices are
+ treated analytically.
+\end_layout
+
+\begin_layout Standard
+In this section, we give some useful matrices for the treatment of up to
+ second-order problems in weak form.
+ This is slightly more general than we need (our ODE system needs only the
+ matrix 
+\begin_inset Formula $C_{ji}$
+\end_inset
+
+), but is provided for the sake of completeness.
+\end_layout
+
+\begin_layout Standard
+Let us restrict our consideration to 
+\begin_inset Formula $i,j\ge2$
+\end_inset
+
+.
+ The first two rows and columns will be handled later.
+\end_layout
+
+\begin_layout Standard
+A typical stiffness matrix is (
+\begin_inset Formula $j=\text{row}$
+\end_inset
+
+, 
+\begin_inset Formula $i=\text{column}$
+\end_inset
+
+)
+\begin_inset Formula 
+\begin{align}
+K_{ji} & :=\int_{-1}^{1}\psi_{i}'\,\psi_{j}'\,\mathrm{d}t\nonumber \\
+ & =\int_{-1}^{1}\left(\sqrt{\frac{1}{2}(2i-1)}P_{i-1}\sqrt{\frac{1}{2}(2j-1)}P_{j-1}\right)\,\mathrm{d}t\nonumber \\
+ & =\sqrt{\frac{1}{2}(2i-1)}\sqrt{\frac{1}{2}(2j-1)}\int_{-1}^{1}P_{i-1}\,P_{j-1}\,\mathrm{d}t\nonumber \\
+ & =\sqrt{\frac{1}{2}(2i-1)}\sqrt{\frac{1}{2}(2j-1)}\frac{2}{2j-1}\delta_{ij}\nonumber \\
+ & =\frac{1}{2}(2j-1)\frac{2}{2j-1}\delta_{ij}\nonumber \\
+ & =\delta_{ij}\;.\label{eq:Kji-is-deltaji}
+\end{align}
+
+\end_inset
+
+This is of course the motivation for using integrals of Legendre polynomials
+ as the basis functions 
+\begin_inset Formula $\psi_{j}$
+\end_inset
+
+, and also for the particular choice of the scaling factor in 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:psi-def"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+A typical damping or gyroscopic matrix is
+\begin_inset Formula 
+\begin{equation}
+C_{ji}=\int_{-1}^{1}\psi_{i}'\,\psi_{j}\,\mathrm{d}t\;.\label{eq:Cji}
+\end{equation}
+
+\end_inset
+
+Note that this is also seen as the mass matrix for the first-order initial
+ value problem
+\begin_inset Formula 
+\begin{align*}
+\frac{\partial u}{\partial t} & =f(\,u(t),\,t\,)\;,\\
+u(0) & =u_{0}\;.
+\end{align*}
+
+\end_inset
+
+By 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:psij-explicit"
+
+\end_inset
+
+ and 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:psijder"
+
+\end_inset
+
+, the matrix element 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:Cji"
+
+\end_inset
+
+ becomes
+\begin_inset Formula 
+\begin{equation}
+C_{ji}=\sqrt{\frac{1}{2}(2i-1)}\frac{1}{\sqrt{2(2j-1)}}\int_{-1}^{1}P_{i-1}\left(\,P_{j}-P_{j-2}\,\right)\,\mathrm{d}t\;,\label{eq:Cji-explicit}
+\end{equation}
+
+\end_inset
+
+i.e.
+\begin_inset Formula 
+\begin{equation}
+C_{ji}=\sqrt{\frac{2i-1}{2j-1}}\int_{-1}^{1}\left(\,P_{i-1}\,P_{j}\;-\;P_{i-1}\,P_{j-2}\,\right)\,\mathrm{d}t\;.\label{eq:Cji-explicit-2}
+\end{equation}
+
+\end_inset
+
+By applying the 
+\begin_inset Formula $L^{2}$
+\end_inset
+
+-orthogonality relation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:L2-ortho"
+
+\end_inset
+
+ and performing algebraic manipulation, we have
+\begin_inset Formula 
+\begin{align}
+C_{ji} & =2\sqrt{\frac{2i-1}{2j-1}}\,\left(\,\frac{1}{2j+1}\,\delta_{i-1,\,j}\;-\;\frac{1}{2j-3}\,\delta_{i-1,\,j-2}\,\right)\nonumber \\
+ & =2\sqrt{\frac{2i-1}{2j-1}}\,\left(\,\frac{1}{2j+1}\,\delta_{i-1,\,j}\;-\;\frac{1}{2j-3}\,\delta_{i+1,\,j}\,\right)\nonumber \\
+ & =2\sqrt{\frac{2i-1}{2j-1}}\,\frac{1}{2j+1}\,\delta_{i-1,\,j}-2\sqrt{\frac{2i-1}{2j-1}}\,\frac{1}{2j-3}\,\delta_{i+1,\,j}\nonumber \\
+ & =2\sqrt{\frac{2(j+1)-1}{2j-1}}\,\frac{1}{2j+1}\,\delta_{i-1,\,j}-2\sqrt{\frac{2(j-1)-1}{2j-1}}\,\frac{1}{2j-3}\,\delta_{i+1,\,j}\nonumber \\
+ & =2\sqrt{\frac{2j+1}{2j-1}}\,\frac{1}{2j+1}\,\delta_{i-1,\,j}-2\sqrt{\frac{2j-3}{2j-1}}\,\frac{1}{2j-3}\,\delta_{i+1,\,j}\nonumber \\
+ & =2\sqrt{\frac{1}{(2j-1)(2j+1)}}\,\delta_{i-1,\,j}-2\sqrt{\frac{1}{(2j-1)(2j-3)}}\,\delta_{i+1,\,j}\;.\label{eq:Cji-explicit-3}
+\end{align}
+
+\end_inset
+
+Note the bidiagonal structure and zero main diagonal.
+\end_layout
+
+\begin_layout Standard
+How about the symmetry properties? Consider
+\begin_inset Formula 
+\begin{align*}
+C_{ij} & =2\sqrt{\frac{1}{(2i-1)(2i+1)}}\,\delta_{j-1,\,i}-2\sqrt{\frac{1}{(2i-1)(2i-3)}}\,\delta_{j+1,\,i}\\
+ & =2\sqrt{\frac{1}{(2(j-1)-1)(2(j-1)+1)}}\,\delta_{j-1,\,i}-2\sqrt{\frac{1}{(2(j+1)-1)(2(j+1)-3)}}\,\delta_{j+1,\,i}\\
+ & =2\sqrt{\frac{1}{(2j-3)(2j-1)}}\,\delta_{j-1,\,i}-2\sqrt{\frac{1}{(2j+1)(2j-1)}}\,\delta_{j+1,\,i}\\
+ & =2\sqrt{\frac{1}{(2j-3)(2j-1)}}\,\delta_{j,\,i+1}-2\sqrt{\frac{1}{(2j+1)(2j-1)}}\,\delta_{j,\,i-1}\\
+ & =2\sqrt{\frac{1}{(2j-3)(2j-1)}}\,\delta_{i+1,\,j}-2\sqrt{\frac{1}{(2j+1)(2j-1)}}\,\delta_{i-1,\,j}\\
+ & =-2\sqrt{\frac{1}{(2j+1)(2j-1)}}\,\delta_{i-1,\,j}+2\sqrt{\frac{1}{(2j-3)(2j-1)}}\,\delta_{i+1,\,j}\\
+ & =-2\sqrt{\frac{1}{(2j-1)(2j+1)}}\,\delta_{i-1,\,j}+2\sqrt{\frac{1}{(2j-1)(2j-3)}}\,\delta_{i+1,\,j}\\
+ & =-C_{ji}\;.
+\end{align*}
+
+\end_inset
+
+We see that 
+\begin_inset Formula $C_{ji}$
+\end_inset
+
+ is antisymmetric (skew-symmetric).
+\end_layout
+
+\begin_layout Standard
+A typical mass matrix is
+\begin_inset Formula 
+\begin{align}
+M_{ji} & :=\int_{-1}^{1}\psi_{i}\,\psi_{j}\,\mathrm{d}t\nonumber \\
+ & =\int_{-1}^{1}\left[\frac{1}{\sqrt{2(2i-1)}}\left(\,P_{i}-P_{i-2}\,\right)\frac{1}{\sqrt{2(2j-1)}}\left(\,P_{j}-P_{j-2}\,\right)\right]\,\mathrm{d}t\nonumber \\
+ & =\frac{1}{\sqrt{2(2i-1)}}\,\frac{1}{\sqrt{2(2j-1)}}\,\int_{-1}^{1}\left(\,P_{i}\,P_{j}\;-\,P_{i}\,P_{j-2}\;-\,P_{i-2}\,P_{j}\;+\,P_{i-2}\,P_{j-2}\,\right)\mathrm{d}t\nonumber \\
+ & =2\frac{1}{\sqrt{2(2i-1)}}\,\frac{1}{\sqrt{2(2j-1)}}\,\left(\frac{1}{2j+1}\,\delta_{ij}-\frac{1}{2j-3}\,\delta_{i,\,j-2}-\frac{1}{2j+1}\,\delta_{i-2,\,j}+\frac{1}{2j-3}\,\delta_{i-2,\,j-2}\right)\nonumber \\
+ & =\frac{1}{\sqrt{2i-1}}\,\frac{1}{\sqrt{2j-1}}\,\left(\frac{1}{2j+1}\,\delta_{ij}-\frac{1}{2j-3}\,\delta_{i,\,j-2}-\frac{1}{2j+1}\,\delta_{i-2,\,j}+\frac{1}{2j-3}\,\delta_{i-2,\,j-2}\right)\nonumber \\
+ & =\frac{1}{2j-1}\,\left(\frac{1}{2j+1}+\frac{1}{2j-3}\right)\delta_{ij}-\frac{1}{\sqrt{2(j-2)-1}}\,\frac{1}{\sqrt{2j-1}}\frac{1}{2j-3}\,\delta_{i+2,\,j}-\frac{1}{\sqrt{2(j+2)-1}}\,\frac{1}{\sqrt{2j-1}}\frac{1}{2j+1}\,\delta_{i-2,\,j}\nonumber \\
+ & =\frac{1}{2j-1}\,\left(\frac{1}{2j+1}+\frac{1}{2j-3}\right)\delta_{ij}-\frac{1}{\sqrt{2j-5}}\,\frac{1}{(2j-3)}\,\frac{1}{\sqrt{2j-1}}\,\delta_{i+2,\,j}-\frac{1}{\sqrt{2j-1}}\,\frac{1}{(2j+1)}\,\frac{1}{\sqrt{2j+3}}\,\delta_{i-2,\,j}\;.\label{eq:Mji}
+\end{align}
+
+\end_inset
+
+We have used 
+\begin_inset Formula $\delta_{i-k,\,j-k}=\delta_{ij}$
+\end_inset
+
+ for any 
+\begin_inset Formula $k$
+\end_inset
+
+, and 
+\begin_inset Formula $\delta_{i,\,j-2}=\delta_{i+2,\,j}$
+\end_inset
+
+.
+ Note the tridiagonal structure.
+\end_layout
+
+\begin_layout Standard
+Note the symmetry 
+\begin_inset Formula $M_{ij}=M_{ji}$
+\end_inset
+
+.
+ We do not need to check this from the final result, because the definition
+ (first line) is symmetric with respect to the exchange of 
+\begin_inset Formula $i$
+\end_inset
+
+ and 
+\begin_inset Formula $j$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Equations 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:Kji-is-deltaji"
+
+\end_inset
+
+, 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:Cji-explicit-3"
+
+\end_inset
+
+ and 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:Mji"
+
+\end_inset
+
+ allow explicit analytical treatment of the matrices 
+\begin_inset Formula $\mathbf{K}$
+\end_inset
+
+, 
+\begin_inset Formula $\mathbf{C}$
+\end_inset
+
+ and 
+\begin_inset Formula $\mathbf{M}$
+\end_inset
+
+ for matrix elements at 
+\begin_inset Formula $i,j\ge2$
+\end_inset
+
+.
+ To complete the treatment, we must consider the first two rows and columns.
+\end_layout
+
+\begin_layout Subsubsection*
+The first two rows and columns
+\end_layout
+
+\begin_layout Standard
+First, observe that by definition, 
+\begin_inset Formula $P_{0}(x)=1$
+\end_inset
+
+ and 
+\begin_inset Formula $P_{1}(x)=x$
+\end_inset
+
+.
+ The functions 
+\begin_inset Formula $N_{0}(x)$
+\end_inset
+
+ and 
+\begin_inset Formula $N_{1}(x)$
+\end_inset
+
+ are actually their linear combinations:
+\begin_inset Formula 
+\begin{align}
+N_{0}(x) & =\frac{1}{2}(1-x)=\frac{1}{2}(P_{0}-P_{1})\;,\label{eq:N0-as-Legendre}\\
+N_{1}(x) & =\frac{1}{2}(1+x)=\frac{1}{2}(P_{0}+P_{1})\;,\label{eq:N1-as-Legendre}
+\end{align}
+
+\end_inset
+
+so if needed, we have the option of utilizing the properties of Legendre
+ polynomials also in these cases.
+\end_layout
+
+\begin_layout Standard
+We will first treat the block 
+\begin_inset Formula $i,j=\{0,1\}$
+\end_inset
+
+ (upper left corner), and then consider the regions 
+\begin_inset Formula $i\ge2$
+\end_inset
+
+, 
+\begin_inset Formula $j=\{0,1\}$
+\end_inset
+
+ (first two rows) and 
+\begin_inset Formula $i=\{0,1\}$
+\end_inset
+
+, 
+\begin_inset Formula $j\ge2$
+\end_inset
+
+ (first two columns).
+\end_layout
+
+\begin_layout Paragraph*
+Upper left corner
+\end_layout
+
+\begin_layout Standard
+Let 
+\begin_inset Formula $i,j=\{0,1\}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+For the stiffness matrix, we have
+\begin_inset Formula 
+\begin{align*}
+K_{ji} & =\int_{-1}^{1}N_{i}'\,N_{j}'\,\mathrm{d}t\\
+ & =2\left(\frac{1}{2}(-1)^{i+1}\,\frac{1}{2}(-1)^{j+1}\right)\\
+ & =\frac{1}{2}(-1)^{i+1}\,(-1)^{j+1}\;,
+\end{align*}
+
+\end_inset
+
+i.e.
+\begin_inset Formula 
+\[
+K_{ji}=\left[\begin{array}{rr}
+\nicefrac{1}{2} & -\nicefrac{1}{2}\\
+-\nicefrac{1}{2} & \nicefrac{1}{2}
+\end{array}\right]\;.
+\]
+
+\end_inset
+
+For the damping/gyroscopic matrix,
+\begin_inset Formula 
+\begin{align*}
+C_{ji} & =\int_{-1}^{1}N_{i}'\,N_{j}\,\mathrm{d}t\\
+ & =\int_{-1}^{1}\frac{1}{2}(-1)^{i+1}\,\frac{1}{2}\left(1+(-1)^{j+1}t\right)\,\mathrm{d}t\\
+ & =\frac{1}{4}\left((-1)^{i+1}\int_{-1}^{1}1\,\mathrm{d}t+(-1)^{i+j+2}\int_{-1}^{1}t\,\mathrm{d}t\right)\\
+ & =\frac{1}{4}\left((-1)^{i+1}\cdot2\right)\\
+ & =\frac{1}{2}(-1)^{i+1}\;,
+\end{align*}
+
+\end_inset
+
+i.e.
+\begin_inset Formula 
+\[
+C_{ji}=\left[\begin{array}{rr}
+-\nicefrac{1}{2} & \nicefrac{1}{2}\\
+-\nicefrac{1}{2} & \nicefrac{1}{2}
+\end{array}\right]\;.
+\]
+
+\end_inset
+
+For the mass matrix,
+\begin_inset Formula 
+\begin{align*}
+M_{ji} & =\int_{-1}^{1}N_{i}\,N_{j}\,\mathrm{d}t\\
+ & =\int_{-1}^{1}\frac{1}{2}\left(\,P_{0}+(-1)^{i+1}P_{1}\,\right)\frac{1}{2}\left(\,P_{0}+(-1)^{j+1}P_{1}\,\right)\,\mathrm{d}t\\
+ & =\frac{1}{4}\int_{-1}^{1}\left(\,P_{0}+(-1)^{i+1}P_{1}\,\right)\left(\,P_{0}+(-1)^{j+1}P_{1}\,\right)\,\mathrm{d}t\\
+ & =\frac{1}{4}\left(2+(-1)^{i+j}\cdot\frac{2}{3}\right)\\
+ & =\frac{1}{2}+\frac{1}{6}(-1)^{i+j}\;,
+\end{align*}
+
+\end_inset
+
+i.e.
+\begin_inset Formula 
+\[
+M_{ji}=\left[\begin{array}{rr}
+\nicefrac{2}{3} & \nicefrac{1}{3}\\
+\nicefrac{1}{3} & \nicefrac{2}{3}
+\end{array}\right]\;.
+\]
+
+\end_inset
+
+We have used the 
+\begin_inset Formula $L^{2}$
+\end_inset
+
+-orthogonality of the Legendre polynomials, equation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:L2-ortho"
+
+\end_inset
+
+, to discard the terms involving 
+\begin_inset Formula $P_{0}\,P_{1}$
+\end_inset
+
+, and to evaluate the terms involving 
+\begin_inset Formula $P_{0}^{2}$
+\end_inset
+
+ and 
+\begin_inset Formula $P_{1}^{2}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Paragraph*
+First two rows
+\end_layout
+
+\begin_layout Standard
+Let 
+\begin_inset Formula $j=\{0,1\}$
+\end_inset
+
+ and 
+\begin_inset Formula $i\ge2$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+For the stiffness matrix, we have
+\begin_inset Formula 
+\begin{align*}
+K_{ji} & =\int_{-1}^{1}N_{i}'\,N_{j}'\,\mathrm{d}t\\
+ & =\int_{-1}^{1}\psi_{i}'\cdot\frac{1}{2}(-1)^{j+1}\,\mathrm{d}t\\
+ & =\frac{1}{2}(-1)^{j+1}\int_{-1}^{1}\psi_{i}'\,\mathrm{d}t\\
+ & =\frac{1}{2}(-1)^{j+1}\left(\,\psi_{i}(1)-\psi_{i}(-1)\,\right)\\
+ & =0\;,
+\end{align*}
+
+\end_inset
+
+because the functions 
+\begin_inset Formula $\psi_{i}$
+\end_inset
+
+, 
+\begin_inset Formula $i\ge2$
+\end_inset
+
+, are bubbles.
+ Because the first line is symmetric with respect to exchanging 
+\begin_inset Formula $i$
+\end_inset
+
+ and 
+\begin_inset Formula $j$
+\end_inset
+
+, the same result holds also for the first two columns.
+\end_layout
+
+\begin_layout Standard
+For the damping/gyroscopic matrix,
+\begin_inset Formula 
+\begin{align*}
+C_{ji} & =\int_{-1}^{1}N_{i}'\,N_{j}\,\mathrm{d}t\\
+ & =\int_{-1}^{1}\psi_{i}'\cdot\frac{1}{2}\left(\,P_{0}+(-1)^{j+1}P_{1}\,\right)\,\mathrm{d}t\\
+ & =\int_{-1}^{1}\left(\sqrt{\frac{1}{2}(2i-1)}\;\,\right)P_{i-1}\cdot\frac{1}{2}\left(\,P_{0}+(-1)^{j+1}P_{1}\,\right)\,\mathrm{d}t\\
+ & =\frac{1}{2}\sqrt{\frac{1}{2}(2i-1)}\;\int_{-1}^{1}P_{i-1}\cdot\left(\,P_{0}+(-1)^{j+1}P_{1}\,\right)\,\mathrm{d}t\;,
+\end{align*}
+
+\end_inset
+
+where we have used 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:psijder"
+
+\end_inset
+
+ to represent 
+\begin_inset Formula $\psi_{i}'$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Due to the 
+\begin_inset Formula $L^{2}$
+\end_inset
+
+-orthogonality, the only nonzero terms are obtained for 
+\begin_inset Formula $i=2$
+\end_inset
+
+:
+\begin_inset Formula 
+\begin{align*}
+C_{j2} & =\frac{1}{2}\sqrt{\frac{3}{2}}\;\int_{-1}^{1}P_{1}\cdot\left(\,P_{0}+(-1)^{j+1}P_{1}\,\right)\,\mathrm{d}t\\
+ & =(-1)^{j+1}\frac{1}{2}\sqrt{\frac{3}{2}}\;\int_{-1}^{1}P_{1}\,P_{1}\,\mathrm{d}t\\
+ & =(-1)^{j+1}\frac{1}{2}\sqrt{\frac{3}{2}}\frac{2}{3}\\
+ & =(-1)^{j+1}\frac{1}{\sqrt{6}}\;,
+\end{align*}
+
+\end_inset
+
+where 
+\begin_inset Formula $j=\{0,1\}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+For the mass matrix,
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{align*}
+M_{ji} & =\int_{-1}^{1}N_{i}\,N_{j}\,\mathrm{d}t\\
+ & =\int_{-1}^{1}\psi_{i}\cdot\frac{1}{2}\left(\,P_{0}+(-1)^{j+1}P_{1}\,\right)\,\mathrm{d}t\\
+ & =\int_{-1}^{1}\frac{1}{\sqrt{2(2i-1)}}\left(\,P_{i}(x)-P_{i-2}(x)\,\right)\cdot\frac{1}{2}\left(\,P_{0}+(-1)^{j+1}P_{1}\,\right)\,\mathrm{d}t\\
+ & =\frac{1}{2\sqrt{2(2i-1)}}\int_{-1}^{1}\left(\,P_{i}(x)-P_{i-2}(x)\,\right)\cdot\left(\,P_{0}+(-1)^{j+1}P_{1}\,\right)\,\mathrm{d}t\;,
+\end{align*}
+
+\end_inset
+
+where we have used 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:psij-explicit"
+
+\end_inset
+
+ to represent 
+\begin_inset Formula $\psi_{i}$
+\end_inset
+
+.
+ Keep in mind that 
+\begin_inset Formula $i\ge2$
+\end_inset
+
+.
+ Only the term with 
+\begin_inset Formula $P_{i-2}$
+\end_inset
+
+ contributes; nonzero terms appear for 
+\begin_inset Formula $i=2$
+\end_inset
+
+ and 
+\begin_inset Formula $i=3$
+\end_inset
+
+.
+ We have
+\begin_inset Formula 
+\begin{align*}
+M_{ji} & =-\frac{1}{2\sqrt{2(2i-1)}}\int_{-1}^{1}P_{i-2}(x)\cdot\left(\,P_{0}+(-1)^{j+1}P_{1}\,\right)\,\mathrm{d}t\\
+ & =-\frac{1}{2\sqrt{2(2i-1)}}\left(2\delta_{i-2,\,0}+(-1)^{j+1}\frac{2}{3}\delta_{i-2,\,1}\right)\\
+ & =-\left(2\frac{1}{2\sqrt{2(2i-1)}}\delta_{i-2,\,0}+(-1)^{j+1}\frac{1}{2\sqrt{2(2i-1)}}\frac{2}{3}\delta_{i-2,\,1}\right)\\
+ & =-\left(\frac{1}{\sqrt{2}}\delta_{i-2,\,0}+(-1)^{j+1}\frac{1}{3\sqrt{10}}\delta_{i-2,\,1}\right)\\
+ & =-\left(\frac{1}{\sqrt{2}}\delta_{i,\,2}+(-1)^{j+1}\frac{1}{3\sqrt{10}}\delta_{i,\,3}\right)\;.
+\end{align*}
+
+\end_inset
+
+This holds for 
+\begin_inset Formula $j=\{0,1\}$
+\end_inset
+
+, 
+\begin_inset Formula $i=\{2,3\}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Again, the definition of 
+\begin_inset Formula $M_{ji}$
+\end_inset
+
+ is symmetric with respect to exchanging 
+\begin_inset Formula $i$
+\end_inset
+
+ and 
+\begin_inset Formula $j$
+\end_inset
+
+, so the same result holds also for the first two columns (swapping the
+ roles of 
+\begin_inset Formula $i$
+\end_inset
+
+ and 
+\begin_inset Formula $j$
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Paragraph*
+First two columns
+\end_layout
+
+\begin_layout Standard
+As was observed, 
+\begin_inset Formula $M_{ji}=M_{ij}$
+\end_inset
+
+ and 
+\begin_inset Formula $K_{ji}=K_{ij}$
+\end_inset
+
+.
+ The only case that has not been treated yet is 
+\begin_inset Formula $C_{ji}$
+\end_inset
+
+ for 
+\begin_inset Formula $j\ge2$
+\end_inset
+
+, 
+\begin_inset Formula $i=\{0,1\}$
+\end_inset
+
+.
+\begin_inset Formula 
+\begin{align*}
+C_{ji} & =\int_{-1}^{1}N_{i}'\,N_{j}\,\mathrm{d}t\\
+ & =\int_{-1}^{1}\frac{1}{2}(-1)^{i+1}\cdot\psi_{j}\,\mathrm{d}t\\
+ & =\frac{1}{2}(-1)^{i+1}\int_{-1}^{1}\psi_{j}\,\mathrm{d}t\;.
+\end{align*}
+
+\end_inset
+
+As was noted at the beginning, for 
+\begin_inset Formula $j\ge3$
+\end_inset
+
+ the integral is zero.
+ For 
+\begin_inset Formula $j=2$
+\end_inset
+
+, it is 
+\begin_inset Formula $-\sqrt{2/3}$
+\end_inset
+
+, and thus we have the final result
+\begin_inset Formula 
+\[
+C_{ji}=\frac{1}{\sqrt{6}}(-1)^{i}\delta_{j,\,2}\;.
+\]
+
+\end_inset
+
+This is valid for 
+\begin_inset Formula $j\ge2$
+\end_inset
+
+, 
+\begin_inset Formula $i=\{0,1\}$
+\end_inset
+
+.
+ We note that this is antisymmetric (skew-symmetric) to the result for the
+ first two rows, obtained further above; hence 
+\begin_inset Formula $C_{ji}$
+\end_inset
+
+ is antisymmetric for any 
+\begin_inset Formula $i,j\ge0$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Section
+Continuous Galerkin
+\end_layout
+
+\begin_layout Standard
+A simpler, more classical cousin of dG(
+\begin_inset Formula $q$
+\end_inset
+
+) is obtained if we seek the solution in the class of continuous functions.
+ This is interesting mainly for comparison; in practical use, the accuracy
+ seems to be much worse than with dG(
+\begin_inset Formula $q$
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+This leads to continuous Galerkin methods (
+\begin_inset Quotes eld
+\end_inset
+
+cG
+\begin_inset Quotes erd
+\end_inset
+
+, not to be confused with CG, the conjugate gradient method for linear equation
+ systems).
+ If we allow the sets of basis and test functions to be different, we can
+ also form 
+\begin_inset Quotes eld
+\end_inset
+
+cPG
+\begin_inset Quotes erd
+\end_inset
+
+ i.e.
+ continuous Petrov--Galerkin methods (not to be confused with PCG, the precondit
+ioned conjugate gradient method).
+\end_layout
+
+\begin_layout Standard
+Obviously, for a given polynomial degree 
+\begin_inset Formula $q$
+\end_inset
+
+ of the basis, some accuracy will be lost in comparison to dG(
+\begin_inset Formula $q$
+\end_inset
+
+).
+ This is because of the additional requirement of continuity across timestep
+ boundaries, which restricts the freedom of the Galerkin procedure in determinin
+g the optimal values for the coefficients.
+ Instead of locally 
+\begin_inset Formula $L^{2}$
+\end_inset
+
+-orthogonalizing the residual across each timestep, independent of the other
+ timesteps, the residual is 
+\begin_inset Formula $L^{2}$
+\end_inset
+
+-orthogonalized under the restriction that the Galerkin representation of
+ the solution remains continuous across timestep boundaries.
+ Hence, because there is less freedom to perform the fit, it is likely that
+ the accuracy of the result will suffer.
+\end_layout
+
+\begin_layout Standard
+Let us consider the integration of 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IVP"
+
+\end_inset
+
+--
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IC"
+
+\end_inset
+
+ over a single timestep using the Galerkin approach.
+ As before, we multiply 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IVP"
+
+\end_inset
+
+ by a test function 
+\begin_inset Formula $w$
+\end_inset
+
+ and integrate from 
+\begin_inset Formula $t_{k}-\varepsilon$
+\end_inset
+
+ to 
+\begin_inset Formula $t_{k+1}-\varepsilon$
+\end_inset
+
+:
+\begin_inset Formula 
+\begin{equation}
+\underset{\varepsilon\rightarrow0^{+}}{\lim}\int_{t_{k}-\varepsilon}^{t_{\mathrm{k+1}}-\varepsilon}\frac{\partial u}{\partial t}w\;\mathrm{d}t=\underset{\varepsilon\rightarrow0^{+}}{\lim}\int_{t_{k}-\varepsilon}^{t_{\mathrm{k+1}}-\varepsilon}f(\,u(t),\,t\,)\,w\;\mathrm{d}t\quad\forall w\;,\label{eq:weak-one-timestep-prep}
+\end{equation}
+
+\end_inset
+
+
+\begin_inset Formula 
+\begin{equation}
+u(t_{k})=u_{0}\;.\label{eq:IC-one-timestep}
+\end{equation}
+
+\end_inset
+
+Note that 
+\begin_inset Formula $u_{0}$
+\end_inset
+
+ denotes the initial condition for the current timestep.
+ We require 
+\begin_inset Formula $u\in C^{0}(0,t_{\mathrm{f}})$
+\end_inset
+
+ and 
+\begin_inset Formula $w\in C^{-1}(0,t_{\mathrm{f}})$
+\end_inset
+
+.
+ There are at most finite discontinuities in the integrands of 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:weak-one-timestep-prep"
+
+\end_inset
+
+.
+ Hence, no jump terms will be generated, and we may immediately get rid
+ of the limits, obtaining
+\begin_inset Formula 
+\begin{equation}
+\int_{t_{k}}^{t_{k+1}}\frac{\partial u}{\partial t}w\;\mathrm{d}t=\int_{t_{k}}^{t_{k+1}}f(\,u(t),\,t\,)\,w\;\mathrm{d}t\quad\forall w\;,\label{eq:weak-one-timestep}
+\end{equation}
+
+\end_inset
+
+Then, in the usual Petrov--Galerkin manner, we represent 
+\begin_inset Formula $u$
+\end_inset
+
+ as a Galerkin series,
+\begin_inset Formula 
+\begin{equation}
+u(t):=\overset{\infty}{\underset{m=1}{\sum}}u_{m}\varphi_{m}(t)\;,\label{eq:galerkin-1}
+\end{equation}
+
+\end_inset
+
+where 
+\begin_inset Formula $u_{m}$
+\end_inset
+
+ are the Galerkin coefficients, and 
+\begin_inset Formula $\varphi_{m}(t)$
+\end_inset
+
+ are the global basis functions.
+ We choose the test functions 
+\begin_inset Formula $w_{i}$
+\end_inset
+
+ as
+\begin_inset Formula 
+\begin{equation}
+w_{i}(t):=\psi_{i}(t)\;,\quad i=1,2,\dots\label{eq:testfunc-1}
+\end{equation}
+
+\end_inset
+
+allowing them to be different from the basis functions.
+ We require 
+\begin_inset Formula $\varphi_{m}\in C^{0}(0,t_{\mathrm{f}})$
+\end_inset
+
+ and 
+\begin_inset Formula $\psi_{i}\in C^{-1}(0,t_{\mathrm{f}})$
+\end_inset
+
+.
+ As before, typically the functions will be defined piecewise across 
+\begin_inset Formula $(0,t_{\mathrm{f}})$
+\end_inset
+
+, with any discontinuities in 
+\begin_inset Formula $\varphi_{m}'$
+\end_inset
+
+ and 
+\begin_inset Formula $\psi_{i}$
+\end_inset
+
+ occurring on the element boundaries.
+\end_layout
+
+\begin_layout Standard
+After truncation at 
+\begin_inset Formula $M$
+\end_inset
+
+ degrees of freedom, we obtain
+\begin_inset Formula 
+\begin{equation}
+\mathbf{A}\mathbf{u}=\mathbf{b}(\mathbf{u})\;,\label{eq:lineqsys-1}
+\end{equation}
+
+\end_inset
+
+where 
+\begin_inset Formula $\mathbf{u}$
+\end_inset
+
+ is an 
+\begin_inset Formula $M$
+\end_inset
+
+-element vector consisting of the coefficients 
+\begin_inset Formula $u_{m}$
+\end_inset
+
+, and
+\begin_inset Formula 
+\begin{equation}
+A_{im}=\int_{t_{k}}^{t_{k+1}}\psi_{i}(t)\;\frac{\partial\varphi_{m}}{\partial t}(t)\;\mathrm{d}t\;,\label{eq:Ajn-cPG}
+\end{equation}
+
+\end_inset
+
+
+\begin_inset Formula 
+\begin{equation}
+b_{i}(\mathbf{u})=\int_{t_{k}}^{t_{k+1}}f\bigl(\,\overset{M}{\underset{m=1}{\sum}}u_{m}\varphi_{m}(t),\,t\,\bigr)\,\psi_{i}(t)\;\mathrm{d}t\;.\label{eq:bj-cPG}
+\end{equation}
+
+\end_inset
+
+Considering what it describes, the equation system 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:lineqsys-1"
+
+\end_inset
+
+ by itself is rank-deficient.
+ It becomes uniquely solvable when the initial condition 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IC-one-timestep"
+
+\end_inset
+
+ is applied.
+ This may directly prescribe one of the 
+\begin_inset Formula $u_{m}$
+\end_inset
+
+ (thus eliminating one row and column), or just modify all of the rows slightly,
+ depending on the basis used.
+\end_layout
+
+\begin_layout Subsection
+cP(0)G(1)
+\end_layout
+
+\begin_layout Standard
+Choosing to test 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:weak-one-timestep"
+
+\end_inset
+
+ with the constant 
+\begin_inset Formula $w\equiv1$
+\end_inset
+
+, we obtain
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\int_{t_{k}}^{t_{k+1}}\frac{\partial u}{\partial t}\;\mathrm{d}t=\int_{t_{k}}^{t_{k+1}}f(\,u(t),\,t\,)\;\mathrm{d}t\;,
+\]
+
+\end_inset
+
+from which, immediately,
+\begin_inset Formula 
+\[
+u(t_{k+1})-u(t_{k})=\int_{t_{k}}^{t_{k+1}}f(\,u(t),\,t\,)\;\mathrm{d}t\;,
+\]
+
+\end_inset
+
+and by rearranging,
+\begin_inset Formula 
+\begin{equation}
+u(t_{k+1})=u(t_{k})+\int_{t_{k}}^{t_{k+1}}f(\,u(t),\,t\,)\;\mathrm{d}t\;.\label{eq:reduction-classical}
+\end{equation}
+
+\end_inset
+
+Equation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:reduction-classical"
+
+\end_inset
+
+ coincides with 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:wnp1-general-integral-form"
+
+\end_inset
+
+, which (as was noted in section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sub:The-theoretical-origin"
+
+\end_inset
+
+) reduces to different classical methods depending on the choices of the
+ model for 
+\begin_inset Formula $u$
+\end_inset
+
+ and the quadrature rule to approximate the integral.
+\end_layout
+
+\begin_layout Standard
+In the Petrov--Galerkin context, the model is 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:galerkin-1"
+
+\end_inset
+
+, the details depending on the choice of basis.
+ For example, we can choose a piecewise linear basis
+\begin_inset Formula 
+\begin{align*}
+\varphi_{1}(p) & =1-p\;,\\
+\varphi_{2}(p) & =p\;,
+\end{align*}
+
+\end_inset
+
+where 
+\begin_inset Formula $p\in[0,1]$
+\end_inset
+
+ is the scaled time (on the reference element 
+\begin_inset Formula $[0,1]$
+\end_inset
+
+).
+ This is the cP(
+\begin_inset Formula $0$
+\end_inset
+
+)G(
+\begin_inset Formula $1$
+\end_inset
+
+) method, i.e.
+ continuous Petrov--Galerkin with (piecewise) constant test and piecewise
+ linear basis.
+ For this basis, 
+\begin_inset Formula $u_{1}=u_{0}$
+\end_inset
+
+ (by 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:galerkin-1"
+
+\end_inset
+
+ and 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IC-one-timestep"
+
+\end_inset
+
+) and only 
+\begin_inset Formula $u_{2}$
+\end_inset
+
+ is unknown.
+ Hence after applying the initial condition, the single equation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:reduction-classical"
+
+\end_inset
+
+ is enough to close the system.
+\end_layout
+
+\begin_layout Standard
+If we now approximate the integral using the midpoint rule, we again obtain
+ IMR.
+ Approximating by the 
+\begin_inset Quotes eld
+\end_inset
+
+endpoint rule
+\begin_inset Quotes erd
+\end_inset
+
+ gives BE, and the 
+\begin_inset Quotes eld
+\end_inset
+
+startpoint rule
+\begin_inset Quotes erd
+\end_inset
+
+ gives FE.
+\begin_inset Note Note
+status collapsed
+
+\begin_layout Section
+Finite elements in time
+\end_layout
+
+\begin_layout Plain Layout
+This is a global approach that is related to spacetime methods.
+ Its memory and runtime requirements are high, because the whole time history
+ of the solution is solved at once.
+ This increases the number of degrees of freedom significantly, increasing
+ both the memory and processing costs.
+ Thus, in the context of initial-boundary value problems of PDEs, it is
+ primarily applicable to problems having up to two space dimensions.
+ In the context of pure ODE systems, the number of degrees of freedom should
+ probably be moderate (less than 
+\begin_inset Formula $10^{3}\dots10^{4}$
+\end_inset
+
+) for this approach to make practical sense.
+ 
+\end_layout
+
+\begin_layout Plain Layout
+Again, we multiply 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IVP"
+
+\end_inset
+
+ with a test function 
+\begin_inset Formula $w$
+\end_inset
+
+, but instead of considering only one timestep, we integrate from 
+\begin_inset Formula $0$
+\end_inset
+
+ to 
+\begin_inset Formula $t_{\mathrm{f}}$
+\end_inset
+
+, obtaining a global weak form: 
+\begin_inset Formula 
+\[
+\int_{0}^{t_{\mathrm{f}}}\frac{\partial u}{\partial t}w\;\mathrm{d}t=\int_{0}^{t_{\mathrm{f}}}f(\,u(t),\,t\,)\,w\;\mathrm{d}t\;,\quad\forall w\;.
+\]
+
+\end_inset
+
+The initial condition is the original 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IC"
+
+\end_inset
+
+,
+\begin_inset Formula 
+\[
+u(0)=u_{0}\;.
+\]
+
+\end_inset
+
+Inserting a (Petrov--)Galerkin representation again leads to equations of
+ the form
+\begin_inset Formula 
+\begin{equation}
+\mathbf{A}\mathbf{u}=\mathbf{b}(\mathbf{u})\;,\label{eq:lineqsys-2}
+\end{equation}
+
+\end_inset
+
+
+\begin_inset Formula 
+\begin{equation}
+A_{im}=\int_{0}^{t_{\mathrm{f}}}\psi_{i}(t)\;\frac{\partial\varphi_{m}}{\partial t}(t)\;\mathrm{d}t\;,\label{eq:Ajn-FEM}
+\end{equation}
+
+\end_inset
+
+
+\begin_inset Formula 
+\begin{equation}
+b_{i}(\mathbf{u})=\int_{0}^{t_{\mathrm{f}}}f\bigl(\,\overset{M}{\underset{m=1}{\sum}}u_{m}\varphi_{m}(t),\,t\,\bigr)\,\psi_{i}(t)\;\mathrm{d}t\;.\label{eq:bj-FEM}
+\end{equation}
+
+\end_inset
+
+Note that the integration is now taken over all of 
+\begin_inset Formula $(0,t_{\mathrm{f}})$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Plain Layout
+Just like when discretizing in space using finite elements, the functions
+ 
+\begin_inset Formula $\psi_{i}$
+\end_inset
+
+ and 
+\begin_inset Formula $\varphi_{m}$
+\end_inset
+
+ are now global, being pieced together from local functions on a patch of
+ elements surrounding a node (in our context, 
+\begin_inset Formula $t_{k}$
+\end_inset
+
+).
+ For example, consider a linear local basis
+\begin_inset Formula 
+\begin{align*}
+N_{1}(p) & =1-p\;,\\
+N_{2}(p) & =p\;,
+\end{align*}
+
+\end_inset
+
+where 
+\begin_inset Formula $p$
+\end_inset
+
+ is the scaled time on the reference element 
+\begin_inset Formula $[0,1]$
+\end_inset
+
+.
+ The function 
+\begin_inset Formula $\varphi_{m}$
+\end_inset
+
+ is a 
+\begin_inset Quotes eld
+\end_inset
+
+hat
+\begin_inset Quotes erd
+\end_inset
+
+ with its peak at 
+\begin_inset Formula $t_{m}$
+\end_inset
+
+, consisting of the pieces
+\begin_inset Formula 
+\[
+\varphi_{m}(t)=\begin{cases}
+0\;, & t<t_{m-1}\;,\\
+N_{2}(\,\frac{t-t_{m-1}}{t_{m}-t_{m-1}}\,)\;, & t_{m-1}\le t<t_{m}\;,\\
+N_{1}(\,\frac{t-t_{m}}{t_{m+1}-t_{m}}\,)\;, & t_{m}\le t<t_{m+1}\;,\\
+0\;, & t>t_{m+1}\;.
+\end{cases}
+\]
+
+\end_inset
+
+As is standard in the finite element method, equation 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:Ajn-FEM"
+
+\end_inset
+
+ is evaluated by iterating over the elements, summing the contributions
+ from the local pieces into the appropriate locations in the global matrix
+ 
+\begin_inset Formula $\mathbf{A}$
+\end_inset
+
+.
+ For a linear basis, the matrix 
+\begin_inset Formula $\mathbf{A}$
+\end_inset
+
+ will be tridiagonal.
+\end_layout
+
+\begin_layout Plain Layout
+This approach, using standard finite elements in time, may be good for equations
+ having time symmetry (i.e.
+ if the form of the equation remains invariant under the mapping 
+\begin_inset Formula $t\rightarrow-t$
+\end_inset
+
+), because the two-way connection between the timesteps preserves this symmetry.
+\end_layout
+
+\begin_layout Paragraph*
+Macro-element continuous Galerkin
+\end_layout
+
+\begin_layout Plain Layout
+As a memory-saving alternative, one may partition 
+\begin_inset Formula $(0,t_{\mathrm{f}})$
+\end_inset
+
+ into macro-timesteps, e.g.
+ 
+\begin_inset Formula $J_{k}=\{I_{3k},I_{3k+1},I_{3k+2}\}$
+\end_inset
+
+, using the finite element method on each macro-timestep 
+\begin_inset Formula $J_{k}$
+\end_inset
+
+ separately.
+ Then the macro-timesteps can be connected by daisy-chaining the final value
+ from 
+\begin_inset Formula $J_{k}$
+\end_inset
+
+ into the initial condition of 
+\begin_inset Formula $J_{k+1}$
+\end_inset
+
+.
+ Obviously, this approach costs some accuracy, since the Galerkin fitting
+ of the coefficients only occurs on one macro-timestep, ignoring the future
+ macro-timesteps.
+\end_layout
+
+\begin_layout Paragraph
+Higher continuity
+\end_layout
+
+\begin_layout Plain Layout
+If it is known that the sought-after solution belongs to some class having
+ higher continuity (such as 
+\begin_inset Formula $C^{1}$
+\end_inset
+
+), in the FEM approach it is possible to look for a solution in that class
+ by using Hermite elements (such as beam elements) in the time direction.
+\end_layout
+
+\begin_layout Plain Layout
+This does not generalize to the continuous Galerkin (
+\begin_inset Quotes eld
+\end_inset
+
+cG
+\begin_inset Quotes erd
+\end_inset
+
+) approach, because due to 
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IVP"
+
+\end_inset
+
+--
+\begin_inset CommandInset ref
+LatexCommand eqref
+reference "eq:IC"
+
+\end_inset
+
+ being a first-order problem, we have the freedom to specify only 
+\begin_inset Formula $u(t_{k})$
+\end_inset
+
+, with 
+\begin_inset Formula $u'(t_{k})$
+\end_inset
+
+ inevitably remaining free.
+ (Obviously, for a second-order problem, which has two initial conditions,
+ we could specify both.)
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document
