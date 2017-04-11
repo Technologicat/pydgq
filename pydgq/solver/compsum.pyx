@@ -12,10 +12,10 @@
 #
 """Compensated summation (Kahan algorithm), Python/Cython."""
 
-from __future__ import division, print_function, absolute_import
+from __future__ import division, print_function
 
-from . cimport types
-from . cimport compsum
+cimport pydgq_types
+cimport compsum
 
 import numpy as np
 
@@ -32,16 +32,16 @@ def cumsum1d_compensated( data ):
     Implemented only for rank-1 np.arrays of dtypes double (np.float64) and double complex (np.complex128).
 
     """
-    cdef types.DTYPE_t[::1]  inr, outr
-    cdef types.DTYPEZ_t[::1] inz, outz
+    cdef pydgq_types.DTYPE_t[::1]  inr, outr
+    cdef pydgq_types.DTYPEZ_t[::1] inz, outz
 
     if isinstance(data, np.ndarray):
-        if data.dtype == types.DTYPEZ:
+        if data.dtype == pydgq_types.DTYPEZ:
             inz  = data
             outz = np.empty_like(data)
             cs1dz( &inz[0], &outz[0], np.size(data) )  # modifies outz in-place
             return np.asanyarray(outz)
-        elif data.dtype == types.DTYPE:
+        elif data.dtype == pydgq_types.DTYPE:
             inr  = data
             outr = np.empty_like(data)
             cs1dr( &inr[0], &outr[0], np.size(data) )  # modifies outr in-place
@@ -52,18 +52,18 @@ def cumsum1d_compensated( data ):
         raise TypeError("Unsupported argument type '%s' for cumsum1d_compensated(); %s" % (type(data), np.ndarray))
 
 
-cdef void cs1dr( types.DTYPE_t* data, types.DTYPE_t* out, unsigned int n ) nogil:
-    cdef types.DTYPE_t s = data[0]
-    cdef types.DTYPE_t c = 0.0
+cdef void cs1dr( pydgq_types.DTYPE_t* data, pydgq_types.DTYPE_t* out, unsigned int n ) nogil:
+    cdef pydgq_types.DTYPE_t s = data[0]
+    cdef pydgq_types.DTYPE_t c = 0.0
     cdef unsigned int j
     out[0] = s
     for j in range(1,n):
         accumulate( &s, &c, data[j] )
         out[j] = s
 
-cdef void cs1dz( types.DTYPEZ_t* data, types.DTYPEZ_t* out, unsigned int n ) nogil:
-    cdef types.DTYPEZ_t s = data[0]
-    cdef types.DTYPEZ_t c = 0.0
+cdef void cs1dz( pydgq_types.DTYPEZ_t* data, pydgq_types.DTYPEZ_t* out, unsigned int n ) nogil:
+    cdef pydgq_types.DTYPEZ_t s = data[0]
+    cdef pydgq_types.DTYPEZ_t c = 0.0
     cdef unsigned int j
     out[0] = s
     for j in range(1,n):

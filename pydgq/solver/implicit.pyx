@@ -12,26 +12,28 @@
 #
 """Classical implicit integrators to update w by one timestep."""
 
-from __future__ import division, print_function, absolute_import
+from __future__ import division, print_function
 
-from . cimport types
-from . cimport kernels
+cimport pydgq_types
+cimport kernels
 
 
 # Implicit midpoint rule.
 #
-cdef int IMR( kernels.kernelfuncptr f, types.DTYPE_t* w, void* data, int n_space_dofs, types.DTYPE_t t, types.DTYPE_t dt, int maxit ) nogil:
+# wrk must have space for 4*n_space_dofs items.
+#
+cdef int IMR( kernels.kernelfuncptr f, pydgq_types.DTYPE_t* w, void* data, int n_space_dofs, pydgq_types.DTYPE_t t, pydgq_types.DTYPE_t dt, pydgq_types.DTYPE_t* wrk, int maxit ) nogil:
     cdef unsigned int j, m, m2, nequals
     cdef int success = 0
 
-    cdef types.DTYPE_t whalf[n_space_dofs]  # iterative approximation of w(k+1/2)
-    cdef types.DTYPE_t wp[n_space_dofs]     # iterative approximation of w'(k+1/2)
+    cdef pydgq_types.DTYPE_t whalf = wrk  # iterative approximation of w(k+1/2)
+    cdef pydgq_types.DTYPE_t wp = &wrk[n_space_dofs]     # iterative approximation of w'(k+1/2)
 
     # Iterative approximations of w(k+1)
-    cdef types.DTYPE_t wcur[n_space_dofs]
-    cdef types.DTYPE_t wnew[n_space_dofs]
+    cdef pydgq_types.DTYPE_t wcur = &wrk[2*n_space_dofs]
+    cdef pydgq_types.DTYPE_t wnew = &wrk[3*n_space_dofs]
 
-    cdef types.DTYPE_t thalf = t + 0.5*dt
+    cdef pydgq_types.DTYPE_t thalf = t + 0.5*dt
 
     # Trivial initial guess: w(k+1) = w(k)
     #
@@ -98,17 +100,19 @@ cdef int IMR( kernels.kernelfuncptr f, types.DTYPE_t* w, void* data, int n_space
 
 # Backward Euler (implicit Euler).
 #
-cdef int BE( kernels.kernelfuncptr f, types.DTYPE_t* w, void* data, int n_space_dofs, types.DTYPE_t t, types.DTYPE_t dt, int maxit ) nogil:
+# wrk must have space for 3*n_space_dofs items.
+#
+cdef int BE( kernels.kernelfuncptr f, pydgq_types.DTYPE_t* w, void* data, int n_space_dofs, pydgq_types.DTYPE_t t, pydgq_types.DTYPE_t dt, pydgq_types.DTYPE_t* wrk, int maxit ) nogil:
     cdef unsigned int j, m, m2, nequals
     cdef int success = 0
 
-    cdef types.DTYPE_t wp[n_space_dofs]     # iterative approximation of w'(k+1)
+    cdef pydgq_types.DTYPE_t wp = wrk     # iterative approximation of w'(k+1)
 
     # Iterative approximations of w(k+1)
-    cdef types.DTYPE_t wcur[n_space_dofs]
-    cdef types.DTYPE_t wnew[n_space_dofs]
+    cdef pydgq_types.DTYPE_t wcur = &wrk[n_space_dofs]
+    cdef pydgq_types.DTYPE_t wnew = &wrk[2*n_space_dofs]
 
-    cdef types.DTYPE_t tend = t + dt
+    cdef pydgq_types.DTYPE_t tend = t + dt
 
     # Trivial initial guess: w(k+1) = w(k)
     #

@@ -23,9 +23,9 @@ If the problem is nonlinear, the options are to:
   - linearize at each timestep, and then use a linear kernel (slow)
 """
 
-from __future__ import division, print_function, absolute_import
+from __future__ import division, print_function
 
-from pylu cimport dgesv as dgesv_c
+cimport pylu.dgesv as dgesv_c
 
 # use fast math functions from <math.h>, available via Cython
 #from libc.math cimport sin, cos, log, exp, sqrt

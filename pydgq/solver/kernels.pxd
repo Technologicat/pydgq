@@ -16,10 +16,15 @@ ctypedef void (*kernelfuncptr)(double*, double*, int, double, void*) nogil
 # examples
 
 cdef struct lin_mass_matrix_data:
-    cdef double* LU
-    cdef int* p
-    cdef double* M
-    cdef double* work
+    # LU decomposed mass matrix
+    double* LU
+    int* p
+
+    # stiffness matrix
+    double* M
+
+    # work space for computation
+    double* work
 
 cdef void f_lin_1st(double* w, double* out, int n, double t, void* data) nogil
 cdef void f_lin_2nd(double* w, double* out, int n, double t, void* data) nogil

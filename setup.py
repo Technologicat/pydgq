@@ -94,7 +94,7 @@ iteration.
 # Helpers
 #########################################################
 
-my_include_dirs = ["."]  # IMPORTANT, see https://github.com/cython/cython/wiki/PackageHierarchy
+my_include_dirs = [".", "/usr/local/lib/python2.7/dist-packages"]  # IMPORTANT, see https://github.com/cython/cython/wiki/PackageHierarchy
 
 def ext(extName):
     extPath = extName.replace(".", os.path.sep)+".pyx"
@@ -124,13 +124,13 @@ datafiles.append( ('doc', ["pydgq_user_manual.lyx", "pydgq_user_manual.pdf"]) )
 # Modules
 #########################################################
 
-ext_module_ptrwrap  = ext(      "pydgq.utils.ptrwrap"   )
-ext_module_types    = ext(      "pydgq.solver.types"    )
-ext_module_explicit = ext(      "pydgq.solver.explicit" )
-ext_module_implicit = ext(      "pydgq.solver.implicit" )
-ext_module_galerkin = ext(      "pydgq.solver.galerkin" )
-ext_module_odesolve = ext_math( "pydgq.solver.odesolve" )
-ext_module_kernels  = ext_math( "pydgq.solver.kernels"  )
+ext_module_ptrwrap  = ext(      "pydgq.utils.ptrwrap"      )
+ext_module_types    = ext(      "pydgq.solver.pydgq_types" )
+ext_module_explicit = ext(      "pydgq.solver.explicit"    )
+ext_module_implicit = ext(      "pydgq.solver.implicit"    )
+ext_module_galerkin = ext(      "pydgq.solver.galerkin"    )
+ext_module_odesolve = ext_math( "pydgq.solver.odesolve"    )
+ext_module_kernels  = ext_math( "pydgq.solver.kernels"     )
 
 #########################################################
 

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """Floating-point flags detection."""
 
-from __future__ import division, print_function, absolute_import
+from __future__ import division, print_function
 
-from . cimport types
+cimport pydgq_types
 
 cdef extern from "math.h":
     # fpclassify is actually a macro, so it does not have a specific input type.
@@ -19,7 +19,7 @@ cdef extern from "math.h":
 #
 # n : number of components in w
 #
-cdef inline int all_denormal( types.DTYPE_t* w, int n ) nogil:
+cdef inline int all_denormal( pydgq_types.DTYPE_t* w, int n ) nogil:
     cdef unsigned int n_denormal = 0
     cdef unsigned int j
     for j in range(n):
@@ -42,7 +42,7 @@ cdef inline int all_denormal( types.DTYPE_t* w, int n ) nogil:
 #
 # n : number of components in w
 #
-cdef inline int any_naninf( types.DTYPE_t* w, int n ) nogil:
+cdef inline int any_naninf( pydgq_types.DTYPE_t* w, int n ) nogil:
     cdef unsigned int j
     cdef int c
     for j in range(n):

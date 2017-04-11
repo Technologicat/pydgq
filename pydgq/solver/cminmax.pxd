@@ -2,13 +2,13 @@
 #
 # min/max functions for C code in Cython.
 
-from . cimport types
+cimport pydgq_types
 
 # fast inline min/max for C code
 #
-cdef inline types.DTYPE_t cfmin(types.DTYPE_t a, types.DTYPE_t b) nogil:
+cdef inline pydgq_types.DTYPE_t cfmin(pydgq_types.DTYPE_t a, pydgq_types.DTYPE_t b) nogil:
     return a if a < b else b
-cdef inline types.DTYPE_t cfmax(types.DTYPE_t a, types.DTYPE_t b) nogil:
+cdef inline pydgq_types.DTYPE_t cfmax(pydgq_types.DTYPE_t a, pydgq_types.DTYPE_t b) nogil:
     return a if a > b else b
 
 cdef inline int cimin(int a, int b) nogil:

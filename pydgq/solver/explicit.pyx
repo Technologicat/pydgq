@@ -16,33 +16,35 @@ These routines use compensated summation to obtain maximal accuracy
 (at the cost of 4x math in the final summation step).
 """
 
-from __future__ import division, print_function, absolute_import
+from __future__ import division, print_function
 
-from . cimport types
-from . cimport compsum
-from . cimport kernels
+cimport pydgq_types
+cimport compsum
+cimport kernels
 
 
 # Fourth-order Runge-Kutta (RK4).
 #
-cdef int RK4( kernels.kernelfuncptr f, types.DTYPE_t* w, void* data, int n_space_dofs, types.DTYPE_t t, types.DTYPE_t dt ) nogil:
+# wrk must have space for 5*n_space_dofs items.
+#
+cdef int RK4( kernels.kernelfuncptr f, pydgq_types.DTYPE_t* w, void* data, int n_space_dofs, pydgq_types.DTYPE_t t, pydgq_types.DTYPE_t dt, pydgq_types.DTYPE_t* wrk ) nogil:
     cdef unsigned int j
-    cdef types.DTYPE_t wstar[n_space_dofs]  # updated w, only needed for computing the next k
+    cdef pydgq_types.DTYPE_t* wstar = wrk  # updated w, only needed for computing the next k
 
     # standard RK4 temp variables
-    cdef types.DTYPE_t k1[n_space_dofs]
-    cdef types.DTYPE_t k2[n_space_dofs]
-    cdef types.DTYPE_t k3[n_space_dofs]
-    cdef types.DTYPE_t k4[n_space_dofs]
+    cdef pydgq_types.DTYPE_t* k1 = &wrk[n_space_dofs]
+    cdef pydgq_types.DTYPE_t* k2 = &wrk[2*n_space_dofs]
+    cdef pydgq_types.DTYPE_t* k3 = &wrk[3*n_space_dofs]
+    cdef pydgq_types.DTYPE_t* k4 = &wrk[4*n_space_dofs]
 
-    cdef types.DTYPE_t dtp2  = dt/2.0
-    cdef types.DTYPE_t dtp6  = dt/6.0
+    cdef pydgq_types.DTYPE_t dtp2  = dt/2.0
+    cdef pydgq_types.DTYPE_t dtp6  = dt/6.0
 
-    cdef types.DTYPE_t thalf = t + dtp2
-    cdef types.DTYPE_t tend  = t + dt
+    cdef pydgq_types.DTYPE_t thalf = t + dtp2
+    cdef pydgq_types.DTYPE_t tend  = t + dt
 
-    cdef types.DTYPE_t s
-    cdef types.DTYPE_t c
+    cdef pydgq_types.DTYPE_t s
+    cdef pydgq_types.DTYPE_t c
 
     # Compute k1, ..., k4
     #
@@ -68,7 +70,7 @@ cdef int RK4( kernels.kernelfuncptr f, types.DTYPE_t* w, void* data, int n_space
     # (such as mechanical problems with low damping).
     #
     for j in range(n_space_dofs):
-        s = k1[j]  # the first operand is always exactly representable; here both LHS and RHS are types.DTYPE_t
+        s = k1[j]  # the first operand is always exactly representable; here both LHS and RHS are pydgq_types.DTYPE_t
         c = 0.0
         compsum.accumulate( &s, &c, 2.0*k2[j] )
         compsum.accumulate( &s, &c, 2.0*k3[j] )
@@ -87,24 +89,26 @@ cdef int RK4( kernels.kernelfuncptr f, types.DTYPE_t* w, void* data, int n_space
 
 # Kutta's third-order method (commonly known as RK3).
 #
-cdef int RK3( kernels.kernelfuncptr f, types.DTYPE_t* w, void* data, int n_space_dofs, types.DTYPE_t t, types.DTYPE_t dt ) nogil:
+# wrk must have space for 4*n_space_dofs items.
+#
+cdef int RK3( kernels.kernelfuncptr f, pydgq_types.DTYPE_t* w, void* data, int n_space_dofs, pydgq_types.DTYPE_t t, pydgq_types.DTYPE_t dt, pydgq_types.DTYPE_t* wrk ) nogil:
     cdef unsigned int j
-    cdef types.DTYPE_t wstar[n_space_dofs]  # updated w, only needed for computing the next k
+    cdef pydgq_types.DTYPE_t* wstar = wrk  # updated w, only needed for computing the next k
 
     # RK temp variables
-    cdef types.DTYPE_t k1[n_space_dofs]
-    cdef types.DTYPE_t k2[n_space_dofs]
-    cdef types.DTYPE_t k3[n_space_dofs]
+    cdef pydgq_types.DTYPE_t* k1 = &wrk[n_space_dofs]
+    cdef pydgq_types.DTYPE_t* k2 = &wrk[2*n_space_dofs]
+    cdef pydgq_types.DTYPE_t* k3 = &wrk[3*n_space_dofs]
 
-    cdef types.DTYPE_t dtp2  = dt/2.0
-    cdef types.DTYPE_t twodt = 2.0*dt
-    cdef types.DTYPE_t dtp6  = dt/6.0
+    cdef pydgq_types.DTYPE_t dtp2  = dt/2.0
+    cdef pydgq_types.DTYPE_t twodt = 2.0*dt
+    cdef pydgq_types.DTYPE_t dtp6  = dt/6.0
 
-    cdef types.DTYPE_t thalf = t + dtp2
-    cdef types.DTYPE_t tend  = t + dt
+    cdef pydgq_types.DTYPE_t thalf = t + dtp2
+    cdef pydgq_types.DTYPE_t tend  = t + dt
 
-    cdef types.DTYPE_t s
-    cdef types.DTYPE_t c
+    cdef pydgq_types.DTYPE_t s
+    cdef pydgq_types.DTYPE_t c
 
     # Compute k1, ..., k3
     #
@@ -126,7 +130,7 @@ cdef int RK3( kernels.kernelfuncptr f, types.DTYPE_t* w, void* data, int n_space
     # (such as mechanical problems with low damping).
     #
     for j in range(n_space_dofs):
-        s = k1[j]  # the first operand is always exactly representable; here both LHS and RHS are types.DTYPE_t
+        s = k1[j]  # the first operand is always exactly representable; here both LHS and RHS are pydgq_types.DTYPE_t
         c = 0.0
         compsum.accumulate( &s, &c, 4.0*k2[j] )
         compsum.accumulate( &s, &c,     k3[j] )
@@ -152,25 +156,27 @@ cdef int RK3( kernels.kernelfuncptr f, types.DTYPE_t* w, void* data, int n_space
 #   beta = 2/3, Ralston's method
 #   beta = 1,   Heun's method, also known as the explicit trapezoid rule
 #
-cdef int RK2( kernels.kernelfuncptr f, types.DTYPE_t* w, void* data, int n_space_dofs, types.DTYPE_t t, types.DTYPE_t dt, types.DTYPE_t beta ) nogil:
+# wrk must have space for 3*n_space_dofs items.
+#
+cdef int RK2( kernels.kernelfuncptr f, pydgq_types.DTYPE_t* w, void* data, int n_space_dofs, pydgq_types.DTYPE_t t, pydgq_types.DTYPE_t dt, pydgq_types.DTYPE_t* wrk, pydgq_types.DTYPE_t beta ) nogil:
     cdef unsigned int j
-    cdef types.DTYPE_t wstar[n_space_dofs]  # updated w, only needed for computing the next k
+    cdef pydgq_types.DTYPE_t* wstar = wrk  # updated w, only needed for computing the next k
 
     # RK temp variables
-    cdef types.DTYPE_t k1[n_space_dofs]
-    cdef types.DTYPE_t k2[n_space_dofs]
+    cdef pydgq_types.DTYPE_t* k1 = &wrk[n_space_dofs]
+    cdef pydgq_types.DTYPE_t* k2 = &wrk[2*n_space_dofs]
 
-    cdef types.DTYPE_t weight2 = 1.0 / (2.0 * beta)
-    cdef types.DTYPE_t weight1 = 1.0 - weight2
+    cdef pydgq_types.DTYPE_t weight2 = 1.0 / (2.0 * beta)
+    cdef pydgq_types.DTYPE_t weight1 = 1.0 - weight2
     weight1 *= dt
     weight2 *= dt
 
-    cdef types.DTYPE_t betadt = beta*dt
+    cdef pydgq_types.DTYPE_t betadt = beta*dt
 
-    cdef types.DTYPE_t tmid   = t + betadt
+    cdef pydgq_types.DTYPE_t tmid   = t + betadt
 
-    cdef types.DTYPE_t s
-    cdef types.DTYPE_t c
+    cdef pydgq_types.DTYPE_t s
+    cdef pydgq_types.DTYPE_t c
 
     # Compute k1, k2
     #
@@ -188,7 +194,7 @@ cdef int RK2( kernels.kernelfuncptr f, types.DTYPE_t* w, void* data, int n_space
     # (such as mechanical problems with low damping).
     #
     for j in range(n_space_dofs):
-        s = weight1 * k1[j]  # the first operand is always exactly representable; here both LHS and RHS are types.DTYPE_t
+        s = weight1 * k1[j]  # the first operand is always exactly representable; here both LHS and RHS are pydgq_types.DTYPE_t
         c = 0.0
         compsum.accumulate( &s, &c, weight2*k2[j] )
 
@@ -205,8 +211,10 @@ cdef int RK2( kernels.kernelfuncptr f, types.DTYPE_t* w, void* data, int n_space
 #
 # Provided for reference only.
 #
-cdef int FE( kernels.kernelfuncptr f, types.DTYPE_t* w, void* data, int n_space_dofs, types.DTYPE_t t, types.DTYPE_t dt ) nogil:
-    cdef types.DTYPE_t[n_space_dofs] wp  # w prime (output from RHS)
+# wrk must have space for n_space_dofs items.
+#
+cdef int FE( kernels.kernelfuncptr f, pydgq_types.DTYPE_t* w, void* data, int n_space_dofs, pydgq_types.DTYPE_t t, pydgq_types.DTYPE_t dt, pydgq_types.DTYPE_t* wrk ) nogil:
+    cdef pydgq_types.DTYPE_t* wp = wrk  # w prime (output from RHS)
 
     f(w, wp, n_space_dofs, t, data)
 
@@ -233,9 +241,11 @@ cdef int FE( kernels.kernelfuncptr f, types.DTYPE_t* w, void* data, int n_space_
 #
 # Note that the method takes in n_space_dofs, i.e. the size of the **1st-order** system.
 #
-cdef int SE( kernels.kernelfuncptr f, types.DTYPE_t* w, void* data, int n_space_dofs, types.DTYPE_t t, types.DTYPE_t dt ) nogil:
+# wrk must have space for n_space_dofs items.
+#
+cdef int SE( kernels.kernelfuncptr f, pydgq_types.DTYPE_t* w, void* data, int n_space_dofs, pydgq_types.DTYPE_t t, pydgq_types.DTYPE_t dt, pydgq_types.DTYPE_t* wrk ) nogil:
     cdef unsigned int j
-    cdef types.DTYPE_t[n_space_dofs] wp  # w prime (output from RHS)
+    cdef pydgq_types.DTYPE_t* wp = wrk  # w prime (output from RHS)
 
     f(w, wp, n_space_dofs, t, data)  # of this, we will only use the v' components corresponding to the v degrees of freedom
 
