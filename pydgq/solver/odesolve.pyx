@@ -43,12 +43,6 @@ cimport pydgq.solver.galerkin as galerkin  # Galerkin integrators
 import  pydgq.solver.galerkin as galerkin
 cimport pydgq.solver.kernels as kernels   # f() for w' = f(w). Provides kernelfuncptr.
 
-# TODO: provide a mechanism for Python-level kernels
-# TODO: write some usage examples
-# TODO: write some unit tests
-# TODO: update user manual (mainly title and a new introductory paragraph)
-
-
 ### Tell Cython that GCC's __float128 behaves like a double
 ### (this only concerns the Cython to C compile process and doesn't generate an actual C typedef)
 ###
