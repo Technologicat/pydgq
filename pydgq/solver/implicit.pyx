@@ -23,7 +23,7 @@ cimport pydgq.solver.kernels as kernels
 # wrk must have space for 4*n_space_dofs items.
 #
 cdef int IMR( kernels.kernelfuncptr f, pydgq_types.DTYPE_t* w, void* data, int n_space_dofs, pydgq_types.DTYPE_t t, pydgq_types.DTYPE_t dt, pydgq_types.DTYPE_t* wrk, int maxit ) nogil:
-    cdef unsigned int j, m, m2, nequals
+    cdef unsigned int j, m=-1, m2, nequals
     cdef int success = 0
 
     cdef pydgq_types.DTYPE_t* whalf = wrk  # iterative approximation of w(k+1/2)
@@ -103,7 +103,7 @@ cdef int IMR( kernels.kernelfuncptr f, pydgq_types.DTYPE_t* w, void* data, int n
 # wrk must have space for 3*n_space_dofs items.
 #
 cdef int BE( kernels.kernelfuncptr f, pydgq_types.DTYPE_t* w, void* data, int n_space_dofs, pydgq_types.DTYPE_t t, pydgq_types.DTYPE_t dt, pydgq_types.DTYPE_t* wrk, int maxit ) nogil:
-    cdef unsigned int j, m, m2, nequals
+    cdef unsigned int j, m=-1, m2, nequals
     cdef int success = 0
 
     cdef pydgq_types.DTYPE_t* wp = wrk     # iterative approximation of w'(k+1)
