@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
-cimport numpy as cnp
+from __future__ import absolute_import
 
 # real
-ctypedef cnp.float64_t DTYPE_t
+ctypedef double DTYPE_t
 
 # complex
-ctypedef cnp.complex128_t DTYPEZ_t
+ctypedef double complex DTYPEZ_t
 
