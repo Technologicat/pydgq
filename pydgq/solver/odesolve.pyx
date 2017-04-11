@@ -20,7 +20,7 @@ where f may be nonlinear.
 
 from __future__ import division, print_function, absolute_import
 
-# TODO: clean up: could as well use np.empty and buffer interface instead of malloc/free
+# TODO: clean up: could as well use np.empty and buffer interface instead of malloc/free (since all allocs occur at the Python level)
 from libc.stdlib cimport malloc, free
 
 # use fast math functions from <math.h>, available via Cython
