@@ -94,8 +94,7 @@ iteration.
 # Helpers
 #########################################################
 
-# TODO: Cython doesn't find pylu/dgesv.pxd inside the installed egg. Until this is fixed, we need to point Cython to the top-level directory of the pylu source code. Adjust this to fit your setup.
-my_include_dirs = [".", "/home/jje/Documents/koodit/pylu"]  # IMPORTANT, see https://github.com/cython/cython/wiki/PackageHierarchy
+my_include_dirs = ["."]  # IMPORTANT, see https://github.com/cython/cython/wiki/PackageHierarchy
 
 def ext(extName):
     extPath = extName.replace(".", os.path.sep)+".pyx"
