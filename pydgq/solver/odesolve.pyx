@@ -919,7 +919,7 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
             noutput = 0
         else:
             noutput = n - cuimax(1, save_from)  # 0-based timestep number starting from the first saved one.
-                                                        # Note that n = 1, 2, ... (also store() depends on this numbering!)
+                                                # Note that n = 1, 2, ... (also store() depends on this numbering!)
         out_start = offs + noutput*interp
 
         if denormal_triggered:
