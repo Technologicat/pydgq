@@ -31,17 +31,17 @@ import cython
 
 import numpy as np
 
+from pydgq.solver.pydgq_types cimport DTYPE_t
+from pydgq.solver.pydgq_types import DTYPE
+from pydgq.solver.kernels cimport kernelfuncptr  # f() for w' = f(w)
+from pydgq.solver.cminmax cimport cuimax  # "C unsigned int max"
 import  pydgq.utils.ptrwrap as ptrwrap
 cimport pydgq.utils.ptrwrap as ptrwrap
-cimport pydgq.solver.pydgq_types as pydgq_types
-import  pydgq.solver.pydgq_types as pydgq_types
-cimport pydgq.solver.cminmax as cminmax
-cimport pydgq.solver.fputils as fputils  # nan/inf checks for arrays
+cimport pydgq.solver.fputils as fputils    # nan/inf checks for arrays
 cimport pydgq.solver.explicit as explicit  # classical explicit integrators
 cimport pydgq.solver.implicit as implicit  # classical implicit integrators
 cimport pydgq.solver.galerkin as galerkin  # Galerkin integrators
 import  pydgq.solver.galerkin as galerkin
-cimport pydgq.solver.kernels as kernels   # f() for w' = f(w). Provides kernelfuncptr.
 
 ### Tell Cython that GCC's __float128 behaves like a double
 ### (this only concerns the Cython to C compile process and doesn't generate an actual C typedef)
@@ -69,9 +69,9 @@ cimport pydgq.solver.kernels as kernels   # f() for w' = f(w). Provides kernelfu
 #
 # wrk must have space for n_space_dofs items.
 #
-cdef inline void store( pydgq_types.DTYPE_t* w, int n_space_dofs, int timestep, double t, int save_from, pydgq_types.DTYPE_t* ww, kernels.kernelfuncptr f, pydgq_types.DTYPE_t* ff, pydgq_types.DTYPE_t* data, int* pfail, int failure, pydgq_types.DTYPE_t* wrk ) nogil:
+cdef inline void store( DTYPE_t* w, int n_space_dofs, int timestep, double t, int save_from, DTYPE_t* ww, kernelfuncptr f, DTYPE_t* ff, DTYPE_t* data, int* pfail, int failure, DTYPE_t* wrk ) nogil:
     cdef unsigned int n, j
-    cdef pydgq_types.DTYPE_t* wp = wrk
+    cdef DTYPE_t* wp = wrk
 
     # Note indexing:
     #  - save_from=1 means "save from first timestep onward" (1-based index 1, although we use 0-based indices).
@@ -230,7 +230,7 @@ def timestep_boundaries( int nt, int save_from, int interp=1 ):
     """
 
     cdef unsigned int n, offs
-    cdef unsigned int n_saved_timesteps = nt - (cminmax.cuimax(1, save_from) - 1)
+    cdef unsigned int n_saved_timesteps = nt - (cuimax(1, save_from) - 1)
     cdef unsigned int n_output          = n_saved_timesteps
 
     if save_from == 0:
@@ -280,15 +280,15 @@ def make_tt( double dt, int nt, int save_from, int interp=1, out=None ):
     # TODO: Currently this function has no access to it, because the galerkin.Helper instance does not exist at this time.
 
     # "local" time values, i.e. offsets in [0,1] inside one timestep
-    cdef pydgq_types.DTYPE_t[::1] tloc = np.linspace(0.0, 1.0, interp)
+    cdef DTYPE_t[::1] tloc = np.linspace(0.0, 1.0, interp)
     if interp == 1:  # special case: for one point, linspace gives the beginning of the range, but we want the end
         tloc[0] = 1.0
 
     # global time values
-    cdef pydgq_types.DTYPE_t[::1] tt
+    cdef DTYPE_t[::1] tt
     if out is None:
         nvals = result_len( nt, save_from, interp )
-        tt = np.empty( [nvals], dtype=pydgq_types.DTYPE, order="C" )
+        tt = np.empty( [nvals], dtype=DTYPE, order="C" )
     else:
         tt = out
 
@@ -299,7 +299,7 @@ def make_tt( double dt, int nt, int save_from, int interp=1, out=None ):
         offs = 0
 
     # avoid allocating extra memory using a compiled C loop
-    cdef pydgq_types.DTYPE_t startt
+    cdef DTYPE_t startt
     with nogil:
         # Loop over the timesteps.
         #
@@ -308,14 +308,14 @@ def make_tt( double dt, int nt, int save_from, int interp=1, out=None ):
         # save_from = 2  -->  nt-1 steps (discard IC and first step)
         # ...
         #
-        startt = (cminmax.cuimax(1, save_from) - 1)*dt
-        for n in range(nt - (cminmax.cuimax(1, save_from) - 1)):
+        startt = (cuimax(1, save_from) - 1)*dt
+        for n in range(nt - (cuimax(1, save_from) - 1)):
             # Loop over visualization points in the timestep.
             #
             start = offs  + n*interp
             end   = start +   interp  # actually one-past-end
             for k in range(end - start):
-                tt[start + k] = startt + (<pydgq_types.DTYPE_t>(n) + tloc[k])*dt
+                tt[start + k] = startt + (<DTYPE_t>(n) + tloc[k])*dt
 
     return tt
 
@@ -325,13 +325,13 @@ def make_tt( double dt, int nt, int save_from, int interp=1, out=None ):
 #########################################################################################
 
 # all of our classical explicit integrators except RK2 come in this format:
-ctypedef int (*explicit_integrator_ptr)( kernels.kernelfuncptr, pydgq_types.DTYPE_t*, void*, int, pydgq_types.DTYPE_t, pydgq_types.DTYPE_t, pydgq_types.DTYPE_t* ) nogil
-ctypedef int (*implicit_integrator_ptr)( kernels.kernelfuncptr, pydgq_types.DTYPE_t*, void*, int, pydgq_types.DTYPE_t, pydgq_types.DTYPE_t, pydgq_types.DTYPE_t*, int ) nogil
+ctypedef int (*explicit_integrator_ptr)( kernelfuncptr, DTYPE_t*, void*, int, DTYPE_t, DTYPE_t, DTYPE_t* ) nogil
+ctypedef int (*implicit_integrator_ptr)( kernelfuncptr, DTYPE_t*, void*, int, DTYPE_t, DTYPE_t, DTYPE_t*, int ) nogil
 ctypedef int (*galerkin_integrator_ptr)( galerkin.params* p ) nogil
 
 # TODO: add convergence tolerance (needs some changes in implicit.pyx and galerkin.pyx (basically wherever "maxit" is used))
-def ivp( str integrator, int allow_denormals, pydgq_types.DTYPE_t[::1] w0, double dt, int nt, int save_from, int interp,
-         ptrwrap.PointerWrapper pw_f, ptrwrap.PointerWrapper pw_data, pydgq_types.DTYPE_t[:,::1] ww, pydgq_types.DTYPE_t[:,::1] ff, int[::1] fail, double RK2_beta=1.0,
+def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt, int save_from, int interp,
+         ptrwrap.PointerWrapper pw_f, ptrwrap.PointerWrapper pw_data, DTYPE_t[:,::1] ww, DTYPE_t[:,::1] ff, int[::1] fail, double RK2_beta=1.0,
          int maxit=100 ):
     """Solve initial value problem.
 
@@ -460,10 +460,10 @@ def ivp( str integrator, int allow_denormals, pydgq_types.DTYPE_t[::1] w0, doubl
         data : void* (wrapped with ptrwrap.PointerWrapper)
             User data passed through to f (read/write access)
 
-        ww : pydgq_types.DTYPE_t[:,::1] of size [result_len(),n_space_dofs]
+        ww : DTYPE_t[:,::1] of size [result_len(),n_space_dofs]
             Output array for w
 
-        ff : pydgq_types.DTYPE_t[:,::1] of size [result_len(),n_space_dofs] or None
+        ff : DTYPE_t[:,::1] of size [result_len(),n_space_dofs] or None
             If not None, output array for w' (the time derivative of w).
 
         fail : int[::1] of size [result_len(),] or None.
@@ -523,14 +523,14 @@ def ivp( str integrator, int allow_denormals, pydgq_types.DTYPE_t[::1] w0, doubl
 
     # Extract the underlying pointers from the PointerWrappers
     #
-    cdef kernels.kernelfuncptr f = <kernels.kernelfuncptr>(pw_f.ptr)
+    cdef kernelfuncptr f = <kernelfuncptr>(pw_f.ptr)
     cdef double* data            = <double*>(pw_data.ptr)
 
-    cdef pydgq_types.DTYPE_t* pff
+    cdef DTYPE_t* pff
     if ff is not None:
         pff = &ff[0,0]
     else:
-        pff = <pydgq_types.DTYPE_t*>0  # store() knows to omit saving w' if the pointer is NULL
+        pff = <DTYPE_t*>0  # store() knows to omit saving w' if the pointer is NULL
 
     cdef int* pfail
     if fail is not None:
@@ -540,8 +540,8 @@ def ivp( str integrator, int allow_denormals, pydgq_types.DTYPE_t[::1] w0, doubl
 
     # Initial condition: initialize the value of w at the end of the previous timestep to the initial condition of the problem.
     #
-    cdef pydgq_types.DTYPE_t[::1] w_arr = np.empty( (n_space_dofs,), dtype=pydgq_types.DTYPE, order="C" )
-    cdef pydgq_types.DTYPE_t* w = &w_arr[0]  # we only need a raw pointer
+    cdef DTYPE_t[::1] w_arr = np.empty( (n_space_dofs,), dtype=DTYPE, order="C" )
+    cdef DTYPE_t* w = &w_arr[0]  # we only need a raw pointer
     cdef unsigned int j
     for j in range(n_space_dofs):
         w[j] = w0[j]
@@ -549,8 +549,8 @@ def ivp( str integrator, int allow_denormals, pydgq_types.DTYPE_t[::1] w0, doubl
     # Fill in stuff from the initial condition to the results, if saving all the way from the start.
     #
     # Temporary storage for w' as output by f(). This is needed later anyway, but we may need it already here.
-    cdef pydgq_types.DTYPE_t[::1] wp_arr = np.empty( (n_space_dofs,), dtype=pydgq_types.DTYPE, order="C" )
-    cdef pydgq_types.DTYPE_t* wp = &wp_arr[0]
+    cdef DTYPE_t[::1] wp_arr = np.empty( (n_space_dofs,), dtype=DTYPE, order="C" )
+    cdef DTYPE_t* wp = &wp_arr[0]
     if save_from == 0:
         # State vector w
         ww[0,:] = w0
@@ -572,7 +572,7 @@ def ivp( str integrator, int allow_denormals, pydgq_types.DTYPE_t[::1] w0, doubl
 
     # Work space for integrators (will be allocated below, needed size depends on algorithm)
     #
-    cdef pydgq_types.DTYPE_t* wrk = <pydgq_types.DTYPE_t*>0
+    cdef DTYPE_t* wrk = <DTYPE_t*>0
 
     # Implicit methods support
     #
@@ -588,28 +588,28 @@ def ivp( str integrator, int allow_denormals, pydgq_types.DTYPE_t[::1] w0, doubl
     cdef galerkin.params gp
 
     cdef unsigned int n_time_dofs, n_quad
-    cdef pydgq_types.DTYPE_t[:,:,::1] g
-    cdef pydgq_types.DTYPE_t[:,::1]   b
-    cdef pydgq_types.DTYPE_t[:,::1]   u
-    cdef pydgq_types.DTYPE_t[:,::1]   uprev
-    cdef pydgq_types.DTYPE_t[:,::1]   uass
-    cdef pydgq_types.DTYPE_t[::1]     ucorr
-    cdef pydgq_types.DTYPE_t[:,::1]   LU
+    cdef DTYPE_t[:,:,::1] g
+    cdef DTYPE_t[:,::1]   b
+    cdef DTYPE_t[:,::1]   u
+    cdef DTYPE_t[:,::1]   uprev
+    cdef DTYPE_t[:,::1]   uass
+    cdef DTYPE_t[::1]     ucorr
+    cdef DTYPE_t[:,::1]   LU
     cdef int[::1]               p
     cdef int[::1]               mincols
     cdef int[::1]               maxcols
-    cdef pydgq_types.DTYPE_t[::1]     qw
-    cdef pydgq_types.DTYPE_t[:,::1]   psi
-    cdef pydgq_types.DTYPE_t[:,::1]   uvis
-    cdef pydgq_types.DTYPE_t[::1]     ucvis
-    cdef pydgq_types.DTYPE_t[::1]     gwrk
-    cdef pydgq_types.DTYPE_t[:,::1]   psivis
-    cdef pydgq_types.DTYPE_t[::1]     tvis
-    cdef pydgq_types.DTYPE_t[::1]     tquad
+    cdef DTYPE_t[::1]     qw
+    cdef DTYPE_t[:,::1]   psi
+    cdef DTYPE_t[:,::1]   uvis
+    cdef DTYPE_t[::1]     ucvis
+    cdef DTYPE_t[::1]     gwrk
+    cdef DTYPE_t[:,::1]   psivis
+    cdef DTYPE_t[::1]     tvis
+    cdef DTYPE_t[::1]     tquad
 
     cdef unsigned int offs, out_start, out_end, l, noutput
-    cdef pydgq_types.DTYPE_t* puvis
-    cdef pydgq_types.DTYPE_t* pww
+    cdef DTYPE_t* puvis
+    cdef DTYPE_t* pww
 
     cdef explicit_integrator_ptr timestep_explicit = <explicit_integrator_ptr>0
     cdef implicit_integrator_ptr timestep_implicit = <implicit_integrator_ptr>0
@@ -632,16 +632,16 @@ def ivp( str integrator, int allow_denormals, pydgq_types.DTYPE_t[::1] w0, doubl
             if n_space_dofs % 2 != 0:
                 raise ValueError("SE: Symplectic Euler (SE) only makes sense for second-order systems transformed to first-order ones, but got odd number of n_space_dofs = %d" % (n_space_dofs))
             timestep_explicit = explicit.SE
-            wrk = <pydgq_types.DTYPE_t*>( malloc( 1 * n_space_dofs * sizeof(pydgq_types.DTYPE_t) ) )
+            wrk = <DTYPE_t*>( malloc( 1 * n_space_dofs * sizeof(DTYPE_t) ) )
         elif integrator == "RK4":
             timestep_explicit = explicit.RK4  # classical fourth-order Runge-Kutta
-            wrk = <pydgq_types.DTYPE_t*>( malloc( 5 * n_space_dofs * sizeof(pydgq_types.DTYPE_t) ) )
+            wrk = <DTYPE_t*>( malloc( 5 * n_space_dofs * sizeof(DTYPE_t) ) )
         elif integrator == "RK3":
             timestep_explicit = explicit.RK3  # Kutta's third-order method
-            wrk = <pydgq_types.DTYPE_t*>( malloc( 4 * n_space_dofs * sizeof(pydgq_types.DTYPE_t) ) )
+            wrk = <DTYPE_t*>( malloc( 4 * n_space_dofs * sizeof(DTYPE_t) ) )
         else: # integrator == "FE":
             timestep_explicit = explicit.FE   # forward Euler
-            wrk = <pydgq_types.DTYPE_t*>( malloc( 1 * n_space_dofs * sizeof(pydgq_types.DTYPE_t) ) )
+            wrk = <DTYPE_t*>( malloc( 1 * n_space_dofs * sizeof(DTYPE_t) ) )
 
         # We release the GIL for the integration loop to let another Python thread execute
         # while this one is running through a lot of timesteps (possibly several million per solver run).
@@ -663,13 +663,13 @@ def ivp( str integrator, int allow_denormals, pydgq_types.DTYPE_t[::1] w0, doubl
                     break
 
             free( <void*>wrk )
-            wrk = <pydgq_types.DTYPE_t*>0
+            wrk = <DTYPE_t*>0
 
     elif integrator == "RK2":  # parametric second-order Runge-Kutta
         # different function signature; otherwise the handling is identical to the above.
 
         with nogil:
-            wrk = <pydgq_types.DTYPE_t*>( malloc( 3 * n_space_dofs * sizeof(pydgq_types.DTYPE_t) ) )
+            wrk = <DTYPE_t*>( malloc( 3 * n_space_dofs * sizeof(DTYPE_t) ) )
 
             for n in range(1,nt+1):
                 t = (n-1)*dt
@@ -687,15 +687,15 @@ def ivp( str integrator, int allow_denormals, pydgq_types.DTYPE_t[::1] w0, doubl
                     break
 
             free( <void*>wrk )
-            wrk = <pydgq_types.DTYPE_t*>0
+            wrk = <DTYPE_t*>0
 
     elif integrator in ["BE", "IMR"]:
         if integrator == "BE":  # backward Euler
             timestep_implicit = implicit.BE
-            wrk = <pydgq_types.DTYPE_t*>( malloc( 3 * n_space_dofs * sizeof(pydgq_types.DTYPE_t) ) )
+            wrk = <DTYPE_t*>( malloc( 3 * n_space_dofs * sizeof(DTYPE_t) ) )
         else:
             timestep_implicit = implicit.IMR  # implicit midpoint rule
-            wrk = <pydgq_types.DTYPE_t*>( malloc( 4 * n_space_dofs * sizeof(pydgq_types.DTYPE_t) ) )
+            wrk = <DTYPE_t*>( malloc( 4 * n_space_dofs * sizeof(DTYPE_t) ) )
 
         with nogil:
             for n in range(1,nt+1):
@@ -727,7 +727,7 @@ def ivp( str integrator, int allow_denormals, pydgq_types.DTYPE_t[::1] w0, doubl
                     break
 
             free( <void*>wrk )
-            wrk = <pydgq_types.DTYPE_t*>0
+            wrk = <DTYPE_t*>0
 
         nt_taken = max(1, n)
         failed_str = "" if totalfailed == 0 else "; last non-converged timestep %d" % (nfail)
@@ -859,7 +859,7 @@ def ivp( str integrator, int allow_denormals, pydgq_types.DTYPE_t[::1] w0, doubl
                         puvis = &uvis[0,0]
                         pww = &ww[0,0]
                         galerkin.assemble( &u[0,0], &psivis[0,0], puvis, &ucvis[0], n_space_dofs, n_time_dofs, interp )
-                        noutput = n - cminmax.cuimax(1, save_from)  # 0-based timestep number starting from the first saved one.
+                        noutput = n - cuimax(1, save_from)  # 0-based timestep number starting from the first saved one.
                                                                     # Note that n = 1, 2, ... (also store() depends on this numbering!)
                         out_start = offs + noutput*interp
                         for l in range(interp):
@@ -911,7 +911,7 @@ def ivp( str integrator, int allow_denormals, pydgq_types.DTYPE_t[::1] w0, doubl
         if n < save_from:
             noutput = 0
         else:
-            noutput = n - cminmax.cuimax(1, save_from)  # 0-based timestep number starting from the first saved one.
+            noutput = n - cuimax(1, save_from)  # 0-based timestep number starting from the first saved one.
                                                         # Note that n = 1, 2, ... (also store() depends on this numbering!)
         out_start = offs + noutput*interp
 

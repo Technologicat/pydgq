@@ -14,7 +14,7 @@
 
 from __future__ import division, print_function, absolute_import
 
-cimport pydgq.solver.pydgq_types as pydgq_types
+from pydgq.solver.pydgq_types cimport DTYPE_t, DTYPEZ_t
 cimport pydgq.solver.compsum as compsum
 
 import numpy as np
@@ -32,8 +32,8 @@ def cumsum1d_compensated( data ):
     Implemented only for rank-1 np.arrays of dtypes double (np.float64) and double complex (np.complex128).
 
     """
-    cdef pydgq_types.DTYPE_t[::1]  inr, outr
-    cdef pydgq_types.DTYPEZ_t[::1] inz, outz
+    cdef DTYPE_t[::1]  inr, outr
+    cdef DTYPEZ_t[::1] inz, outz
 
     if isinstance(data, np.ndarray):
         if data.dtype == pydgq_types.DTYPEZ:
@@ -52,18 +52,18 @@ def cumsum1d_compensated( data ):
         raise TypeError("Unsupported argument type '%s' for cumsum1d_compensated(); %s" % (type(data), np.ndarray))
 
 
-cdef void cs1dr( pydgq_types.DTYPE_t* data, pydgq_types.DTYPE_t* out, unsigned int n ) nogil:
-    cdef pydgq_types.DTYPE_t s = data[0]
-    cdef pydgq_types.DTYPE_t c = 0.0
+cdef void cs1dr( DTYPE_t* data, DTYPE_t* out, unsigned int n ) nogil:
+    cdef DTYPE_t s = data[0]
+    cdef DTYPE_t c = 0.0
     cdef unsigned int j
     out[0] = s
     for j in range(1,n):
         accumulate( &s, &c, data[j] )
         out[j] = s
 
-cdef void cs1dz( pydgq_types.DTYPEZ_t* data, pydgq_types.DTYPEZ_t* out, unsigned int n ) nogil:
-    cdef pydgq_types.DTYPEZ_t s = data[0]
-    cdef pydgq_types.DTYPEZ_t c = 0.0
+cdef void cs1dz( DTYPEZ_t* data, DTYPEZ_t* out, unsigned int n ) nogil:
+    cdef DTYPEZ_t s = data[0]
+    cdef DTYPEZ_t c = 0.0
     cdef unsigned int j
     out[0] = s
     for j in range(1,n):

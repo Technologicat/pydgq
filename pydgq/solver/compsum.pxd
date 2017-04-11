@@ -2,7 +2,7 @@
 
 from __future__ import division, print_function, absolute_import
 
-cimport pydgq.solver.pydgq_types as pydgq_types
+from pydgq.solver.pydgq_types cimport DTYPE_t, DTYPEZ_t
 
 # Compensated summation (Kahan summation), as accumulation to a sum variable.
 #
@@ -16,28 +16,28 @@ cimport pydgq.solver.pydgq_types as pydgq_types
 #     http://en.wikipedia.org/wiki/Kahan_summation_algorithm
 #
 # Parameters:
-#     s: accumulated sum, pydgq_types.DTYPE_t* pointing to a single pydgq_types.DTYPE_t
-#     c: accumulated correction, pydgq_types.DTYPE_t* pointing to a single pydgq_types.DTYPE_t
-#     operand: the new term to add to the sum, pydgq_types.DTYPE_t
+#     s: accumulated sum, DTYPE_t* pointing to a single DTYPE_t
+#     c: accumulated correction, DTYPE_t* pointing to a single DTYPE_t
+#     operand: the new term to add to the sum, DTYPE_t
 #
 # We use pointers only for the ability to use "in/out" parameters.
 #
 # Usage:
 #
 #     # To initialize, set s and c to zero.
-#     cdef pydgq_types.DTYPE_t s = 0.0
-#     cdef pydgq_types.DTYPE_t c = 0.0
+#     cdef DTYPE_t s = 0.0
+#     cdef DTYPE_t c = 0.0
 #
 #     # Loop over the terms of the sum.
 #     cdef int k
 #     for k in range(10):
-#       accumulate( &s, &c, my_data[k] )  # here my_data is an array of pydgq_types.DTYPE_t containing the numbers to be summed.
+#       accumulate( &s, &c, my_data[k] )  # here my_data is an array of DTYPE_t containing the numbers to be summed.
 #     # now s is the result of the sum
 #
 # Or, slightly optimized (may matter with small arrays):
 #
-#     cdef pydgq_types.DTYPE_t s = my_data[0]  # Each term in the sum is pydgq_types.DTYPE_t, so any one of them is exactly representable.
-#     cdef pydgq_types.DTYPE_t c = 0.0         # Correction is zero at the beginning.
+#     cdef DTYPE_t s = my_data[0]  # Each term in the sum is DTYPE_t, so any one of them is exactly representable.
+#     cdef DTYPE_t c = 0.0         # Correction is zero at the beginning.
 #
 #     # Loop over the terms of the sum, starting from the second one.
 #     cdef int k
@@ -45,7 +45,7 @@ cimport pydgq.solver.pydgq_types as pydgq_types
 #       accumulate( &s, &c, my_data[k] )
 #     # now s is the result of the sum
 #
-cdef inline void accumulate( pydgq_types.DTYPE_t* s, pydgq_types.DTYPE_t* c, pydgq_types.DTYPE_t operand ) nogil:
+cdef inline void accumulate( DTYPE_t* s, DTYPE_t* c, DTYPE_t operand ) nogil:
     # In compensated summation (Kahan summation),
     #
     #   s += x
@@ -59,23 +59,23 @@ cdef inline void accumulate( pydgq_types.DTYPE_t* s, pydgq_types.DTYPE_t* c, pyd
     #
     # where s and c are initially zero (before the accumulation of the first term of the sum).
     #
-    cdef pydgq_types.DTYPE_t y = operand - c[0]
-    cdef pydgq_types.DTYPE_t t = s[0] + y
+    cdef DTYPE_t y = operand - c[0]
+    cdef DTYPE_t t = s[0] + y
     c[0] = (t - s[0]) - y
     s[0] = t
 
 
 # Version for complex numbers. Provided for completeness.
 #
-cdef inline void accumulatez( pydgq_types.DTYPEZ_t* s, pydgq_types.DTYPEZ_t* c, pydgq_types.DTYPEZ_t operand ) nogil:
-    cdef pydgq_types.DTYPEZ_t y = operand - c[0]
-    cdef pydgq_types.DTYPEZ_t t = s[0] + y
+cdef inline void accumulatez( DTYPEZ_t* s, DTYPEZ_t* c, DTYPEZ_t operand ) nogil:
+    cdef DTYPEZ_t y = operand - c[0]
+    cdef DTYPEZ_t t = s[0] + y
     c[0] = (t - s[0]) - y
     s[0] = t
 
 
 # Cumulative summation for 1D data (like np.cumsum, but with compensated summation).
 #
-cdef void cs1dr( pydgq_types.DTYPE_t* data, pydgq_types.DTYPE_t* out, unsigned int n ) nogil
-cdef void cs1dz( pydgq_types.DTYPEZ_t* data, pydgq_types.DTYPEZ_t* out, unsigned int n ) nogil
+cdef void cs1dr( DTYPE_t* data, DTYPE_t* out, unsigned int n ) nogil
+cdef void cs1dz( DTYPEZ_t* data, DTYPEZ_t* out, unsigned int n ) nogil
 

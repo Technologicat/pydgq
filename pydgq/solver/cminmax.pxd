@@ -4,13 +4,13 @@
 
 from __future__ import absolute_import
 
-cimport pydgq.solver.pydgq_types as pydgq_types
+from pydgq.solver.pydgq_types cimport DTYPE_t
 
 # fast inline min/max for C code
 #
-cdef inline pydgq_types.DTYPE_t cfmin(pydgq_types.DTYPE_t a, pydgq_types.DTYPE_t b) nogil:
+cdef inline DTYPE_t cfmin(DTYPE_t a, DTYPE_t b) nogil:
     return a if a < b else b
-cdef inline pydgq_types.DTYPE_t cfmax(pydgq_types.DTYPE_t a, pydgq_types.DTYPE_t b) nogil:
+cdef inline DTYPE_t cfmax(DTYPE_t a, DTYPE_t b) nogil:
     return a if a > b else b
 
 cdef inline int cimin(int a, int b) nogil:

@@ -18,33 +18,33 @@ These routines use compensated summation to obtain maximal accuracy
 
 from __future__ import division, print_function, absolute_import
 
-cimport pydgq.solver.pydgq_types as pydgq_types
-cimport pydgq.solver.compsum as compsum
-cimport pydgq.solver.kernels as kernels
+from pydgq.solver.pydgq_types cimport DTYPE_t
+from pydgq.solver.kernels cimport kernelfuncptr
+from pydgq.solver.compsum cimport accumulate
 
 
 # Fourth-order Runge-Kutta (RK4).
 #
 # wrk must have space for 5*n_space_dofs items.
 #
-cdef int RK4( kernels.kernelfuncptr f, pydgq_types.DTYPE_t* w, void* data, int n_space_dofs, pydgq_types.DTYPE_t t, pydgq_types.DTYPE_t dt, pydgq_types.DTYPE_t* wrk ) nogil:
+cdef int RK4( kernelfuncptr f, DTYPE_t* w, void* data, int n_space_dofs, DTYPE_t t, DTYPE_t dt, DTYPE_t* wrk ) nogil:
     cdef unsigned int j
-    cdef pydgq_types.DTYPE_t* wstar = wrk  # updated w, only needed for computing the next k
+    cdef DTYPE_t* wstar = wrk  # updated w, only needed for computing the next k
 
     # standard RK4 temp variables
-    cdef pydgq_types.DTYPE_t* k1 = &wrk[n_space_dofs]
-    cdef pydgq_types.DTYPE_t* k2 = &wrk[2*n_space_dofs]
-    cdef pydgq_types.DTYPE_t* k3 = &wrk[3*n_space_dofs]
-    cdef pydgq_types.DTYPE_t* k4 = &wrk[4*n_space_dofs]
+    cdef DTYPE_t* k1 = &wrk[n_space_dofs]
+    cdef DTYPE_t* k2 = &wrk[2*n_space_dofs]
+    cdef DTYPE_t* k3 = &wrk[3*n_space_dofs]
+    cdef DTYPE_t* k4 = &wrk[4*n_space_dofs]
 
-    cdef pydgq_types.DTYPE_t dtp2  = dt/2.0
-    cdef pydgq_types.DTYPE_t dtp6  = dt/6.0
+    cdef DTYPE_t dtp2  = dt/2.0
+    cdef DTYPE_t dtp6  = dt/6.0
 
-    cdef pydgq_types.DTYPE_t thalf = t + dtp2
-    cdef pydgq_types.DTYPE_t tend  = t + dt
+    cdef DTYPE_t thalf = t + dtp2
+    cdef DTYPE_t tend  = t + dt
 
-    cdef pydgq_types.DTYPE_t s
-    cdef pydgq_types.DTYPE_t c
+    cdef DTYPE_t s
+    cdef DTYPE_t c
 
     # Compute k1, ..., k4
     #
@@ -70,18 +70,18 @@ cdef int RK4( kernels.kernelfuncptr f, pydgq_types.DTYPE_t* w, void* data, int n
     # (such as mechanical problems with low damping).
     #
     for j in range(n_space_dofs):
-        s = k1[j]  # the first operand is always exactly representable; here both LHS and RHS are pydgq_types.DTYPE_t
+        s = k1[j]  # the first operand is always exactly representable; here both LHS and RHS are DTYPE_t
         c = 0.0
-        compsum.accumulate( &s, &c, 2.0*k2[j] )
-        compsum.accumulate( &s, &c, 2.0*k3[j] )
-        compsum.accumulate( &s, &c,     k4[j] )
+        accumulate( &s, &c, 2.0*k2[j] )
+        accumulate( &s, &c, 2.0*k3[j] )
+        accumulate( &s, &c,     k4[j] )
 
         # we want  w = w + (dt/6) * s,  do the multiplication now
         s *= dtp6
         c *= dtp6
 
         # s = s + w
-        compsum.accumulate( &s, &c,      w[j] )
+        accumulate( &s, &c,      w[j] )
         w[j] = s
 
     return 1  # explicit method, always one iteration
@@ -91,24 +91,24 @@ cdef int RK4( kernels.kernelfuncptr f, pydgq_types.DTYPE_t* w, void* data, int n
 #
 # wrk must have space for 4*n_space_dofs items.
 #
-cdef int RK3( kernels.kernelfuncptr f, pydgq_types.DTYPE_t* w, void* data, int n_space_dofs, pydgq_types.DTYPE_t t, pydgq_types.DTYPE_t dt, pydgq_types.DTYPE_t* wrk ) nogil:
+cdef int RK3( kernelfuncptr f, DTYPE_t* w, void* data, int n_space_dofs, DTYPE_t t, DTYPE_t dt, DTYPE_t* wrk ) nogil:
     cdef unsigned int j
-    cdef pydgq_types.DTYPE_t* wstar = wrk  # updated w, only needed for computing the next k
+    cdef DTYPE_t* wstar = wrk  # updated w, only needed for computing the next k
 
     # RK temp variables
-    cdef pydgq_types.DTYPE_t* k1 = &wrk[n_space_dofs]
-    cdef pydgq_types.DTYPE_t* k2 = &wrk[2*n_space_dofs]
-    cdef pydgq_types.DTYPE_t* k3 = &wrk[3*n_space_dofs]
+    cdef DTYPE_t* k1 = &wrk[n_space_dofs]
+    cdef DTYPE_t* k2 = &wrk[2*n_space_dofs]
+    cdef DTYPE_t* k3 = &wrk[3*n_space_dofs]
 
-    cdef pydgq_types.DTYPE_t dtp2  = dt/2.0
-    cdef pydgq_types.DTYPE_t twodt = 2.0*dt
-    cdef pydgq_types.DTYPE_t dtp6  = dt/6.0
+    cdef DTYPE_t dtp2  = dt/2.0
+    cdef DTYPE_t twodt = 2.0*dt
+    cdef DTYPE_t dtp6  = dt/6.0
 
-    cdef pydgq_types.DTYPE_t thalf = t + dtp2
-    cdef pydgq_types.DTYPE_t tend  = t + dt
+    cdef DTYPE_t thalf = t + dtp2
+    cdef DTYPE_t tend  = t + dt
 
-    cdef pydgq_types.DTYPE_t s
-    cdef pydgq_types.DTYPE_t c
+    cdef DTYPE_t s
+    cdef DTYPE_t c
 
     # Compute k1, ..., k3
     #
@@ -130,17 +130,17 @@ cdef int RK3( kernels.kernelfuncptr f, pydgq_types.DTYPE_t* w, void* data, int n
     # (such as mechanical problems with low damping).
     #
     for j in range(n_space_dofs):
-        s = k1[j]  # the first operand is always exactly representable; here both LHS and RHS are pydgq_types.DTYPE_t
+        s = k1[j]  # the first operand is always exactly representable; here both LHS and RHS are DTYPE_t
         c = 0.0
-        compsum.accumulate( &s, &c, 4.0*k2[j] )
-        compsum.accumulate( &s, &c,     k3[j] )
+        accumulate( &s, &c, 4.0*k2[j] )
+        accumulate( &s, &c,     k3[j] )
 
         # we want  w = w + (dt/6) * s,  do the multiplication now
         s *= dtp6
         c *= dtp6
 
         # s = s + w
-        compsum.accumulate( &s, &c,      w[j] )
+        accumulate( &s, &c,      w[j] )
         w[j] = s
 
     return 1  # explicit method, always one iteration
@@ -158,25 +158,25 @@ cdef int RK3( kernels.kernelfuncptr f, pydgq_types.DTYPE_t* w, void* data, int n
 #
 # wrk must have space for 3*n_space_dofs items.
 #
-cdef int RK2( kernels.kernelfuncptr f, pydgq_types.DTYPE_t* w, void* data, int n_space_dofs, pydgq_types.DTYPE_t t, pydgq_types.DTYPE_t dt, pydgq_types.DTYPE_t* wrk, pydgq_types.DTYPE_t beta ) nogil:
+cdef int RK2( kernelfuncptr f, DTYPE_t* w, void* data, int n_space_dofs, DTYPE_t t, DTYPE_t dt, DTYPE_t* wrk, DTYPE_t beta ) nogil:
     cdef unsigned int j
-    cdef pydgq_types.DTYPE_t* wstar = wrk  # updated w, only needed for computing the next k
+    cdef DTYPE_t* wstar = wrk  # updated w, only needed for computing the next k
 
     # RK temp variables
-    cdef pydgq_types.DTYPE_t* k1 = &wrk[n_space_dofs]
-    cdef pydgq_types.DTYPE_t* k2 = &wrk[2*n_space_dofs]
+    cdef DTYPE_t* k1 = &wrk[n_space_dofs]
+    cdef DTYPE_t* k2 = &wrk[2*n_space_dofs]
 
-    cdef pydgq_types.DTYPE_t weight2 = 1.0 / (2.0 * beta)
-    cdef pydgq_types.DTYPE_t weight1 = 1.0 - weight2
+    cdef DTYPE_t weight2 = 1.0 / (2.0 * beta)
+    cdef DTYPE_t weight1 = 1.0 - weight2
     weight1 *= dt
     weight2 *= dt
 
-    cdef pydgq_types.DTYPE_t betadt = beta*dt
+    cdef DTYPE_t betadt = beta*dt
 
-    cdef pydgq_types.DTYPE_t tmid   = t + betadt
+    cdef DTYPE_t tmid   = t + betadt
 
-    cdef pydgq_types.DTYPE_t s
-    cdef pydgq_types.DTYPE_t c
+    cdef DTYPE_t s
+    cdef DTYPE_t c
 
     # Compute k1, k2
     #
@@ -194,12 +194,12 @@ cdef int RK2( kernels.kernelfuncptr f, pydgq_types.DTYPE_t* w, void* data, int n
     # (such as mechanical problems with low damping).
     #
     for j in range(n_space_dofs):
-        s = weight1 * k1[j]  # the first operand is always exactly representable; here both LHS and RHS are pydgq_types.DTYPE_t
+        s = weight1 * k1[j]  # the first operand is always exactly representable; here both LHS and RHS are DTYPE_t
         c = 0.0
-        compsum.accumulate( &s, &c, weight2*k2[j] )
+        accumulate( &s, &c, weight2*k2[j] )
 
         # s = s + w
-        compsum.accumulate( &s, &c,      w[j] )
+        accumulate( &s, &c,      w[j] )
         w[j] = s
 
     return 1  # explicit method, always one iteration
@@ -213,8 +213,8 @@ cdef int RK2( kernels.kernelfuncptr f, pydgq_types.DTYPE_t* w, void* data, int n
 #
 # wrk must have space for n_space_dofs items.
 #
-cdef int FE( kernels.kernelfuncptr f, pydgq_types.DTYPE_t* w, void* data, int n_space_dofs, pydgq_types.DTYPE_t t, pydgq_types.DTYPE_t dt, pydgq_types.DTYPE_t* wrk ) nogil:
-    cdef pydgq_types.DTYPE_t* wp = wrk  # w prime (output from RHS)
+cdef int FE( kernelfuncptr f, DTYPE_t* w, void* data, int n_space_dofs, DTYPE_t t, DTYPE_t dt, DTYPE_t* wrk ) nogil:
+    cdef DTYPE_t* wp = wrk  # w prime (output from RHS)
 
     f(w, wp, n_space_dofs, t, data)
 
@@ -243,9 +243,9 @@ cdef int FE( kernels.kernelfuncptr f, pydgq_types.DTYPE_t* w, void* data, int n_
 #
 # wrk must have space for n_space_dofs items.
 #
-cdef int SE( kernels.kernelfuncptr f, pydgq_types.DTYPE_t* w, void* data, int n_space_dofs, pydgq_types.DTYPE_t t, pydgq_types.DTYPE_t dt, pydgq_types.DTYPE_t* wrk ) nogil:
+cdef int SE( kernelfuncptr f, DTYPE_t* w, void* data, int n_space_dofs, DTYPE_t t, DTYPE_t dt, DTYPE_t* wrk ) nogil:
     cdef unsigned int j
-    cdef pydgq_types.DTYPE_t* wp = wrk  # w prime (output from RHS)
+    cdef DTYPE_t* wp = wrk  # w prime (output from RHS)
 
     f(w, wp, n_space_dofs, t, data)  # of this, we will only use the v' components corresponding to the v degrees of freedom
 

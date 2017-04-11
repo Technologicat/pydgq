@@ -14,26 +14,25 @@
 
 from __future__ import division, print_function, absolute_import
 
-cimport pydgq.solver.pydgq_types as pydgq_types
-cimport pydgq.solver.kernels as kernels
-
+from pydgq.solver.pydgq_types cimport DTYPE_t
+from pydgq.solver.kernels cimport kernelfuncptr
 
 # Implicit midpoint rule.
 #
 # wrk must have space for 4*n_space_dofs items.
 #
-cdef int IMR( kernels.kernelfuncptr f, pydgq_types.DTYPE_t* w, void* data, int n_space_dofs, pydgq_types.DTYPE_t t, pydgq_types.DTYPE_t dt, pydgq_types.DTYPE_t* wrk, int maxit ) nogil:
+cdef int IMR( kernelfuncptr f, DTYPE_t* w, void* data, int n_space_dofs, DTYPE_t t, DTYPE_t dt, DTYPE_t* wrk, int maxit ) nogil:
     cdef unsigned int j, m=-1, m2, nequals
     cdef int success = 0
 
-    cdef pydgq_types.DTYPE_t* whalf = wrk  # iterative approximation of w(k+1/2)
-    cdef pydgq_types.DTYPE_t* wp = &wrk[n_space_dofs]     # iterative approximation of w'(k+1/2)
+    cdef DTYPE_t* whalf = wrk  # iterative approximation of w(k+1/2)
+    cdef DTYPE_t* wp = &wrk[n_space_dofs]     # iterative approximation of w'(k+1/2)
 
     # Iterative approximations of w(k+1)
-    cdef pydgq_types.DTYPE_t* wcur = &wrk[2*n_space_dofs]
-    cdef pydgq_types.DTYPE_t* wnew = &wrk[3*n_space_dofs]
+    cdef DTYPE_t* wcur = &wrk[2*n_space_dofs]
+    cdef DTYPE_t* wnew = &wrk[3*n_space_dofs]
 
-    cdef pydgq_types.DTYPE_t thalf = t + 0.5*dt
+    cdef DTYPE_t thalf = t + 0.5*dt
 
     # Trivial initial guess: w(k+1) = w(k)
     #
@@ -102,17 +101,17 @@ cdef int IMR( kernels.kernelfuncptr f, pydgq_types.DTYPE_t* w, void* data, int n
 #
 # wrk must have space for 3*n_space_dofs items.
 #
-cdef int BE( kernels.kernelfuncptr f, pydgq_types.DTYPE_t* w, void* data, int n_space_dofs, pydgq_types.DTYPE_t t, pydgq_types.DTYPE_t dt, pydgq_types.DTYPE_t* wrk, int maxit ) nogil:
+cdef int BE( kernelfuncptr f, DTYPE_t* w, void* data, int n_space_dofs, DTYPE_t t, DTYPE_t dt, DTYPE_t* wrk, int maxit ) nogil:
     cdef unsigned int j, m=-1, m2, nequals
     cdef int success = 0
 
-    cdef pydgq_types.DTYPE_t* wp = wrk     # iterative approximation of w'(k+1)
+    cdef DTYPE_t* wp = wrk     # iterative approximation of w'(k+1)
 
     # Iterative approximations of w(k+1)
-    cdef pydgq_types.DTYPE_t* wcur = &wrk[n_space_dofs]
-    cdef pydgq_types.DTYPE_t* wnew = &wrk[2*n_space_dofs]
+    cdef DTYPE_t* wcur = &wrk[n_space_dofs]
+    cdef DTYPE_t* wnew = &wrk[2*n_space_dofs]
 
-    cdef pydgq_types.DTYPE_t tend = t + dt
+    cdef DTYPE_t tend = t + dt
 
     # Trivial initial guess: w(k+1) = w(k)
     #

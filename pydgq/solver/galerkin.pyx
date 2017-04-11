@@ -14,8 +14,9 @@ import numpy as np
 import  pylu.dgesv as dgesv    # Cython-based LU decomposition and linear equation system solver, callable from inside nogil blocks -- Python interface (using np.arrays)
 cimport pylu.dgesv as dgesv_c  # -"- -- Cython interface (using raw pointers, explicit sizes)
 
-cimport pydgq.solver.pydgq_types as pydgq_types
-cimport pydgq.solver.compsum as compsum
+from pydgq.solver.pydgq_types cimport DTYPE_t
+from pydgq.solver.pydgq_types import DTYPE
+from pydgq.solver.compsum cimport accumulate
 
 ##################
 # C-level helpers
@@ -33,7 +34,7 @@ cimport pydgq.solver.compsum as compsum
 # ucorr: rank-1 array, size [n_points]:                   correction storage for compensated summation
 #
 #                                       coeffs      basis         output
-cdef void assemble( pydgq_types.DTYPE_t* u, pydgq_types.DTYPE_t* psi, pydgq_types.DTYPE_t* uass, pydgq_types.DTYPE_t* ucorr, int n_space_dofs, int n_time_dofs, int n_points ) nogil:
+cdef void assemble( DTYPE_t* u, DTYPE_t* psi, DTYPE_t* uass, DTYPE_t* ucorr, int n_space_dofs, int n_time_dofs, int n_points ) nogil:
     cdef unsigned int i,j,k
 
 #    # naive summation
@@ -49,8 +50,8 @@ cdef void assemble( pydgq_types.DTYPE_t* u, pydgq_types.DTYPE_t* psi, pydgq_type
 #                uass[ i*n_space_dofs + k ] += u[ k*n_time_dofs + j ] * psi[ j*n_points + i ]
 
     # compensated summation
-    cdef pydgq_types.DTYPE_t* ps
-    cdef pydgq_types.DTYPE_t* pc
+    cdef DTYPE_t* ps
+    cdef DTYPE_t* pc
     for k in range(n_space_dofs):
 
         # Zero out the assembled values for this space DOF.
@@ -69,7 +70,7 @@ cdef void assemble( pydgq_types.DTYPE_t* u, pydgq_types.DTYPE_t* psi, pydgq_type
             ps = &uass[ i*n_space_dofs + k ]  # sum (accumulator)
             pc = &ucorr[ i ]                  # correction
             for j in range(n_time_dofs):
-                compsum.accumulate( ps, pc, u[ k*n_time_dofs + j ] * psi[ j*n_points + i ] )
+                accumulate( ps, pc, u[ k*n_time_dofs + j ] * psi[ j*n_points + i ] )
 
 
 # Assemble Galerkin series at the end of the timestep.
@@ -79,7 +80,7 @@ cdef void assemble( pydgq_types.DTYPE_t* u, pydgq_types.DTYPE_t* psi, pydgq_type
 #   - There are always at least 2 basis functions (the linear ones).
 #   - For this purpose, n_points is always 1.
 #
-cdef void final_value( pydgq_types.DTYPE_t* u, pydgq_types.DTYPE_t* uass, int n_space_dofs, int n_time_dofs ) nogil:
+cdef void final_value( DTYPE_t* u, DTYPE_t* uass, int n_space_dofs, int n_time_dofs ) nogil:
     cdef unsigned int k
     for k in range(n_space_dofs):
         # here only one visualization point, so uass[ n_space_dofs*0 + k ] --> uass[ k ]
@@ -93,21 +94,21 @@ cdef void final_value( pydgq_types.DTYPE_t* u, pydgq_types.DTYPE_t* uass, int n_
 # n:        number of items in funcvals and qw
 # dt:       size of timestep (will be used for scaling the result)
 #
-cdef pydgq_types.DTYPE_t do_quadrature( pydgq_types.DTYPE_t* funcvals, pydgq_types.DTYPE_t* qw, int n, pydgq_types.DTYPE_t dt ) nogil:
+cdef DTYPE_t do_quadrature( DTYPE_t* funcvals, DTYPE_t* qw, int n, DTYPE_t dt ) nogil:
     cdef unsigned int i
 
 #    # naive summation (not good for problems sensitive to initial conditions, such as vibration problems with low damping)
-#    cdef pydgq_types.DTYPE_t s
+#    cdef DTYPE_t s
 #    s = 0.0
 #    for i in range(n):
 #        s += qw[i]*funcvals[i]
 
     # compensated summation
-    cdef pydgq_types.DTYPE_t s, c
+    cdef DTYPE_t s, c
     s = qw[0]*funcvals[0]  # first term in sum; no correction by Kahan algorithm (if we wanted to correct, we should take the roundoff from this multiplication, instead)
     c = 0.0
     for i in range(1,n):
-        compsum.accumulate( &s, &c, qw[i]*funcvals[i] )
+        accumulate( &s, &c, qw[i]*funcvals[i] )
 
     # Scale the result to account for the length of the timestep.
     #
@@ -145,28 +146,28 @@ cdef int dG( params* gp ) nogil:
 #    # array shapes and types in gp:
 #
 #    # instance arrays (see galerkin.Helper.allocate_storage())
-#    cdef pydgq_types.DTYPE_t[:,:,::1] g     = np.empty( [n_space_dofs,n_time_dofs,n_quad], dtype=DTYPE, order="C" )  # effective load vector, for each space DOF, for each time DOF, at each integration point
-#    cdef pydgq_types.DTYPE_t[:,::1]   b     = np.empty( [n_space_dofs,n_time_dofs],        dtype=DTYPE, order="C" )  # right-hand sides (integral, over the timestep, of g*psi)
-#    cdef pydgq_types.DTYPE_t[:,::1]   u     = np.empty( [n_space_dofs,n_time_dofs],        dtype=DTYPE, order="C" )  # Galerkin coefficients (unknowns)
-#    cdef pydgq_types.DTYPE_t[:,::1]   uprev = np.empty( [n_space_dofs,n_time_dofs],        dtype=DTYPE, order="C" )  # Galerkin coefficients from previous iteration
-#    cdef pydgq_types.DTYPE_t[:,::1]   uass  = np.empty( [n_quad,n_space_dofs],             dtype=DTYPE, order="C" )  # u, assembled for integration (this ordering needed for speed!)
-#    cdef pydgq_types.DTYPE_t[::1]     ucorr = np.empty( [n_quad],                          dtype=DTYPE, order="C" )  # correction for compensated summation in assemble() (for integration)
-#    cdef pydgq_types.DTYPE_t[:,::1]   uvis  = np.empty( [nx,n_space_dofs],                 dtype=DTYPE, order="C" )  # u, assembled for visualization
-#    cdef pydgq_types.DTYPE_t[::1]     ucvis = np.empty( [nx],                              dtype=DTYPE, order="C" )  # correction for compensated summation in assemble() (for visualization)
+#    cdef DTYPE_t[:,:,::1] g     = np.empty( [n_space_dofs,n_time_dofs,n_quad], dtype=DTYPE, order="C" )  # effective load vector, for each space DOF, for each time DOF, at each integration point
+#    cdef DTYPE_t[:,::1]   b     = np.empty( [n_space_dofs,n_time_dofs],        dtype=DTYPE, order="C" )  # right-hand sides (integral, over the timestep, of g*psi)
+#    cdef DTYPE_t[:,::1]   u     = np.empty( [n_space_dofs,n_time_dofs],        dtype=DTYPE, order="C" )  # Galerkin coefficients (unknowns)
+#    cdef DTYPE_t[:,::1]   uprev = np.empty( [n_space_dofs,n_time_dofs],        dtype=DTYPE, order="C" )  # Galerkin coefficients from previous iteration
+#    cdef DTYPE_t[:,::1]   uass  = np.empty( [n_quad,n_space_dofs],             dtype=DTYPE, order="C" )  # u, assembled for integration (this ordering needed for speed!)
+#    cdef DTYPE_t[::1]     ucorr = np.empty( [n_quad],                          dtype=DTYPE, order="C" )  # correction for compensated summation in assemble() (for integration)
+#    cdef DTYPE_t[:,::1]   uvis  = np.empty( [nx,n_space_dofs],                 dtype=DTYPE, order="C" )  # u, assembled for visualization
+#    cdef DTYPE_t[::1]     ucvis = np.empty( [nx],                              dtype=DTYPE, order="C" )  # correction for compensated summation in assemble() (for visualization)
 #
 #    # global arrays, same for each solver instance (see galerkin.Helper.load_data(), galerkin.Helper.prep_solver())
-#    cdef pydgq_types.DTYPE_t[:,::1] LU      = galerkin.helper_instance.LU       # LU decomposed mass matrix (packed format), for one space DOF, shape (n_time_dofs, n_time_dofs)
+#    cdef DTYPE_t[:,::1] LU      = galerkin.helper_instance.LU       # LU decomposed mass matrix (packed format), for one space DOF, shape (n_time_dofs, n_time_dofs)
 #    cdef int[::1]       p       = galerkin.helper_instance.p        # row permutation information, length n_time_dofs
 #    cdef int[::1]       mincols = galerkin.helper_instance.mincols  # band information for L, length n_time_dofs
 #    cdef int[::1]       maxcols = galerkin.helper_instance.maxcols  # band information for U, length n_time_dofs
-#    cdef pydgq_types.DTYPE_t[::1]   qw      = galerkin.helper_instance.integ_w  # quadrature weights (Gauss-Legendre)
-#    cdef pydgq_types.DTYPE_t[:,::1] psi     = galerkin.helper_instance.integ_y  # basis function values at the quadrature points, psi[j,i] is N[j]( x[i] )
-#    cdef pydgq_types.DTYPE_t[:,::1] psivis  = galerkin.helper_instance.vis_y    # basis function values at the visualization points, psivis[j,i] is N[j]( x[i] )
+#    cdef DTYPE_t[::1]   qw      = galerkin.helper_instance.integ_w  # quadrature weights (Gauss-Legendre)
+#    cdef DTYPE_t[:,::1] psi     = galerkin.helper_instance.integ_y  # basis function values at the quadrature points, psi[j,i] is N[j]( x[i] )
+#    cdef DTYPE_t[:,::1] psivis  = galerkin.helper_instance.vis_y    # basis function values at the visualization points, psivis[j,i] is N[j]( x[i] )
 
-    cdef pydgq_types.DTYPE_t* up = gp.wrk  # temporary storage for u'
+    cdef DTYPE_t* up = gp.wrk  # temporary storage for u'
     cdef unsigned int nequals  # for convergence check
 
-    cdef pydgq_types.DTYPE_t tcurr  # t at current quadrature point
+    cdef DTYPE_t tcurr  # t at current quadrature point
 
     # Loop counters.
     #
@@ -286,28 +287,28 @@ cdef int cG( params* gp ) nogil:
 #    # array shapes and types in gp:
 #
 #    # instance arrays (see galerkin.Helper.allocate_storage())
-#    cdef pydgq_types.DTYPE_t[:,:,::1] g     = np.empty( [n_space_dofs,n_time_dofs,n_quad], dtype=DTYPE, order="C" )  # effective load vector, for each space DOF, for each time DOF, at each integration point
-#    cdef pydgq_types.DTYPE_t[:,::1]   b     = np.empty( [n_space_dofs,n_time_dofs],        dtype=DTYPE, order="C" )  # right-hand sides (integral, over the timestep, of g*psi)
-#    cdef pydgq_types.DTYPE_t[:,::1]   u     = np.empty( [n_space_dofs,n_time_dofs],        dtype=DTYPE, order="C" )  # Galerkin coefficients (unknowns)
-#    cdef pydgq_types.DTYPE_t[:,::1]   uprev = np.empty( [n_space_dofs,n_time_dofs],        dtype=DTYPE, order="C" )  # Galerkin coefficients from previous iteration
-#    cdef pydgq_types.DTYPE_t[:,::1]   uass  = np.empty( [n_quad,n_space_dofs],             dtype=DTYPE, order="C" )  # u, assembled for integration (this ordering needed for speed!)
-#    cdef pydgq_types.DTYPE_t[::1]     ucorr = np.empty( [n_quad],                          dtype=DTYPE, order="C" )  # correction for compensated summation in assemble() (for integration)
-#    cdef pydgq_types.DTYPE_t[:,::1]   uvis  = np.empty( [nx,n_space_dofs],                 dtype=DTYPE, order="C" )  # u, assembled for visualization
-#    cdef pydgq_types.DTYPE_t[::1]     ucvis = np.empty( [nx],                              dtype=DTYPE, order="C" )  # correction for compensated summation in assemble() (for visualization)
+#    cdef DTYPE_t[:,:,::1] g     = np.empty( [n_space_dofs,n_time_dofs,n_quad], dtype=DTYPE, order="C" )  # effective load vector, for each space DOF, for each time DOF, at each integration point
+#    cdef DTYPE_t[:,::1]   b     = np.empty( [n_space_dofs,n_time_dofs],        dtype=DTYPE, order="C" )  # right-hand sides (integral, over the timestep, of g*psi)
+#    cdef DTYPE_t[:,::1]   u     = np.empty( [n_space_dofs,n_time_dofs],        dtype=DTYPE, order="C" )  # Galerkin coefficients (unknowns)
+#    cdef DTYPE_t[:,::1]   uprev = np.empty( [n_space_dofs,n_time_dofs],        dtype=DTYPE, order="C" )  # Galerkin coefficients from previous iteration
+#    cdef DTYPE_t[:,::1]   uass  = np.empty( [n_quad,n_space_dofs],             dtype=DTYPE, order="C" )  # u, assembled for integration (this ordering needed for speed!)
+#    cdef DTYPE_t[::1]     ucorr = np.empty( [n_quad],                          dtype=DTYPE, order="C" )  # correction for compensated summation in assemble() (for integration)
+#    cdef DTYPE_t[:,::1]   uvis  = np.empty( [nx,n_space_dofs],                 dtype=DTYPE, order="C" )  # u, assembled for visualization
+#    cdef DTYPE_t[::1]     ucvis = np.empty( [nx],                              dtype=DTYPE, order="C" )  # correction for compensated summation in assemble() (for visualization)
 #
 #    # global arrays, same for each solver instance (see galerkin.Helper.load_data(), galerkin.Helper.prep_solver())
-#    cdef pydgq_types.DTYPE_t[:,::1] LU      = galerkin.helper_instance.LU       # LU decomposed mass matrix (packed format), for one space DOF, shape (n_time_dofs, n_time_dofs)
+#    cdef DTYPE_t[:,::1] LU      = galerkin.helper_instance.LU       # LU decomposed mass matrix (packed format), for one space DOF, shape (n_time_dofs, n_time_dofs)
 #    cdef int[::1]       p       = galerkin.helper_instance.p        # row permutation information, length n_time_dofs
 #    cdef int[::1]       mincols = galerkin.helper_instance.mincols  # band information for L, length n_time_dofs
 #    cdef int[::1]       maxcols = galerkin.helper_instance.maxcols  # band information for U, length n_time_dofs
-#    cdef pydgq_types.DTYPE_t[::1]   qw      = galerkin.helper_instance.integ_w  # quadrature weights (Gauss-Legendre)
-#    cdef pydgq_types.DTYPE_t[:,::1] psi     = galerkin.helper_instance.integ_y  # basis function values at the quadrature points, qy[j,i] is N[j]( x[i] )
-#    cdef pydgq_types.DTYPE_t[:,::1] psivis  = galerkin.helper_instance.vis_y    # basis function values at the visualization points, qy[j,i] is N[j]( x[i] )
+#    cdef DTYPE_t[::1]   qw      = galerkin.helper_instance.integ_w  # quadrature weights (Gauss-Legendre)
+#    cdef DTYPE_t[:,::1] psi     = galerkin.helper_instance.integ_y  # basis function values at the quadrature points, qy[j,i] is N[j]( x[i] )
+#    cdef DTYPE_t[:,::1] psivis  = galerkin.helper_instance.vis_y    # basis function values at the visualization points, qy[j,i] is N[j]( x[i] )
 
-    cdef pydgq_types.DTYPE_t* up = gp.wrk  # temporary storage for u'
+    cdef DTYPE_t* up = gp.wrk  # temporary storage for u'
     cdef unsigned int nequals  # for convergence check
 
-    cdef pydgq_types.DTYPE_t tcurr  # t at current quadrature point
+    cdef DTYPE_t tcurr  # t at current quadrature point
 
     # Loop counters.
     #
@@ -675,17 +676,17 @@ class Helper:
         #     http://docs.scipy.org/doc/numpy/reference/arrays.nditer.html
         #
         # This is usually used like:
-        #   cdef pydgq_types.DTYPE_t[:,::1] ww = np.empty( [nt, n_space_dofs], dtype=DTYPE, order="C" )
+        #   cdef DTYPE_t[:,::1] ww = np.empty( [nt, n_space_dofs], dtype=DTYPE, order="C" )
         #
         # Note:
-        #   - pydgq_types.DTYPE_t in the cdef vs. DTYPE in the Python call to np.empty()
+        #   - DTYPE_t in the cdef vs. DTYPE in the Python call to np.empty()
         #   - C storage order
         #
-        cdef pydgq_types.DTYPE_t[::1]   integ_x = np.empty( [ rule ],              dtype=pydgq_types.DTYPE, order="C" )
-        cdef pydgq_types.DTYPE_t[::1]   integ_w = np.empty( [ rule ],              dtype=pydgq_types.DTYPE, order="C" )
-        cdef pydgq_types.DTYPE_t[:,::1] integ_y = np.empty( [ n_time_dofs, rule ], dtype=pydgq_types.DTYPE, order="C" )
-        cdef pydgq_types.DTYPE_t[::1]   vis_x   = np.empty( [ nx ],                dtype=pydgq_types.DTYPE, order="C" )
-        cdef pydgq_types.DTYPE_t[:,::1] vis_y   = np.empty( [ n_time_dofs, nx ],   dtype=pydgq_types.DTYPE, order="C" )
+        cdef DTYPE_t[::1]   integ_x = np.empty( [ rule ],              dtype=DTYPE, order="C" )
+        cdef DTYPE_t[::1]   integ_w = np.empty( [ rule ],              dtype=DTYPE, order="C" )
+        cdef DTYPE_t[:,::1] integ_y = np.empty( [ n_time_dofs, rule ], dtype=DTYPE, order="C" )
+        cdef DTYPE_t[::1]   vis_x   = np.empty( [ nx ],                dtype=DTYPE, order="C" )
+        cdef DTYPE_t[:,::1] vis_y   = np.empty( [ n_time_dofs, nx ],   dtype=DTYPE, order="C" )
 
         integ_x[:]   = integ["x"][:]
         integ_y[:,:] = integ["y"][:,:]
@@ -817,15 +818,15 @@ class Helper:
         n_quad      = self.rule  # Gauss-Legendre has as many quadrature points as the order of the rule being used.
         nx          = self.nx
 
-        cdef pydgq_types.DTYPE_t[:,:,::1] g     = np.empty( [n_space_dofs,n_time_dofs,n_quad], dtype=pydgq_types.DTYPE, order="C" )  # effective load vector, for each space DOF, for each time DOF, at each integration point
-        cdef pydgq_types.DTYPE_t[:,::1]   b     = np.empty( [n_space_dofs,n_time_dofs],        dtype=pydgq_types.DTYPE, order="C" )  # right-hand sides (integral, over the timestep, of g*psi)
-        cdef pydgq_types.DTYPE_t[:,::1]   u     = np.empty( [n_space_dofs,n_time_dofs],        dtype=pydgq_types.DTYPE, order="C" )  # Galerkin coefficients (unknowns)
-        cdef pydgq_types.DTYPE_t[:,::1]   uprev = np.empty( [n_space_dofs,n_time_dofs],        dtype=pydgq_types.DTYPE, order="C" )  # Galerkin coefficients from previous iteration
-        cdef pydgq_types.DTYPE_t[:,::1]   uass  = np.empty( [n_quad,n_space_dofs],             dtype=pydgq_types.DTYPE, order="C" )  # u, assembled for integration (this ordering needed for speed!)
-        cdef pydgq_types.DTYPE_t[::1]     ucorr = np.empty( [n_quad],                          dtype=pydgq_types.DTYPE, order="C" )  # correction for compensated summation in assemble() (for integration)
-        cdef pydgq_types.DTYPE_t[:,::1]   uvis  = np.empty( [nx,n_space_dofs],                 dtype=pydgq_types.DTYPE, order="C" )  # u, assembled for visualization
-        cdef pydgq_types.DTYPE_t[::1]     ucvis = np.empty( [nx],                              dtype=pydgq_types.DTYPE, order="C" )  # correction for compensated summation in assemble() (for visualization)
-        cdef pydgq_types.DTYPE_t[::1]     wrk   = np.empty( [n_space_dofs],                    dtype=pydgq_types.DTYPE, order="C" )  # work space for dG(), cG()
+        cdef DTYPE_t[:,:,::1] g     = np.empty( [n_space_dofs,n_time_dofs,n_quad], dtype=DTYPE, order="C" )  # effective load vector, for each space DOF, for each time DOF, at each integration point
+        cdef DTYPE_t[:,::1]   b     = np.empty( [n_space_dofs,n_time_dofs],        dtype=DTYPE, order="C" )  # right-hand sides (integral, over the timestep, of g*psi)
+        cdef DTYPE_t[:,::1]   u     = np.empty( [n_space_dofs,n_time_dofs],        dtype=DTYPE, order="C" )  # Galerkin coefficients (unknowns)
+        cdef DTYPE_t[:,::1]   uprev = np.empty( [n_space_dofs,n_time_dofs],        dtype=DTYPE, order="C" )  # Galerkin coefficients from previous iteration
+        cdef DTYPE_t[:,::1]   uass  = np.empty( [n_quad,n_space_dofs],             dtype=DTYPE, order="C" )  # u, assembled for integration (this ordering needed for speed!)
+        cdef DTYPE_t[::1]     ucorr = np.empty( [n_quad],                          dtype=DTYPE, order="C" )  # correction for compensated summation in assemble() (for integration)
+        cdef DTYPE_t[:,::1]   uvis  = np.empty( [nx,n_space_dofs],                 dtype=DTYPE, order="C" )  # u, assembled for visualization
+        cdef DTYPE_t[::1]     ucvis = np.empty( [nx],                              dtype=DTYPE, order="C" )  # correction for compensated summation in assemble() (for visualization)
+        cdef DTYPE_t[::1]     wrk   = np.empty( [n_space_dofs],                    dtype=DTYPE, order="C" )  # work space for dG(), cG()
 
         items = {}
 
