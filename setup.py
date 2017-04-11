@@ -112,13 +112,14 @@ def ext_math(extName):
                     )
 
 # http://stackoverflow.com/questions/13628979/setuptools-how-to-make-package-contain-extra-data-folder-and-all-folders-inside
-datadir = "test"
+datadir = "doc"
 datafiles = [(root, [os.path.join(root, f) for f in files if f.endswith(".py")])
     for root, dirs, files in os.walk(datadir)]
 
 datafiles.append( ('.', ["README.md", "LICENSE.md"]) )
-datafiles.append( ('doc', ["pydgq_user_manual.lyx", "pydgq_user_manual.pdf"]) )
+datafiles.append( ('doc', ["doc/pydgq_user_manual.lyx", "doc/pydgq_user_manual.pdf"]) )
 
+print datafiles
 
 #########################################################
 # Modules
@@ -197,7 +198,14 @@ setup(
 
     # Install also Cython headers so that other Cython modules can cimport ours
     # FIXME: force sdist, but sdist only, to keep the .pyx files (this puts them also in the bdist)
-    package_data={'pydgq': ['*.pxd', '*.pyx']},  # note: paths relative to each package
+    package_data={'pydgq':        ['*.pxd', '*.pyx'],  # note: paths relative to each package
+                  'pydgq.solver': ['*.pxd', '*.pyx'],
+                  'pydgq.utils':  ['*.pxd', '*.pyx']},
+
+    # Disable zip_safe, because:
+    #   - Cython won't find .pxd files inside installed .egg, hard to compile libs depending on this one
+    #   - dynamic loader may need to have the library unzipped to a temporary folder anyway (at import time)
+    zip_safe = False,
 
     # Usage examples; not in a package
     data_files = datafiles
