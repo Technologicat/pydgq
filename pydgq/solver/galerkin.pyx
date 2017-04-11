@@ -537,7 +537,7 @@ class Helper:
             self.load_data(rule)
             self.build_C()
             self.prep_solver()
-            self.storage = {}
+            self.storage = {}  # problem instance specific data will be stored here (key = solver id)
             self.available = True
             print( "    Initialization successful." )
         except Exception as e:
@@ -713,7 +713,7 @@ class Helper:
         #  - self.rule:    order of the chosen Gauss-Legendre rule (for information only)
         #
         # Visualization:
-        #  - self.vis_x:   x values for visualization (actually, time value in [-1,1])
+        #  - self.vis_x:   x values for visualization (time value on reference element [-1,1])
         #  - self.vis_y:   values of basis functions at the visualization points; y[j,i] is N[j]( x[i] )
 
     def build_C(self):
