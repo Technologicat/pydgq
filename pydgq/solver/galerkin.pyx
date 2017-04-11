@@ -534,10 +534,10 @@ class Helper:
         print( "Galerkin integrator support initializing for %s(%d) with %d visualization point%s per timestep..." % (method, q, nx, plural_s) )
 
         try:
-            self.load_data(rule)
-            self.build_C()
-            self.prep_solver()
-            self.storage = {}  # problem instance specific data will be stored here (key = solver id)
+            self.__load_data(rule)
+            self.__build_C()
+            self.__prep_solver()
+            self.__storage = {}  # problem instance specific data will be stored here (key = solver id)
             self.available = True
             print( "    Initialization successful." )
         except Exception as e:
@@ -561,7 +561,7 @@ class Helper:
             self.mincols     = None   # band information for L
             self.maxcols     = None   # band information for U
 
-            self.storage     = None   # storage for solver instance arrays
+            self.__storage     = None   # storage for solver instance arrays
 
             self.available   = False  # Galerkin integrators enabled/disabled
 
@@ -570,7 +570,7 @@ class Helper:
 
     # Load precalculated data for the hierarchical basis functions.
     #
-    def load_data(self, rule):
+    def __load_data(self, rule):
         """Load precalculated data (pydgq_data.bin).
 
         The hierarchical basis functions are numerically sensitive to cancellation especially at high degrees q,
@@ -716,7 +716,7 @@ class Helper:
         #  - self.vis_x:   x values for visualization (time value on reference element [-1,1])
         #  - self.vis_y:   values of basis functions at the visualization points; y[j,i] is N[j]( x[i] )
 
-    def build_C(self):
+    def __build_C(self):
         """Build the dG(q) mass matrix C.
 
         C contains integrals of Ni'*Nj (i column, j row) over the reference element [-1,1],
@@ -781,7 +781,7 @@ class Helper:
 
         self.C = C
 
-    def prep_solver(self):
+    def __prep_solver(self):
         """Prepare the dG(q) linear equation system for solving."""
         LU,p = dgesv.lup_packed(self.C)
         self.LU = LU
@@ -797,7 +797,7 @@ class Helper:
         print( "        Banded solver detected bandwidths L=%d (lower bw), U=%d (upper bw)" % (bwL, bwU) )
 
     def allocate_storage(self, solver_id, n_space_dofs):
-        """Allocate per-problem storage.
+        """Allocate and return per-problem storage.
 
         This must be called separately for each problem that will be running simultaneously (even if same settings),
         as each problem instance needs its own work space.
@@ -809,7 +809,7 @@ class Helper:
                 number of space DOFs (i.e. size of the 1st-order ODE system) that the current problem has.
         """
 
-        assert self.storage is not None
+        assert self.__storage is not None
         assert self.n_time_dofs is not None
         assert self.rule is not None
         assert self.nx is not None
@@ -842,12 +842,16 @@ class Helper:
         items["ucvis"] = ucvis
         items["wrk"]   = wrk
 
-        self.storage[solver_id] = items
+        self.__storage[solver_id] = items
         return items
+
+    def get_storage(self, solver_id):
+        """Return per-problem storage for given solver_id."""
+        return self.__storage[solver_id]
 
     def free_storage(self, solver_id):
         """Deallocate per-problem storage."""
-        self.storage.pop(solver_id, None)   # http://stackoverflow.com/questions/11277432/how-to-remove-a-key-from-a-dictionary
+        self.__storage.pop(solver_id, None)   # http://stackoverflow.com/questions/11277432/how-to-remove-a-key-from-a-dictionary
 
 
 helper_instance = None
