@@ -105,7 +105,9 @@ cdef inline void store( DTYPE_t* w, int n_space_dofs, int timestep, double t, in
 #########################################################################################
 
 def n_saved_timesteps( nt, save_from ):
-    """Determine number of timesteps that will be saved.
+    """def n_saved_timesteps( nt, save_from ):
+
+    Determine number of timesteps that will be saved.
 
     Note that this is not the length of the result array; for that, see result_len().
     The number returned by this function matches the length of the output arrays from timestep_boundaries().
@@ -127,7 +129,9 @@ def n_saved_timesteps( nt, save_from ):
 
 
 def result_len( int nt, int save_from, int interp=1 ):
-    """Determine length of storage needed on the time axis for ivp().
+    """def result_len( int nt, int save_from, int interp=1 ):
+
+    Determine length of storage needed on the time axis for ivp().
 
     Parameters:
 
@@ -213,7 +217,9 @@ def result_len( int nt, int save_from, int interp=1 ):
 
 
 def timestep_boundaries( int nt, int save_from, int interp=1 ):
-    """Return start and one-past-end indices for each timestep in the result. These can be used to index tt, ww and ff on the time axis.
+    """def timestep_boundaries( int nt, int save_from, int interp=1 ):
+
+    Return start and one-past-end indices for each timestep in the result. These can be used to index tt, ww and ff on the time axis.
 
     This is useful with Galerkin integrators, which support several visualization points per timestep (interp > 1).
 
@@ -259,7 +265,9 @@ def timestep_boundaries( int nt, int save_from, int interp=1 ):
 
 
 def make_tt( double dt, int nt, int save_from, int interp=1, out=None ):
-    """Generate rank-1 np.array of the time values that correspond to the solution values output by ivp().
+    """def make_tt( double dt, int nt, int save_from, int interp=1, out=None ):
+
+    Generate rank-1 np.array of the time values that correspond to the solution values output by ivp().
 
     Parameters:
 
@@ -333,7 +341,11 @@ ctypedef int (*galerkin_integrator_ptr)( galerkin.params* p ) nogil
 def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt, int save_from, int interp,
          ptrwrap.PointerWrapper pw_f, ptrwrap.PointerWrapper pw_data, DTYPE_t[:,::1] ww, DTYPE_t[:,::1] ff, int[::1] fail, double RK2_beta=1.0,
          int maxit=100 ):
-    """Solve initial value problem.
+    """def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt, int save_from, int interp,
+         ptrwrap.PointerWrapper pw_f, ptrwrap.PointerWrapper pw_data, DTYPE_t[:,::1] ww, DTYPE_t[:,::1] ff, int[::1] fail, double RK2_beta=1.0,
+         int maxit=100 ):
+
+    Solve initial value problem.
 
     This routine integrates first-order ordinary differential equation (ODE) systems of the form
 

@@ -27,7 +27,9 @@ import numpy as np
 # Not currently used by pydgq.
 
 def cumsum1d_compensated( data ):
-    """Like np.cumsum(), but using compensated summation (Kahan algorithm).
+    """def cumsum1d_compensated( data ):
+
+    Like np.cumsum(), but using compensated summation (Kahan algorithm).
 
     Implemented only for rank-1 np.arrays of dtypes double (np.float64) and double complex (np.complex128).
 
