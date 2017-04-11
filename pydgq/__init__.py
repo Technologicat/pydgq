@@ -4,7 +4,7 @@
 
 The main point of interest in this library is dG(q), i.e. the
 time-discontinuous Galerkin method using a Lobatto basis
-(a.k.a. hierarchical polynomial basis).
+(a.k.a. hierarchical polynomial basis). See ivp().
 
 For preparing the data file used by the integrator (pydgq_data.bin),
 run the module pydgq.utils.precalc as the main program.
