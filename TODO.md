@@ -12,7 +12,6 @@
    - and/or compare solutions to the same problem computed by different algorithms
  - clean up `doc/legtest*.py`
  - update user manual (mainly title and a new introductory paragraph)
- - odesolve.pyx could as well use np.empty and buffer interface instead of `malloc`/`free`
  - figure out how to distribute pydgq_data.bin (and make the installation find it), this file is rather large
  - fix keywords in `setup.py`
  - publish on GitHub

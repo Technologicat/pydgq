@@ -20,8 +20,7 @@ where f may be nonlinear.
 
 from __future__ import division, print_function, absolute_import
 
-# TODO: clean up: could as well use np.empty and buffer interface instead of malloc/free (since all allocs occur at the Python level)
-from libc.stdlib cimport malloc, free
+#from libc.stdlib cimport malloc, free
 
 # use fast math functions from <math.h>, available via Cython
 #from libc.math cimport fabs as c_abs
@@ -584,6 +583,7 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
 
     # Work space for integrators (will be allocated below, needed size depends on algorithm)
     #
+    cdef DTYPE_t[::1] wrk_arr
     cdef DTYPE_t* wrk = <DTYPE_t*>0
 
     # Implicit methods support
@@ -614,7 +614,6 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
     cdef DTYPE_t[:,::1]   psi
     cdef DTYPE_t[:,::1]   uvis
     cdef DTYPE_t[::1]     ucvis
-    cdef DTYPE_t[::1]     gwrk
     cdef DTYPE_t[:,::1]   psivis
     cdef DTYPE_t[::1]     tvis
     cdef DTYPE_t[::1]     tquad
@@ -644,16 +643,18 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
             if n_space_dofs % 2 != 0:
                 raise ValueError("SE: Symplectic Euler (SE) only makes sense for second-order systems transformed to first-order ones, but got odd number of n_space_dofs = %d" % (n_space_dofs))
             timestep_explicit = explicit.SE
-            wrk = <DTYPE_t*>( malloc( 1 * n_space_dofs * sizeof(DTYPE_t) ) )
+            wrk_arr = np.empty( (1 * n_space_dofs,), dtype=DTYPE, order="C" )
         elif integrator == "RK4":
             timestep_explicit = explicit.RK4  # classical fourth-order Runge-Kutta
-            wrk = <DTYPE_t*>( malloc( 5 * n_space_dofs * sizeof(DTYPE_t) ) )
+            wrk_arr = np.empty( (5 * n_space_dofs,), dtype=DTYPE, order="C" )
         elif integrator == "RK3":
             timestep_explicit = explicit.RK3  # Kutta's third-order method
-            wrk = <DTYPE_t*>( malloc( 4 * n_space_dofs * sizeof(DTYPE_t) ) )
+            wrk_arr = np.empty( (4 * n_space_dofs,), dtype=DTYPE, order="C" )
         else: # integrator == "FE":
             timestep_explicit = explicit.FE   # forward Euler
-            wrk = <DTYPE_t*>( malloc( 1 * n_space_dofs * sizeof(DTYPE_t) ) )
+            wrk_arr = np.empty( (1 * n_space_dofs,), dtype=DTYPE, order="C" )
+
+        wrk = &wrk_arr[0]
 
         # We release the GIL for the integration loop to let another Python thread execute
         # while this one is running through a lot of timesteps (possibly several million per solver run).
@@ -674,15 +675,13 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
                 if denormal_triggered or naninf_triggered:
                     break
 
-            free( <void*>wrk )
-            wrk = <DTYPE_t*>0
-
     elif integrator == "RK2":  # parametric second-order Runge-Kutta
         # different function signature; otherwise the handling is identical to the above.
 
-        with nogil:
-            wrk = <DTYPE_t*>( malloc( 3 * n_space_dofs * sizeof(DTYPE_t) ) )
+        wrk_arr = np.empty( (3 * n_space_dofs,), dtype=DTYPE, order="C" )
+        wrk = &wrk_arr[0]
 
+        with nogil:
             for n in range(1,nt+1):
                 t = (n-1)*dt
 
@@ -698,16 +697,15 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
                 if denormal_triggered or naninf_triggered:
                     break
 
-            free( <void*>wrk )
-            wrk = <DTYPE_t*>0
-
     elif integrator in ["BE", "IMR"]:
         if integrator == "BE":  # backward Euler
             timestep_implicit = implicit.BE
-            wrk = <DTYPE_t*>( malloc( 3 * n_space_dofs * sizeof(DTYPE_t) ) )
+            wrk_arr = np.empty( (3 * n_space_dofs,), dtype=DTYPE, order="C" )
         else:
             timestep_implicit = implicit.IMR  # implicit midpoint rule
-            wrk = <DTYPE_t*>( malloc( 4 * n_space_dofs * sizeof(DTYPE_t) ) )
+            wrk_arr = np.empty( (4 * n_space_dofs,), dtype=DTYPE, order="C" )
+
+        wrk = &wrk_arr[0]
 
         with nogil:
             for n in range(1,nt+1):
@@ -737,9 +735,6 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
                 naninf_triggered = fputils.any_naninf( w, n_space_dofs )
                 if denormal_triggered or naninf_triggered:
                     break
-
-            free( <void*>wrk )
-            wrk = <DTYPE_t*>0
 
         nt_taken = max(1, n)
         failed_str = "" if totalfailed == 0 else "; last non-converged timestep %d" % (nfail)
@@ -785,7 +780,7 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
         ucorr      = instance_storage["ucorr"]  # correction for compensated summation in galerkin.assemble() (for integration)
         uvis       = instance_storage["uvis"]   # u, assembled for visualization
         ucvis      = instance_storage["ucvis"]  # correction for compensated summation in galerkin.assemble() (for visualization)
-        gwrk       = instance_storage["wrk"]    # work space for dG(), cG()
+        wrk_arr    = instance_storage["wrk"]    # work space for dG(), cG()
 
         # feed raw pointers to array data into galerkin.params
         gp.g       = &g[0,0,0]
@@ -795,7 +790,7 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
         gp.uass    = &uass[0,0]
         gp.ucorr   = &ucorr[0]
         gp.uvis    = &uvis[0,0]
-        gp.wrk     = &gwrk[0]
+        gp.wrk     = &wrk_arr[0]
 
         # retrieve global arrays
         #
