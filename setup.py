@@ -119,7 +119,6 @@ datafiles = [(root, [os.path.join(root, f) for f in files if f.endswith(".py")])
 datafiles.append( ('.', ["README.md", "LICENSE.md"]) )
 datafiles.append( ('doc', ["doc/pydgq_user_manual.lyx", "doc/pydgq_user_manual.pdf"]) )
 
-print datafiles
 
 #########################################################
 # Modules
