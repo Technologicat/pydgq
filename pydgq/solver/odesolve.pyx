@@ -24,10 +24,10 @@ from __future__ import division, print_function, absolute_import
 from libc.stdlib cimport malloc, free
 
 # use fast math functions from <math.h>, available via Cython
-from libc.math cimport fabs as c_abs
-from libc.math cimport sin, cos, log, exp, sqrt
+#from libc.math cimport fabs as c_abs
+#from libc.math cimport sin, cos, log, exp, sqrt
 
-import cython
+#import cython
 
 import numpy as np
 
