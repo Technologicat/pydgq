@@ -23,7 +23,7 @@ If the problem is nonlinear, the options are to:
   - linearize at each timestep, and then use a linear kernel (slow)
 """
 
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 
 cimport pylu.dgesv as dgesv_c
 
@@ -200,9 +200,9 @@ cdef void f_lin_2nd_with_mass(double* w, double* out, int n, double t, void* dat
     #
     # (we must undo the interleaving to use dgesv)
     #
-    double* work_in  = &pdata.work[n]    # first m elements of scratch space
-    double* work_out = &pdata.work[n+m]  # last  m elements of scratch space
     cdef int m = n // 2
+    cdef double* work_in  = &pdata.work[n]    # first m elements of scratch space
+    cdef double* work_out = &pdata.work[n+m]  # last  m elements of scratch space
     cdef int j
     for j in range(m):
         work_in[j] = pdata.work[2*j+1]  # DOFs corresponding to M2 v'

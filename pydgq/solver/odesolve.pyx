@@ -18,9 +18,10 @@
 where f may be nonlinear.
 """
 
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 
-#from libc.stdlib cimport malloc, free
+# TODO: clean up: could as well use np.empty and buffer interface instead of malloc/free
+from libc.stdlib cimport malloc, free
 
 # use fast math functions from <math.h>, available via Cython
 from libc.math cimport fabs as c_abs
@@ -30,16 +31,17 @@ import cython
 
 import numpy as np
 
-import ptrwrap
-cimport pydgq_types
-import pydgq_types
-cimport cminmax
-cimport fputils   # nan/inf checks for arrays
-cimport explicit  # classical explicit integrators
-cimport implicit  # classical implicit integrators
-cimport galerkin  # Galerkin integrators
-import galerkin
-cimport kernels   # f() for w' = f(w). Provides kernelfuncptr.
+import  pydgq.utils.ptrwrap as ptrwrap
+cimport pydgq.utils.ptrwrap as ptrwrap
+cimport pydgq.solver.pydgq_types as pydgq_types
+import  pydgq.solver.pydgq_types as pydgq_types
+cimport pydgq.solver.cminmax as cminmax
+cimport pydgq.solver.fputils as fputils  # nan/inf checks for arrays
+cimport pydgq.solver.explicit as explicit  # classical explicit integrators
+cimport pydgq.solver.implicit as implicit  # classical implicit integrators
+cimport pydgq.solver.galerkin as galerkin  # Galerkin integrators
+import  pydgq.solver.galerkin as galerkin
+cimport pydgq.solver.kernels as kernels   # f() for w' = f(w). Provides kernelfuncptr.
 
 # TODO: provide a mechanism for Python-level kernels
 # TODO: write some usage examples
@@ -71,9 +73,11 @@ cimport kernels   # f() for w' = f(w). Provides kernelfuncptr.
 #
 # Galerkin integrators have their own implementation that accounts for interp.
 #
-cdef inline void store( pydgq_types.DTYPE_t* w, int n_space_dofs, int timestep, double t, int save_from, pydgq_types.DTYPE_t* ww, kernels.kernelfuncptr f, pydgq_types.DTYPE_t* ff, pydgq_types.DTYPE_t* data, int* pfail, int failure) nogil:
+# wrk must have space for n_space_dofs items.
+#
+cdef inline void store( pydgq_types.DTYPE_t* w, int n_space_dofs, int timestep, double t, int save_from, pydgq_types.DTYPE_t* ww, kernels.kernelfuncptr f, pydgq_types.DTYPE_t* ff, pydgq_types.DTYPE_t* data, int* pfail, int failure, pydgq_types.DTYPE_t* wrk ) nogil:
     cdef unsigned int n, j
-    cdef double[n_space_dofs] wp
+    cdef pydgq_types.DTYPE_t* wp = wrk
 
     # Note indexing:
     #  - save_from=1 means "save from first timestep onward" (1-based index 1, although we use 0-based indices).
@@ -290,7 +294,7 @@ def make_tt( double dt, int nt, int save_from, int interp=1, out=None ):
     cdef pydgq_types.DTYPE_t[::1] tt
     if out is None:
         nvals = result_len( nt, save_from, interp )
-        tt = np.empty( [nvals], dtype=DTYPE, order="C" )
+        tt = np.empty( [nvals], dtype=pydgq_types.DTYPE, order="C" )
     else:
         tt = out
 
@@ -325,6 +329,11 @@ def make_tt( double dt, int nt, int save_from, int interp=1, out=None ):
 #########################################################################################
 # Integrator
 #########################################################################################
+
+# all of our classical explicit integrators except RK2 come in this format:
+ctypedef int (*explicit_integrator_ptr)( kernels.kernelfuncptr, pydgq_types.DTYPE_t*, void*, int, pydgq_types.DTYPE_t, pydgq_types.DTYPE_t, pydgq_types.DTYPE_t* ) nogil
+ctypedef int (*implicit_integrator_ptr)( kernels.kernelfuncptr, pydgq_types.DTYPE_t*, void*, int, pydgq_types.DTYPE_t, pydgq_types.DTYPE_t, pydgq_types.DTYPE_t*, int ) nogil
+ctypedef int (*galerkin_integrator_ptr)( galerkin.params* p ) nogil
 
 # TODO: add convergence tolerance (needs some changes in implicit.pyx and galerkin.pyx (basically wherever "maxit" is used))
 def ivp( str integrator, int allow_denormals, pydgq_types.DTYPE_t[::1] w0, double dt, int nt, int save_from, int interp,
@@ -537,14 +546,17 @@ def ivp( str integrator, int allow_denormals, pydgq_types.DTYPE_t[::1] w0, doubl
 
     # Initial condition: initialize the value of w at the end of the previous timestep to the initial condition of the problem.
     #
-    cdef double[n_space_dofs] w
+    cdef pydgq_types.DTYPE_t[::1] w_arr = np.empty( (n_space_dofs,), dtype=pydgq_types.DTYPE, order="C" )
+    cdef pydgq_types.DTYPE_t* w = &w_arr[0]  # we only need a raw pointer
     cdef unsigned int j
     for j in range(n_space_dofs):
         w[j] = w0[j]
 
     # Fill in stuff from the initial condition to the results, if saving all the way from the start.
     #
-    cdef pydgq_types.DTYPE_t[n_space_dofs] wp  # Temporary storage for w' as output by f(). This is needed later anyway, but we may need it already here.
+    # Temporary storage for w' as output by f(). This is needed later anyway, but we may need it already here.
+    cdef pydgq_types.DTYPE_t[::1] wp_arr = np.empty( (n_space_dofs,), dtype=pydgq_types.DTYPE, order="C" )
+    cdef pydgq_types.DTYPE_t* wp = &wp_arr[0]
     if save_from == 0:
         # State vector w
         ww[0,:] = w0
@@ -605,14 +617,9 @@ def ivp( str integrator, int allow_denormals, pydgq_types.DTYPE_t[::1] w0, doubl
     cdef pydgq_types.DTYPE_t* puvis
     cdef pydgq_types.DTYPE_t* pww
 
-    # all of our classical explicit integrators except RK2 come in this format:
-    ctypedef int (*explicit_integrator_ptr)( kernels.kernelfuncptr, pydgq_types.DTYPE_t*, void*, int, pydgq_types.DTYPE_t, pydgq_types.DTYPE_t, pydgq_types.DTYPE_t* ) nogil
-    ctypedef int (*implicit_integrator_ptr)( kernels.kernelfuncptr, pydgq_types.DTYPE_t*, void*, int, pydgq_types.DTYPE_t, pydgq_types.DTYPE_t, pydgq_types.DTYPE_t*, int ) nogil
-    ctypedef int (*galerkin_integrator_ptr)( galerkin.params* p ) nogil
-
-    cdef explicit_integrator_ptr timestep_explicit = <explicit_integrator_ptr*>0
-    cdef implicit_integrator_ptr timestep_implicit = <implicit_integrator_ptr*>0
-    cdef galerkin_integrator_ptr timestep_galerkin = <galerkin_integrator_ptr*>0
+    cdef explicit_integrator_ptr timestep_explicit = <explicit_integrator_ptr>0
+    cdef implicit_integrator_ptr timestep_implicit = <implicit_integrator_ptr>0
+    cdef galerkin_integrator_ptr timestep_galerkin = <galerkin_integrator_ptr>0
 
     # Account for the output slot possibly used for the initial condition.
     #
@@ -654,7 +661,7 @@ def ivp( str integrator, int allow_denormals, pydgq_types.DTYPE_t[::1] w0, doubl
                 # end-of-timestep boilerplate
                 #
                 t = n*dt
-                store( w, n_space_dofs, n, t, save_from, &ww[0,0], f, pff, data, pfail, 0 )
+                store( w, n_space_dofs, n, t, save_from, &ww[0,0], f, pff, data, pfail, 0, wrk )
                 if do_denormal_check:
                     denormal_triggered = fputils.all_denormal( w, n_space_dofs )
                 naninf_triggered = fputils.any_naninf( w, n_space_dofs )
@@ -678,7 +685,7 @@ def ivp( str integrator, int allow_denormals, pydgq_types.DTYPE_t[::1] w0, doubl
                 # end-of-timestep boilerplate
                 #
                 t = n*dt
-                store( w, n_space_dofs, n, t, save_from, &ww[0,0], f, pff, data, pfail, 0 )
+                store( w, n_space_dofs, n, t, save_from, &ww[0,0], f, pff, data, pfail, 0, wrk )
                 if do_denormal_check:
                     denormal_triggered = fputils.all_denormal( w, n_space_dofs )
                 naninf_triggered = fputils.any_naninf( w, n_space_dofs )
@@ -718,7 +725,7 @@ def ivp( str integrator, int allow_denormals, pydgq_types.DTYPE_t[::1] w0, doubl
                 # end-of-timestep boilerplate
                 #
                 t = n*dt
-                store( w, n_space_dofs, n, t, save_from, &ww[0,0], f, pff, data, pfail, <int>(nits == maxit) )
+                store( w, n_space_dofs, n, t, save_from, &ww[0,0], f, pff, data, pfail, <int>(nits == maxit), wrk )
                 if do_denormal_check:
                     denormal_triggered = fputils.all_denormal( w, n_space_dofs )
                 naninf_triggered = fputils.any_naninf( w, n_space_dofs )
@@ -795,14 +802,16 @@ def ivp( str integrator, int allow_denormals, pydgq_types.DTYPE_t[::1] w0, doubl
         psivis     = ghelper.vis_y    # basis function values at the visualization points, qy[j,i] is N[j]( x[i] )
         tvis       = ghelper.vis_x    # time values at the visualization points (on the reference element [-1,1])
 
-        # map [-1,1] --> [0,1] (reference element --> offset within timestep)
-        tvis += 1.0
-        tvis *= 0.5
+        # tvis: map [-1,1] --> [0,1] (reference element --> offset within timestep)
+        for j in range(n_time_dofs):
+            tvis[j] += 1.0
+            tvis[j] *= 0.5
 
-        # integration points
+        # integration points (and do the same mapping also here)
         tquad = ghelper.integ_x       # Gauss-Legendre points of the chosen rule, in (-1,1)
-        tquad += 1.0
-        tquad *= 0.5
+        for j in range(n_quad):
+            tquad[j] += 1.0
+            tquad[j] *= 0.5
 
         # feed raw pointers to array data into galerkin.params
         gp.LU      = &LU[0,0]
@@ -846,7 +855,7 @@ def ivp( str integrator, int allow_denormals, pydgq_types.DTYPE_t[::1] w0, doubl
                     # saving the end-of-timestep value of the solution from w.
                     #
                     t = n*dt
-                    store( w, n_space_dofs, n, t, save_from, &ww[0,0], f, pff, data, pfail, <int>(nits == maxit) )
+                    store( w, n_space_dofs, n, t, save_from, &ww[0,0], f, pff, data, pfail, <int>(nits == maxit), gp.wrk )
                 else:
                     # Inline custom store() implementation accounting for interp (and how to assemble a Galerkin series)
                     #

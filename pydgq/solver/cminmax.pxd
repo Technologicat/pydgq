@@ -2,7 +2,9 @@
 #
 # min/max functions for C code in Cython.
 
-cimport pydgq_types
+from __future__ import absolute_import
+
+cimport pydgq.solver.pydgq_types as pydgq_types
 
 # fast inline min/max for C code
 #

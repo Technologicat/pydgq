@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """Support routines for Galerkin integrators."""
 
-cimport pydgq_types
-cimport kernels
+from __future__ import absolute_import
+
+cimport pydgq.solver.pydgq_types as pydgq_types
+cimport pydgq.solver.kernels as kernels
 
 # Helper routines.
 #

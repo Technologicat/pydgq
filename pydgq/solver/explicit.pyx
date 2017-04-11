@@ -16,11 +16,11 @@ These routines use compensated summation to obtain maximal accuracy
 (at the cost of 4x math in the final summation step).
 """
 
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 
-cimport pydgq_types
-cimport compsum
-cimport kernels
+cimport pydgq.solver.pydgq_types as pydgq_types
+cimport pydgq.solver.compsum as compsum
+cimport pydgq.solver.kernels as kernels
 
 
 # Fourth-order Runge-Kutta (RK4).

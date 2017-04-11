@@ -12,10 +12,10 @@
 #
 """Compensated summation (Kahan algorithm), Python/Cython."""
 
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 
-cimport pydgq_types
-cimport compsum
+cimport pydgq.solver.pydgq_types as pydgq_types
+cimport pydgq.solver.compsum as compsum
 
 import numpy as np
 

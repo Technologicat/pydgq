@@ -12,10 +12,10 @@
 #
 """Classical implicit integrators to update w by one timestep."""
 
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 
-cimport pydgq_types
-cimport kernels
+cimport pydgq.solver.pydgq_types as pydgq_types
+cimport pydgq.solver.kernels as kernels
 
 
 # Implicit midpoint rule.
@@ -26,12 +26,12 @@ cdef int IMR( kernels.kernelfuncptr f, pydgq_types.DTYPE_t* w, void* data, int n
     cdef unsigned int j, m, m2, nequals
     cdef int success = 0
 
-    cdef pydgq_types.DTYPE_t whalf = wrk  # iterative approximation of w(k+1/2)
-    cdef pydgq_types.DTYPE_t wp = &wrk[n_space_dofs]     # iterative approximation of w'(k+1/2)
+    cdef pydgq_types.DTYPE_t* whalf = wrk  # iterative approximation of w(k+1/2)
+    cdef pydgq_types.DTYPE_t* wp = &wrk[n_space_dofs]     # iterative approximation of w'(k+1/2)
 
     # Iterative approximations of w(k+1)
-    cdef pydgq_types.DTYPE_t wcur = &wrk[2*n_space_dofs]
-    cdef pydgq_types.DTYPE_t wnew = &wrk[3*n_space_dofs]
+    cdef pydgq_types.DTYPE_t* wcur = &wrk[2*n_space_dofs]
+    cdef pydgq_types.DTYPE_t* wnew = &wrk[3*n_space_dofs]
 
     cdef pydgq_types.DTYPE_t thalf = t + 0.5*dt
 
@@ -106,11 +106,11 @@ cdef int BE( kernels.kernelfuncptr f, pydgq_types.DTYPE_t* w, void* data, int n_
     cdef unsigned int j, m, m2, nequals
     cdef int success = 0
 
-    cdef pydgq_types.DTYPE_t wp = wrk     # iterative approximation of w'(k+1)
+    cdef pydgq_types.DTYPE_t* wp = wrk     # iterative approximation of w'(k+1)
 
     # Iterative approximations of w(k+1)
-    cdef pydgq_types.DTYPE_t wcur = &wrk[n_space_dofs]
-    cdef pydgq_types.DTYPE_t wnew = &wrk[2*n_space_dofs]
+    cdef pydgq_types.DTYPE_t* wcur = &wrk[n_space_dofs]
+    cdef pydgq_types.DTYPE_t* wnew = &wrk[2*n_space_dofs]
 
     cdef pydgq_types.DTYPE_t tend = t + dt
 

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 
-cimport pydgq_types
+cimport pydgq.solver.pydgq_types as pydgq_types
 
 # Compensated summation (Kahan summation), as accumulation to a sum variable.
 #

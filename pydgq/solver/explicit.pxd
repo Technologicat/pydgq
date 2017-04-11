@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
-cimport pydgq_types
-cimport kernels
+from __future__ import absolute_import
+
+cimport pydgq.solver.pydgq_types as pydgq_types
+cimport pydgq.solver.kernels as kernels
 
 # The t parameter is supplied to support also RHS f() that may explicitly depend on t (non-autonomous ODEs).
 #

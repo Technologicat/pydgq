@@ -94,7 +94,7 @@ iteration.
 # Helpers
 #########################################################
 
-my_include_dirs = [".", "/usr/local/lib/python2.7/dist-packages"]  # IMPORTANT, see https://github.com/cython/cython/wiki/PackageHierarchy
+my_include_dirs = [".", "/home/jje/Documents/koodit/pylu"]  # IMPORTANT, see https://github.com/cython/cython/wiki/PackageHierarchy
 
 def ext(extName):
     extPath = extName.replace(".", os.path.sep)+".pyx"

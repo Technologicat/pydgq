@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """Floating-point flags detection."""
 
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 
-cimport pydgq_types
+cimport pydgq.solver.pydgq_types as pydgq_types
 
 cdef extern from "math.h":
     # fpclassify is actually a macro, so it does not have a specific input type.
