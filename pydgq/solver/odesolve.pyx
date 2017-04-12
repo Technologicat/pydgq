@@ -116,10 +116,17 @@ def n_saved_timesteps( nt, save_from ):
     If save_from == 0, the initial condition qualifies as one timestep.
 
     Returns:
-
-        integer, the number of timesteps that will be saved.
+        int:
+            the number of timesteps that will be saved.
 
     """
+    if nt < 1:
+        raise ValueError( "nt must be >= 1, got %d" % (nt) )
+    if save_from < 0:
+        raise ValueError( "save_from must be >= 0, got %d" % (save_from) )
+    if save_from > nt:
+        raise ValueError( "save_from must be <= nt, otherwise nothing to do; got save_from = %d, nt = %d" % (save_from, nt) )
+
     n = nt - (max(1, save_from) - 1)  # this many actual timesteps will be saved
     if save_from == 0:
         return n + 1  # the initial condition takes one output slot
@@ -206,6 +213,15 @@ def result_len( int nt, int save_from, int interp=1 ):
         Number of storage slots (i.e. array length) needed along the time axis.
 
     """
+    if nt < 1:
+        raise ValueError( "nt must be >= 1, got %d" % (nt) )
+    if save_from < 0:
+        raise ValueError( "save_from must be >= 0, got %d" % (save_from) )
+    if save_from > nt:
+        raise ValueError( "save_from must be <= nt, otherwise nothing to do; got save_from = %d, nt = %d" % (save_from, nt) )
+    if interp < 1:
+        raise ValueError( "interp must be >= 1, got %d" % (interp) )
+
     if save_from == 0:
         # 1 = the initial condition
         return int( 1 + nt*interp )
@@ -233,6 +249,14 @@ def timestep_boundaries( int nt, int save_from, int interp=1 ):
         If save_from == 0, the initial condition (always exactly one point) counts as "timestep 0"; otherwise "timestep 0" is the first saved timestep.
 
     """
+    if nt < 1:
+        raise ValueError( "nt must be >= 1, got %d" % (nt) )
+    if save_from < 0:
+        raise ValueError( "save_from must be >= 0, got %d" % (save_from) )
+    if save_from > nt:
+        raise ValueError( "save_from must be <= nt, otherwise nothing to do; got save_from = %d, nt = %d" % (save_from, nt) )
+    if interp < 1:
+        raise ValueError( "interp must be >= 1, got %d" % (interp) )
 
     cdef unsigned int n, offs
     cdef unsigned int n_saved_timesteps = nt - (cuimax(1, save_from) - 1)
@@ -281,6 +305,17 @@ def make_tt( double dt, int nt, int save_from, int interp=1, out=None ):
         rank-1 np.array of double, the time values.
 
     """
+    if dt == 0.0:
+        raise ValueError( "dt cannot be zero" )
+    if nt < 1:
+        raise ValueError( "nt must be >= 1, got %d" % (nt) )
+    if save_from < 0:
+        raise ValueError( "save_from must be >= 0, got %d" % (save_from) )
+    if save_from > nt:
+        raise ValueError( "save_from must be <= nt, otherwise nothing to do; got save_from = %d, nt = %d" % (save_from, nt) )
+    if interp < 1:
+        raise ValueError( "interp must be >= 1, got %d" % (interp) )
+
     cdef unsigned int n, k, offs, start, end
 
     # TODO: Use vis_x from integrator (gives the actually used time offsets on the reference element [-1,1], map this to [0,1] to reliably get what we need here)
@@ -510,6 +545,8 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
         raise ValueError( "save_from must be >= 0, got %d" % (save_from) )
     if save_from > nt:
         raise ValueError( "save_from must be <= nt, otherwise nothing to do; got save_from = %d, nt = %d" % (save_from, nt) )
+    if interp < 1:
+        raise ValueError( "interp must be >= 1, got %d" % (interp) )
     if maxit < 1:
         raise ValueError( "maxit must be >= 1, got %d" % (maxit) )
 
