@@ -184,7 +184,7 @@ setup(
     provides = ["pydgq"],
 
     # same keywords as used as topics on GitHub
-    keywords = ["numerical integration ordinary-differential-equations initial-value-problems cython"],  # TODO update this (check GitHub for common keywords for this topic)
+    keywords = ["numerical integration ordinary-differential-equations ode ivp ode-solver solver galerkin discontinuous-galerkin cython numpy"],
 
     ext_modules = cythonize( [ ext_module_ptrwrap, ext_module_types,
                                ext_module_explicit, ext_module_implicit, ext_module_galerkin,
