@@ -124,13 +124,14 @@ datafiles.append( ('doc', ["doc/pydgq_user_manual.lyx", "doc/pydgq_user_manual.p
 # Modules
 #########################################################
 
-ext_module_ptrwrap  = ext(      "pydgq.utils.ptrwrap"      )
-ext_module_types    = ext(      "pydgq.solver.pydgq_types" )
-ext_module_explicit = ext(      "pydgq.solver.explicit"    )
-ext_module_implicit = ext(      "pydgq.solver.implicit"    )
-ext_module_galerkin = ext(      "pydgq.solver.galerkin"    )
-ext_module_odesolve = ext_math( "pydgq.solver.odesolve"    )
-ext_module_kernels  = ext_math( "pydgq.solver.kernels"     )
+ext_module_ptrwrap  = ext(      "pydgq.utils.ptrwrap"           )
+ext_module_types    = ext(      "pydgq.solver.pydgq_types"      )
+ext_module_explicit = ext(      "pydgq.solver.explicit"         )
+ext_module_implicit = ext(      "pydgq.solver.implicit"         )
+ext_module_galerkin = ext(      "pydgq.solver.galerkin"         )
+ext_module_odesolve = ext_math( "pydgq.solver.odesolve"         )
+ext_module_kernintf = ext_math( "pydgq.solver.kernel_interface" )
+ext_module_bkernels = ext_math( "pydgq.solver.builtin_kernels"  )
 
 #########################################################
 
@@ -188,7 +189,7 @@ setup(
 
     ext_modules = cythonize( [ ext_module_ptrwrap, ext_module_types,
                                ext_module_explicit, ext_module_implicit, ext_module_galerkin,
-                               ext_module_odesolve, ext_module_kernels ],
+                               ext_module_odesolve, ext_module_kernintf, ext_module_bkernels ],
                              include_path = my_include_dirs,
                              gdb_debug = debug ),
 

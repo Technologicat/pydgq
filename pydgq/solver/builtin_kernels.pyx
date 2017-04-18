@@ -10,17 +10,26 @@
 # cython: boundscheck = False
 # cython: cdivision   = True
 #
-"""Example computational kernels for evaluating the f() in  w' = f(w, t).
+"""Example Cython-based computational kernels for evaluating the f() in  w' = f(w, t).
 
-Generic kernels for autonomous linear problems of 1st and 2nd order
-are provided, with and without mass matrices on the LHS.
+This module provides generic kernels for autonomous linear problems of 1st and 2nd order,
+with and without mass matrices on the LHS.
 
 (Autonomous: f = f(w), i.e. f does not explicitly depend on t.)
 
-If the problem is nonlinear, the options are to:
+See the code and comments in pydgq/solver/builtin_kernels.pyx for details.
 
-  - implement a custom kernel
-  - linearize at each timestep, and then use a linear kernel (slow)
+Note that if the problem is nonlinear, the options are to:
+
+  - A) implement a custom kernel:
+    - a) implement cdef class derived from pydgq.solver.kernel_interface.CythonKernel
+      - override __init__(), add any needed parameters, call CythonKernel.__init__(self, n)
+      - override cdef callback(...) to compute w' for your RHS
+    - b) implement regular Python class derived from pydgq.solver.kernel_interface.PythonKernel
+      - override __init__(), add any needed parameters, call PythonKernel.__init__(self, n)
+      - override def callback(...) to compute w' for your RHS
+  - B) linearize at each timestep, and then use a linear kernel
+    - horrible performance, not recommended.
 """
 
 from __future__ import division, print_function, absolute_import
@@ -30,128 +39,46 @@ import numpy as np
 import pylu.dgesv as dgesv
 cimport pylu.dgesv as dgesv_c
 
-# use fast math functions from <math.h>, available via Cython
-#from libc.math cimport sin, cos, log, exp, sqrt
 
-
-###############
-# Base classes
-###############
-
-cdef class KernelBase:
-#    cdef double* w    # old state vector (memory owned by caller)
-#    cdef double* out  # new state vector (memory owned by caller)
-#    cdef int n        # n_space_dofs
-#    cdef int timestep
-#    cdef int iteration
-
-    def __init__(self, int n):
-        self.n = n
-
-    # TODO: The solver calls this when it begins a new timestep or a new Banach/Picard iteration.
-    #
-    # This metadata is provided for the actual computational kernel; the kernel classes themselves do not need it.
-    #
-    # timestep : 0-based, 0 = initial condition, 1 = first timestep, 2 = second timestep, ...
-    # iteration : 0-based
-    #
-    cdef void update_metadata(self, int timestep, int iteration) nogil:
-        self.timestep  = timestep
-        self.iteration = iteration
-
-    # The call interface. TODO: The solver calls this when it wants to evaluate w'.
-    #
-    # Implemented in derived classes.
-    #
-    cdef void call(self, double* w, double* out, double t) nogil:
-        pass
-
-
-# Base class for kernels implemented in Cython.
+# TODO: add an update hook for updating the matrices (if not constant in time)?
 #
-# Cython kernels will run in nogil mode.
+# The problem is that in a nonlinear problem, f() is called in the innermost loop:
 #
-cdef class CythonKernel(KernelBase):
-
-    # Implementation of call() for Cython kernels.
-    #
-    cdef void call(self, double* w, double* out, double t) nogil:
-        self.w   = w
-        self.out = out
-        self.callback(t)
-
-    # Hook for custom code.
-    #
-    # Default no-op kernel: w' = 0
-    #
-    # Override this method in derived classes to provide your computational kernel.
-    #
-    cdef void callback(self, double t) nogil:
-        cdef int j
-        for j in range(self.n):
-            self.out[j] = 0.0
+#    timestep (base value of t changes)
+#      nonlinear iteration (w changes)
+#        sub-evaluation at some t inside the timestep (w changes; actual t used for f() evaluation changes)
+#
+# so when should the solver call the matrix update methods? (assuming "at every call" is too expensive)
 
 
-# Base class for kernels implemented in pure Python.
-#
-# Python kernels will acquire the gil for calling f().
-#
-cdef class PythonKernel(KernelBase):
-#    cdef double[::1] w_arr
-#    cdef double[::1] out_arr
-
-    # Implementation of call() for Python kernels.
-    #
-    cdef void call(self, double* w, double* out, double t) nogil:
-        self.w   = w
-        self.out = out
-        with gil:
-            self.w_arr   = <double[:self.n:1]>w
-            self.out_arr = <double[:self.n:1]>out
-            self.callback(t)
-
-    # Hook for custom code.
-    #
-    # Default no-op kernel: w' = 0
-    #
-    # Override this method in derived classes to provide your computational kernel.
-    #
-    # Python classes can use self.w_arr and self.out_arr to access self.w and self.out;
-    # they are Python-accessible views to the same arrays.
-    #
-    def callback(self, double t):
-        cdef int j
-        for j in range(self.n):
-            self.out[j] = 0.0
-
-
-##############################
-# Specific kernels (examples)
-##############################
-
-# A generic kernel for a linear 1st-order problem.
-# (This is basically just a matrix-vector product.)
-#
-# The problem reads
-#
-#   w' = M w
-#
-# The matrix M must use C memory layout.
-#
-# To use this kernel with NumPy arrays, do something like this in your Python code
-# (but using the initial values and matrix from your actual problem):
-#
-# n  = 4
-# w0 = np.ones( (n,), dtype=np.float64, order="C" )
-# M  = np.eye( n, dtype=np.float64, order="C" )
-# k  = Linear1stOrderKernel(n, M)
-# pydgq.odesolve.ivp( ..., kernel=k, w0=w0 )
-#
 cdef class Linear1stOrderKernel(CythonKernel):
 #    cdef double* M
 #    cdef double[:,::1] M_arr
 
     def __init__(self, int n, double[:,::1] M):
+        """def __init__(self, int n, double[:,::1] M):
+
+A generic kernel for a linear 1st-order problem.
+(This is basically just a matrix-vector product.)
+
+The problem reads
+
+    w' = M w
+
+The matrix M must use C memory layout.
+
+To use this kernel with NumPy arrays, do something like this in your Python code
+(but using the initial values and matrix from your actual problem):
+
+    from pydgq.solver.builtin_kernels import Linear1stOrderKernel
+    from pydgq.odesolve import ivp
+
+    n  = 4
+    w0 = np.ones( (n,), dtype=np.float64, order="C" )
+    M  = np.eye( n, dtype=np.float64, order="C" )
+    k  = Linear1stOrderKernel(n, M)
+    pydgq.odesolve.ivp( ..., kernel=k, w0=w0 )
+"""
         # super
         CythonKernel.__init__(self, n)
 
@@ -175,27 +102,6 @@ cdef class Linear1stOrderKernel(CythonKernel):
                 wp_out[j] = self.M[j*self.n + k] * w_in[k]
 
 
-# First-order problem that has a nontrivial (but constant-in-time) mass matrix on the LHS:
-#
-#   A w' = M w
-#
-# Mainly this is a code demonstration. If A is small enough to invert, just write
-# w' = inv(A) M w  and use a Linear1stOrderKernel with  inv(A) M  as the matrix.
-#
-# Here we obtain w' by first computing A w', and then solving for w':
-#
-#   g := M w
-#   A w' = g
-#
-# To use this kernel, example:
-#
-#   n  = 4
-#   w0 = np.ones( (n,), dtype=np.float64, order="C" )
-#   A  = np.eye( n, dtype=np.float64, order="C" )
-#   M  = np.eye( n, dtype=np.float64, order="C" )
-#   k  = Linear1stOrderKernelWithMassMatrix(n, M, A)
-#   pydgq.odesolve.ivp( ..., kernel=k, w0=w0 )
-#
 cdef class Linear1stOrderKernelWithMassMatrix(Linear1stOrderKernel):
 #    cdef double* LU
 #    cdef int* p
@@ -205,6 +111,32 @@ cdef class Linear1stOrderKernelWithMassMatrix(Linear1stOrderKernel):
 #    cdef double[::1] wrk_arr
 
     def __init__(self, int n, double[:,::1] M, double[:,::1] A):
+        """def __init__(self, int n, double[:,::1] M, double[:,::1] A):
+
+First-order problem that has a nontrivial (but constant-in-time) mass matrix on the LHS:
+
+    A w' = M w
+
+Mainly this is a code demonstration. If A is small enough to invert, just write
+w' = inv(A) M w  and use a Linear1stOrderKernel with  inv(A) M  as the matrix.
+
+Here we obtain w' by first computing A w', and then solving for w':
+
+    g := M w
+    A w' = g
+
+To use this kernel, example:
+
+    from pydgq.solver.builtin_kernels import Linear1stOrderKernelWithMassMatrix
+    from pydgq.odesolve import ivp
+
+    n  = 4
+    w0 = np.ones( (n,), dtype=np.float64, order="C" )
+    A  = np.eye( n, dtype=np.float64, order="C" )
+    M  = np.eye( n, dtype=np.float64, order="C" )
+    k  = Linear1stOrderKernelWithMassMatrix(n, M, A)
+    ivp( ..., kernel=k, w0=w0 )
+"""
         # super
         Linear1stOrderKernel.__init__(self, n, M)
 
@@ -225,31 +157,6 @@ cdef class Linear1stOrderKernelWithMassMatrix(Linear1stOrderKernel):
         dgesv_c.solve_decomposed_c( self.LU, self.p, self.wrk, self.out, self.n )
 
 
-# A generic kernel for a linear 2nd-order problem, as commonly encountered in mechanics.
-#
-# The problem reads
-#
-#   u'' = M0 u + M1 u'
-#
-# Following the companion method, we define
-#
-#   v := u'
-#
-# obtaining a 1st-order problem
-#
-#   v' = M0 u + M1 v
-#   u' = v
-#
-# We now define
-#
-#   w := (u1, v1, u2, v2, ..., um, vm)
-#
-# where m is the number of DOFs of the original 2nd-order system.
-#
-# Given w, M0 and M1, this routine computes w'.
-#
-# The parameter n specifies the size of the *1st-order* system; n is always even.
-#
 cdef class Linear2ndOrderKernel(CythonKernel):
 #    cdef int m
 #    cdef double* M0
@@ -258,6 +165,33 @@ cdef class Linear2ndOrderKernel(CythonKernel):
 #    cdef double[:,::1] M1_arr
 
     def __init__(self, int n, double[:,::1] M0, double[:,::1] M1):
+        """def __init__(self, int n, double[:,::1] M0, double[:,::1] M1):
+
+A generic kernel for a linear 2nd-order problem, as commonly encountered in mechanics.
+
+The problem reads
+
+    u'' = M0 u + M1 u'
+
+Following the companion method, we define
+
+    v := u'
+
+obtaining a 1st-order problem
+
+    v' = M0 u + M1 v
+    u' = v
+
+We now define
+
+    w := (u1, v1, u2, v2, ..., um, vm)
+
+where m is the number of DOFs of the original 2nd-order system.
+
+Given w, M0 and M1, this class computes w'.
+
+The parameter n specifies the size of the *1st-order* system; n is always even.
+"""
         if n % 2 != 0:
             raise ValueError("For a 2nd-order problem reduced to a 1st-order one, n must be even; got %d" % (n))
 
@@ -294,23 +228,6 @@ cdef class Linear2ndOrderKernel(CythonKernel):
                 wp_out[2*j + 1] = self.M0[j*self.m + k] * w_in[2*j]  +  self.M1[j*self.m + k] * w_in[2*j + 1]
 
 
-# Second-order problem with a nontrivial (but constant-in-time) mass matrix:
-#
-#   M2 u'' = M0 u + M1 u'
-#
-# This is also commonly encountered in mechanics.
-#
-# Companion form:
-#
-#   M2 v' = M0 u + M1 u'
-#      u' = v
-#
-# The parameter n specifies the size of the *1st-order* system; n is always even.
-#
-# Here we gain an advantage by considering the companion form; we need to solve only an  m x m  linear system
-# for the DOFs representing v'; the other m DOFs (u') are obtained directly.
-#
-#
 # cdef classes are single inheritance only, so we have some duplication here
 # (since this is both a "linear 2nd-order kernel" as well as a "kernel with mass matrix").
 #
@@ -325,6 +242,24 @@ cdef class Linear2ndOrderKernelWithMassMatrix(Linear2ndOrderKernel):
 #    cdef double[::1] wrk_arr
 
     def __init__(self, int n, double[:,::1] M0, double[:,::1] M1, double[:,::1] M2):
+        """def __init__(self, int n, double[:,::1] M0, double[:,::1] M1, double[:,::1] M2):
+
+Second-order problem with a nontrivial (but constant-in-time) mass matrix:
+
+    M2 u'' = M0 u + M1 u'
+
+This is also commonly encountered in mechanics.
+
+Companion form:
+
+    M2 v' = M0 u + M1 u'
+       u' = v
+
+The parameter n specifies the size of the *1st-order* system; n is always even.
+
+Here we gain an advantage by considering the companion form; we need to solve only an  m x m  linear system
+for the DOFs representing v'; the other m DOFs (u') are obtained directly.
+"""
         # super
         Linear2ndOrderKernel.__init__(self, n, M0, M1)
 
