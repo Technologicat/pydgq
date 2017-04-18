@@ -25,11 +25,109 @@ If the problem is nonlinear, the options are to:
 
 from __future__ import division, print_function, absolute_import
 
+import numpy as np
+
+import pylu.dgesv as dgesv
 cimport pylu.dgesv as dgesv_c
 
 # use fast math functions from <math.h>, available via Cython
 #from libc.math cimport sin, cos, log, exp, sqrt
 
+
+###############
+# Base classes
+###############
+
+cdef class KernelBase:
+#    cdef double* w    # old state vector (memory owned by caller)
+#    cdef double* out  # new state vector (memory owned by caller)
+#    cdef int n        # n_space_dofs
+#    cdef int timestep
+#    cdef int iteration
+
+    def __init__(self, int n):
+        self.n = n
+
+    # TODO: The solver calls this when it begins a new timestep or a new Banach/Picard iteration.
+    #
+    # This metadata is provided for the actual computational kernel; the kernel classes themselves do not need it.
+    #
+    # timestep : 0-based, 0 = initial condition, 1 = first timestep, 2 = second timestep, ...
+    # iteration : 0-based
+    #
+    cdef void update_metadata(self, int timestep, int iteration) nogil:
+        self.timestep  = timestep
+        self.iteration = iteration
+
+    # The call interface. TODO: The solver calls this when it wants to evaluate w'.
+    #
+    # Implemented in derived classes.
+    #
+    cdef void call(self, double* w, double* out, double t) nogil:
+        pass
+
+
+# Base class for kernels implemented in Cython.
+#
+# Cython kernels will run in nogil mode.
+#
+cdef class CythonKernel(KernelBase):
+
+    # Implementation of call() for Cython kernels.
+    #
+    cdef void call(self, double* w, double* out, double t) nogil:
+        self.w   = w
+        self.out = out
+        self.callback(t)
+
+    # Hook for custom code.
+    #
+    # Default no-op kernel: w' = 0
+    #
+    # Override this method in derived classes to provide your computational kernel.
+    #
+    cdef void callback(self, double t) nogil:
+        cdef int j
+        for j in range(self.n):
+            self.out[j] = 0.0
+
+
+# Base class for kernels implemented in pure Python.
+#
+# Python kernels will acquire the gil for calling f().
+#
+cdef class PythonKernel(KernelBase):
+#    cdef double[::1] w_arr
+#    cdef double[::1] out_arr
+
+    # Implementation of call() for Python kernels.
+    #
+    cdef void call(self, double* w, double* out, double t) nogil:
+        self.w   = w
+        self.out = out
+        with gil:
+            self.w_arr   = <double[:self.n:1]>w
+            self.out_arr = <double[:self.n:1]>out
+            self.callback(t)
+
+    # Hook for custom code.
+    #
+    # Default no-op kernel: w' = 0
+    #
+    # Override this method in derived classes to provide your computational kernel.
+    #
+    # Python classes can use self.w_arr and self.out_arr to access self.w and self.out;
+    # they are Python-accessible views to the same arrays.
+    #
+    def callback(self, double t):
+        cdef int j
+        for j in range(self.n):
+            self.out[j] = 0.0
+
+
+##############################
+# Specific kernels (examples)
+##############################
 
 # A generic kernel for a linear 1st-order problem.
 # (This is basically just a matrix-vector product.)
@@ -40,28 +138,91 @@ cimport pylu.dgesv as dgesv_c
 #
 # The matrix M must use C memory layout.
 #
-# To use this kernel with NumPy arrays, do something like this in a Cython module
+# To use this kernel with NumPy arrays, do something like this in your Python code
 # (but using the initial values and matrix from your actual problem):
 #
-#   cdef int n = 4
-#   cdef double[::1] w   = np.ones( (n,), dtype=np.float64, order="C" )
-#   cdef double[:,::1] M = np.eye( n, dtype=np.float64, order="C" )
+# n  = 4
+# w0 = np.ones( (n,), dtype=np.float64, order="C" )
+# M  = np.eye( n, dtype=np.float64, order="C" )
+# k  = Linear1stOrderKernel(n, M)
+# pydgq.odesolve.ivp( ..., kernel=k, w0=w0 )
 #
-# and pass these w and M (M as "data", cast to void*) to odesolve.ivp().
-#
-cdef void f_lin_1st(double* w, double* out, int n, double t, void* data) nogil:
-    # This kernel uses the user data pointer to store the matrix M.
-    #
-    # We could update the matrix here (by writing to M) if needed,
-    # but this simple linear example needs only a constant matrix.
-    #
-    cdef double* M = <double*>data
+cdef class Linear1stOrderKernel(CythonKernel):
+#    cdef double* M
+#    cdef double[:,::1] M_arr
 
-    cdef int j, k
-    for j in range(n):  # row
-        # w' = M w
-        for k in range(n):  # column
-            out[j] = M[j*n + k] * w[k]
+    def __init__(self, int n, double[:,::1] M):
+        # super
+        CythonKernel.__init__(self, n)
+
+        self.M_arr = M  # keepalive (FIXME: do we need to .copy() to be sure?)
+        self.M = &(self.M_arr[0,0])  # get raw pointer
+
+    cdef void callback(self, double t) nogil:  # t unused in this example
+        self.compute(self.w, self.out)
+
+    # Derived classes need this, outputting to a temporary output array,
+    # so we have this general version with parametrized input/output.
+    #
+    # In most problem-specific kernels, we wouldn't need this, and could instead
+    # perform the computation in callback(), saving one function call per RHS evaluation.
+    #
+    cdef void compute(self, double* w_in, double* wp_out) nogil:
+        cdef int j, k
+        for j in range(self.n):  # row
+            # w' = M w
+            for k in range(self.n):  # column
+                wp_out[j] = self.M[j*self.n + k] * w_in[k]
+
+
+# First-order problem that has a nontrivial (but constant-in-time) mass matrix on the LHS:
+#
+#   A w' = M w
+#
+# Mainly this is a code demonstration. If A is small enough to invert, just write
+# w' = inv(A) M w  and use a Linear1stOrderKernel with  inv(A) M  as the matrix.
+#
+# Here we obtain w' by first computing A w', and then solving for w':
+#
+#   g := M w
+#   A w' = g
+#
+# To use this kernel, example:
+#
+#   n  = 4
+#   w0 = np.ones( (n,), dtype=np.float64, order="C" )
+#   A  = np.eye( n, dtype=np.float64, order="C" )
+#   M  = np.eye( n, dtype=np.float64, order="C" )
+#   k  = Linear1stOrderKernelWithMassMatrix(n, M, A)
+#   pydgq.odesolve.ivp( ..., kernel=k, w0=w0 )
+#
+cdef class Linear1stOrderKernelWithMassMatrix(Linear1stOrderKernel):
+#    cdef double* LU
+#    cdef int* p
+#    cdef double* wrk
+#    cdef double[:,::1] LU_arr
+#    cdef int[::1] p_arr
+#    cdef double[::1] wrk_arr
+
+    def __init__(self, int n, double[:,::1] M, double[:,::1] A):
+        # super
+        Linear1stOrderKernel.__init__(self, n, M)
+
+        # LU decompose mass matrix
+        self.LU_arr, self.p_arr = dgesv.lup_packed(A)
+        self.wrk_arr = np.empty( (n,), dtype=np.float64, order="C" )
+
+        # get raw pointers for C access
+        self.LU  = &(self.LU_arr[0,0])
+        self.p   = &(self.p_arr[0])
+        self.wrk = &(self.wrk_arr[0])
+
+    cdef void callback(self, double t) nogil:  # t unused in this example
+        # compute g = M w, save result in self.wrk
+        self.compute(self.w, self.wrk)
+
+        # solve linear equation system A w' = g  (g stored in self.wrk, result stored in self.out)
+        dgesv_c.solve_decomposed_c( self.LU, self.p, self.wrk, self.out, self.n )
 
 
 # A generic kernel for a linear 2nd-order problem, as commonly encountered in mechanics.
@@ -87,131 +248,120 @@ cdef void f_lin_1st(double* w, double* out, int n, double t, void* data) nogil:
 #
 # Given w, M0 and M1, this routine computes w'.
 #
-# The matrices M0 and M1 are stored in the data pointer.
-# The pointer is first cast to type double*.
-# The matrix M0 is stored in the first m*m elements (C layout),
-# then M1 in the next m*m elements (C layout).
-#
-# To do this, use e.g.
-#
-#    cdef double[:,::1] data = np.empty( (n,m), dtype=np.float64, order="C" )
-#
-# where n and m are defined as above (n = 2*m). The first m rows store M0,
-# and the final m rows store M1.
-#
 # The parameter n specifies the size of the *1st-order* system; n is always even.
 #
-cdef void f_lin_2nd(double* w, double* out, int n, double t, void* data) nogil:
-    cdef int m = n // 2  # size of the 2nd-order system
+cdef class Linear2ndOrderKernel(CythonKernel):
+#    cdef int m
+#    cdef double* M0
+#    cdef double* M1
+#    cdef double[:,::1] M0_arr
+#    cdef double[:,::1] M1_arr
 
-    # This kernel uses the user data pointer to store two matrices.
+    def __init__(self, int n, double[:,::1] M0, double[:,::1] M1):
+        if n % 2 != 0:
+            raise ValueError("For a 2nd-order problem reduced to a 1st-order one, n must be even; got %d" % (n))
+
+        # super
+        CythonKernel.__init__(self, n)
+
+        self.m = n // 2
+
+        # keepalive (FIXME: .copy() to be sure?)
+        self.M0_arr = M0
+        self.M1_arr = M1
+
+        # get raw pointers for C access
+        self.M0 = &(self.M0_arr[0,0])
+        self.M1 = &(self.M1_arr[0,0])
+
+    cdef void callback(self, double t) nogil:  # t unused in this example
+        self.compute(self.w, self.out)
+
+    # Derived classes need this, outputting to a temporary output array,
+    # so we have this general version with parametrized input/output.
     #
-    cdef double* ddata = <double*>data
-    cdef double* M0 = &ddata[0]
-    cdef double* M1 = &ddata[m*m]
+    # In most problem-specific kernels, we wouldn't need this, and could instead
+    # perform the computation in callback(), saving one function call per RHS evaluation.
+    #
+    cdef void compute(self, double* w_in, double* wp_out) nogil:
+        cdef int j, k
+        for j in range(self.m):  # row
+            # u' = v
+            wp_out[2*j] = w_in[2*j + 1]
 
-    cdef int j, k
-    for j in range(m):  # row
-        # u' = v
-        out[2*j] = w[2*j + 1]
-
-        # v' = M0 u + M1 v
-        for k in range(m):  # column
-            out[2*j + 1] = M0[j*m + k] * w[2*j]  +  M1[j*m + k] * w[2*j + 1]
-
-
-# First-order problem that has a nontrivial mass matrix on the LHS:
-#
-#   A w' = M w
-#
-# Mainly this is a code demonstration, but this can be convenient if the problem
-# is small enough to be solvable using dense matrices and direct methods,
-# but still too large to invert A explicitly.
-#
-# (If A is small enough to invert, just write  w' = inv(A) M w  and use f_lin_1st()
-#  with  inv(A) M  as the matrix.)
-#
-# We obtain w' by first computing A w', and then solving for w':
-#
-#   g := M w
-#   A w' = g
-#
-# This routine assumes that A has been LU decomposed using PyLU.
-# To use this kernel, example:
-#
-#   cdef int n = 4
-#   cdef double[::1] w    = np.ones( (n,), dtype=np.float64, order="C" )
-#   cdef double[::1] work = np.empty( (n,), dtype=np.float64, order="C" )
-#   cdef double[:,::1] A  = np.eye( n, dtype=np.float64, order="C" )
-#   cdef double[:,::1] M  = np.eye( n, dtype=np.float64, order="C" )
-#
-#   cdef double[:,::1] LU
-#   cdef int[::1] p
-#   LU,p = pylu.dgesv.lup_packed(A)
-#
-#   cdef pydgq.solver.kernels.lin_mass_matrix_data data
-#   data.LU   = &LU[0,0]
-#   data.p    = &p[0]
-#   data.M    = &M[0,0]
-#   data.work = &work[0]
-#
-# and pass these w and data to odesolve.ivp().
-#
-cdef void f_lin_1st_with_mass(double* w, double* out, int n, double t, void* data) nogil:
-    cdef lin_mass_matrix_data* pdata = <lin_mass_matrix_data*>data
-
-    # compute g = M w, save result in pdata.work
-    f_lin_1st( w, pdata.work, n, t, pdata.M )
-
-    # solve linear equation system A w' = g
-    dgesv_c.solve_decomposed_c( pdata.LU, pdata.p, pdata.work, out, n )
+            # v' = M0 u + M1 v
+            for k in range(self.m):  # column
+                wp_out[2*j + 1] = self.M0[j*self.m + k] * w_in[2*j]  +  self.M1[j*self.m + k] * w_in[2*j + 1]
 
 
-# Second-order problem with a nontrivial mass matrix:
+# Second-order problem with a nontrivial (but constant-in-time) mass matrix:
 #
-#   M2 u'' = M0 u + M1 u'  (commonly encountered in mechanics)
+#   M2 u'' = M0 u + M1 u'
+#
+# This is also commonly encountered in mechanics.
 #
 # Companion form:
 #
 #   M2 v' = M0 u + M1 u'
 #      u' = v
 #
-# Notes on usage:
+# The parameter n specifies the size of the *1st-order* system; n is always even.
 #
-#  - data.LU, data.p must contain the LU decomposition of M2 (note: m by m matrix!)
-#  - data.M must contain M0, M1 in format accepted by f_lin_2nd()
-#  - data.work must have space for 2*n ( = 4*m ) doubles
-#  - input n = 2*m = number of DOFs in the corresponding 1st-order problem
+# Here we gain an advantage by considering the companion form; we need to solve only an  m x m  linear system
+# for the DOFs representing v'; the other m DOFs (u') are obtained directly.
 #
-cdef void f_lin_2nd_with_mass(double* w, double* out, int n, double t, void* data) nogil:
-    cdef lin_mass_matrix_data* pdata = <lin_mass_matrix_data*>data
+#
+# cdef classes are single inheritance only, so we have some duplication here
+# (since this is both a "linear 2nd-order kernel" as well as a "kernel with mass matrix").
+#
+cdef class Linear2ndOrderKernelWithMassMatrix(Linear2ndOrderKernel):
+#    cdef double* LU
+#    cdef int* p
+#    cdef double* wrk1
+#    cdef double* wrk2
+#    cdef double* wrk3
+#    cdef double[:,::1] LU_arr
+#    cdef int[::1] p_arr
+#    cdef double[::1] wrk_arr
 
-    # compute RHS
-    #
-    # Note that the RHS is the same as in the original 2nd-order case,
-    # only the interpretation of the result differs. Thus we can use f_lin_2nd()
-    # to do the actual computation.
-    #
-    # M must be in the format accepted by f_lin_2nd() (containing M0 and M1).
-    #
-    f_lin_2nd( w, pdata.work, n, t, pdata.M )
+    def __init__(self, int n, double[:,::1] M0, double[:,::1] M1, double[:,::1] M2):
+        # super
+        Linear2ndOrderKernel.__init__(self, n, M0, M1)
 
-    # use the unused half of work as scratch space for reordering DOFs
-    #
-    # (we must undo the interleaving to use dgesv)
-    #
-    cdef int m = n // 2
-    cdef double* work_in  = &pdata.work[n]    # first m elements of scratch space
-    cdef double* work_out = &pdata.work[n+m]  # last  m elements of scratch space
-    cdef int j
-    for j in range(m):
-        work_in[j] = pdata.work[2*j+1]  # DOFs corresponding to M2 v'
+        # LU decompose mass matrix
+        self.LU_arr, self.p_arr = dgesv.lup_packed(M2)
+        self.wrk_arr = np.empty( (2*n,), dtype=np.float64, order="C" )  # to avoid unnecessary memory fragmentation, allocate both work arrays as one block
 
-    # solve  M2 v' = work_in  for v'
-    dgesv_c.solve_decomposed_c( pdata.LU, pdata.p, work_in, work_out, m )
+        # get raw pointers for C access
+        self.LU   = &(self.LU_arr[0,0])
+        self.p    = &(self.p_arr[0])
+        self.wrk1 = &(self.wrk_arr[0])         # first n elements of work space
+        self.wrk2 = &(self.wrk_arr[n])         # next m elements of work space
+        self.wrk3 = &(self.wrk_arr[n+self.m])  # last m elements of work space
 
-    # write output
-    for j in range(m):
-        out[2*j]   = pdata.work[2*j]  # u'
-        out[2*j+1] = work_out[j]      # v'
+    cdef void callback(self, double t) nogil:  # t unused in this example
+        # compute RHS, store result in wrk1
+        #
+        # Note that the RHS is exactly the same as in Linear2ndOrderKernel,
+        # only the interpretation of the result differs.
+        #
+        # Thus we can use super's compute() to evaluate the RHS.
+        #
+        self.compute(self.w, self.wrk1)
+
+        # reorder DOFs, store result in wrk2
+        #
+        # (we must undo the interleaving to use pylu.dgesv)
+        #
+        cdef int j
+        for j in range(self.m):
+            self.wrk2[j] = self.wrk1[2*j+1]  # DOFs corresponding to M2 v'
+
+        # solve  M2 v' = wrk2  for v', store result in wrk3
+        dgesv_c.solve_decomposed_c( self.LU, self.p, self.wrk2, self.wrk3, self.m )
+
+        # write output
+        for j in range(self.m):
+            self.out[2*j]   = self.wrk1[2*j]  # u'
+            self.out[2*j+1] = self.wrk3[j]    # v'
 
