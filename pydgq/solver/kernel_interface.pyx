@@ -83,7 +83,7 @@ No further docstrings are provided, because the rest of this class
 is not visible from the Python level. See the source code in
 pydgq.solvers.kernel_interface.pyx for details.
 
-Basically, in your class, override the method
+Basically, in your cdef class, override the method
 
     cdef void callback(self, double t) nogil:
 
