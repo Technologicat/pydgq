@@ -29,6 +29,8 @@ cdef class KernelBase:
     cdef int timestep
     cdef int iteration
 
+    # interface for solver
+    #
     cdef void update_metadata(self, int timestep, int iteration) nogil
     cdef void call(self, double* w, double* out, double t) nogil
 
@@ -37,8 +39,8 @@ cdef class KernelBase:
 # Cython kernels will run in nogil mode.
 #
 cdef class CythonKernel(KernelBase):
-    cdef void call(self, double* w, double* out, double t) nogil
-    cdef void callback(self, double t) nogil
+    cdef void call(self, double* w, double* out, double t) nogil  # interface for solver
+    cdef void callback(self, double t) nogil  # hook for user code
 
 # Base class for kernels implemented in pure Python.
 #
@@ -48,8 +50,8 @@ cdef class PythonKernel(KernelBase):
     cdef double[::1] w_arr    # Python-accessible view into w
     cdef double[::1] out_arr  # Python-accessible view into out
 
-    cdef void call(self, double* w, double* out, double t) nogil
-    # here callback() is a Python (regular def) function
+    cdef void call(self, double* w, double* out, double t) nogil  # interface for solver
+    # here callback() is a Python (regular def) function  # hook for user code
 
 
 ##############################
