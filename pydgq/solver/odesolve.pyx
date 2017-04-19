@@ -719,8 +719,9 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
                     break
 
         nt_taken = max(1, n)
-        failed_str = "" if totalfailed == 0 else "; last non-converged timestep %d" % (nfail)
-        print( "    min/avg/max iterations taken = %d, %g, %d; total number of non-converged timesteps %d (%g%%)%s" % (int(min_taken_its), float(totalnits)/nt_taken, int(max_taken_its), totalfailed, 100.0*float(totalfailed)/nt_taken, failed_str) )
+#        # DEBUG
+#        failed_str = "" if totalfailed == 0 else "; last non-converged timestep %d" % (nfail)
+#        print( "    min/avg/max iterations taken = %d, %g, %d; total number of non-converged timesteps %d (%g%%)%s" % (int(min_taken_its), float(totalnits)/nt_taken, int(max_taken_its), totalfailed, 100.0*float(totalfailed)/nt_taken, failed_str) )
 
     else:  # integrator in galerkin_integrators:  # Galerkin integrators
         # NOTE: instantiating DG or CG also checks whether galerkin.datamanager exists and is initialized
@@ -804,46 +805,46 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
                     break
 
         nt_taken = max(1, n)
-        failed_str = "" if totalfailed == 0 else "; last non-converged timestep %d" % (nfail)
-        print( "    min/avg/max iterations taken = %d, %g, %d; total number of non-converged timesteps %d (%g%%)%s" % (int(min_taken_its), float(totalnits)/nt_taken, int(max_taken_its), totalfailed, 100.0*float(totalfailed)/nt_taken, failed_str) )
+
+#        # DEBUG
+#        failed_str = "" if totalfailed == 0 else "; last non-converged timestep %d" % (nfail)
+#        print( "    min/avg/max iterations taken = %d, %g, %d; total number of non-converged timesteps %d (%g%%)%s" % (int(min_taken_its), float(totalnits)/nt_taken, int(max_taken_its), totalfailed, 100.0*float(totalfailed)/nt_taken, failed_str) )
 
 
-    # DEBUG/INFO: final value of w'
-    #
-    t = nt_taken*dt
-    rhs.begin_iteration(-1)  # iteration -1 = evaluating final result from this timestep
-    rhs.call(w, wp, t)
-
-    lw  = [ "%0.18g" % w[j] for j in range(n_space_dofs) ]
-    sw  = ", ".join(lw)
-    lwp = [ "%0.18g" % wp[j] for j in range(n_space_dofs) ]
-    swp = ", ".join(lwp)
-    print( "    final w = %s\n    final f(w) = %s" % (sw, swp) )
+#    # DEBUG/INFO: final value of w'
+#    #
+#    t = nt_taken*dt
+#    rhs.begin_iteration(-1)  # iteration -1 = evaluating final result from this timestep
+#    rhs.call(w, wp, t)
+#    lw  = [ "%0.18g" % w[j] for j in range(n_space_dofs) ]
+#    sw  = ", ".join(lw)
+#    lwp = [ "%0.18g" % wp[j] for j in range(n_space_dofs) ]
+#    swp = ", ".join(lwp)
+#    print( "    final w = %s\n    final f(w) = %s" % (sw, swp) )
 
     # If a failure check triggered, mark the rest of the solution accordingly.
     #
     if denormal_triggered  or  naninf_triggered:
+        # how many timesteps were saved to the output array
         if n < save_from:
             noutput = 0
         else:
             noutput = n - cuimax(1, save_from)  # 0-based timestep number starting from the first saved one.
                                                 # Note that n = 1, 2, ... (also store() depends on this numbering!)
+
+        # first unfilled slot in output array
         out_start = offs + noutput*interp
 
         if denormal_triggered:
-            print( "    denormal check triggered at timestep %d, rest of the solution is zero." % n )
-            ww[out_start:,:] = 0.0
-            ff[out_start:,:] = 0.0  # no more change in w  =>  w' = 0
-            fail[(offs + noutput):] = 0  # successful
+            fill = 0.0  # w small, no more change in w  =>  both w = 0 and w' = 0
+            fail = 0  # successful
+        else: # naninf_triggered:
+            fill = np.nan
+            fail = 1
 
-        if naninf_triggered:
-            print( "    nan/inf check triggered at timestep %d, rest of the solution is nonsense." % n )
-
-            ww[out_start:,:] = np.nan
-
-            if ff is not None:
-                ff[out_start:, :] = np.nan  # not evaluated
-
-            if fail is not None:
-                fail[(offs + noutput):] = 1  # all the rest failed
+        ww[out_start:,:] = fill
+        if ff is not None:
+            ff[out_start:,:] = fill
+        if fail is not None:
+            fail[(offs + noutput):] = fail  # no interp in flag array
 

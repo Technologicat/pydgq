@@ -2,8 +2,7 @@
 
 ### High priority
 
- - remove prints in normal operation
-   - add some mechanism to report metadata to caller?
+ - add some mechanism to report metadata to caller?
  - convert docstrings to NumpyDoc style
  - write README.md
  - write some usage examples
