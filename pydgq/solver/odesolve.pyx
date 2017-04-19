@@ -33,8 +33,8 @@ import numpy as np
 cimport pydgq.solver.fputils as fputils    # nan/inf checks for arrays
 from pydgq.solver.cminmax cimport cuimax  # "C unsigned int max"
 
-from pydgq.solver.pydgq_types cimport DTYPE_t
-from pydgq.solver.pydgq_types import DTYPE
+from pydgq.solver.types cimport DTYPE_t
+from pydgq.solver.types import DTYPE
 
 from pydgq.solver.kernel_interface cimport KernelBase  # RHS f() for w' = f(w,t)
 
@@ -824,6 +824,8 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
 
     # If a failure check triggered, mark the rest of the solution accordingly.
     #
+    cdef DTYPE_t fill
+    cdef int failflag
     if denormal_triggered  or  naninf_triggered:
         # how many timesteps were saved to the output array
         if n < save_from:
@@ -837,14 +839,14 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
 
         if denormal_triggered:
             fill = 0.0  # w small, no more change in w  =>  both w = 0 and w' = 0
-            fail = 0  # successful
+            failflag = 0  # successful
         else: # naninf_triggered:
             fill = np.nan
-            fail = 1
+            failflag = 1
 
         ww[out_start:,:] = fill
         if ff is not None:
             ff[out_start:,:] = fill
         if fail is not None:
-            fail[(offs + noutput):] = fail  # no interp in flag array
+            fail[(offs + noutput):] = failflag  # no interp in flag array
 

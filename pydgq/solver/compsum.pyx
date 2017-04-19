@@ -14,7 +14,7 @@
 
 from __future__ import division, print_function, absolute_import
 
-from pydgq.solver.pydgq_types cimport DTYPE_t, DTYPEZ_t
+from pydgq.solver.types cimport DTYPE_t, DTYPEZ_t
 cimport pydgq.solver.compsum as compsum
 
 import numpy as np
@@ -38,12 +38,12 @@ def cumsum1d_compensated( data ):
     cdef DTYPEZ_t[::1] inz, outz
 
     if isinstance(data, np.ndarray):
-        if data.dtype == pydgq_types.DTYPEZ:
+        if data.dtype == DTYPEZ:
             inz  = data
             outz = np.empty_like(data)
             cs1dz( &inz[0], &outz[0], np.size(data) )  # modifies outz in-place
             return np.asanyarray(outz)
-        elif data.dtype == pydgq_types.DTYPE:
+        elif data.dtype == DTYPE:
             inr  = data
             outr = np.empty_like(data)
             cs1dr( &inr[0], &outr[0], np.size(data) )  # modifies outr in-place

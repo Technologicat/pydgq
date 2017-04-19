@@ -3,7 +3,7 @@
 
 from __future__ import absolute_import
 
-from pydgq.solver.pydgq_types cimport DTYPE_t, DTYPEZ_t
+from pydgq.solver.types cimport DTYPE_t
 from pydgq.solver.kernel_interface cimport KernelBase
 from pydgq.solver.integrator_interface cimport ImplicitIntegrator
 

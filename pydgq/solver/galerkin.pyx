@@ -15,8 +15,8 @@ import numpy as np
 import  pylu.dgesv as dgesv    # Cython-based LU decomposition and linear equation system solver, callable from inside nogil blocks -- Python interface (using np.arrays)
 cimport pylu.dgesv as dgesv_c  # -"- -- Cython interface (using raw pointers, explicit sizes)
 
-from pydgq.solver.pydgq_types cimport DTYPE_t
-from pydgq.solver.pydgq_types import DTYPE
+from pydgq.solver.types cimport DTYPE_t
+from pydgq.solver.types import DTYPE
 from pydgq.solver.kernel_interface cimport KernelBase
 from pydgq.solver.integrator_interface cimport ImplicitIntegrator
 from pydgq.solver.compsum cimport accumulate
@@ -866,7 +866,7 @@ class DataManager:
     def __prep_solver(self):
         """Prepare the dG(q) linear equation system for solving."""
         self.LU,self.p = dgesv.lup_packed(self.C)
-        self.mincols,self.maxcols = dgesv.find_bands(LU, tol=1e-15)
+        self.mincols,self.maxcols = dgesv.find_bands(self.LU, tol=1e-15)  # this allows us to use banded solver (the bw of the LU decomposition of the dG(q) mass matrix is rather small)
 #        r   = np.arange(self.q+1, dtype=int)
 #        bwL = np.max(r - self.mincols)  # convention: diagonal matrix = zero bandwidth ( https://en.wikipedia.org/wiki/Band_matrix )
 #        bwU = np.max(self.maxcols - r)

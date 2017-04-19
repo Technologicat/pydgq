@@ -20,8 +20,8 @@ from __future__ import division, print_function, absolute_import
 
 import numpy as np
 
-from pydgq.solver.pydgq_types cimport DTYPE_t
-from pydgq.solver.pydgq_types import DTYPE
+from pydgq.solver.types cimport DTYPE_t
+from pydgq.solver.types import DTYPE
 from pydgq.solver.kernel_interface cimport KernelBase
 from pydgq.solver.integrator_interface cimport ExplicitIntegrator
 from pydgq.solver.compsum cimport accumulate

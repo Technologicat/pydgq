@@ -4,7 +4,7 @@
 
 from __future__ import absolute_import
 
-from pydgq.solver.pydgq_types cimport DTYPE_t
+from pydgq.solver.types cimport DTYPE_t
 
 # fast inline min/max for C code
 #

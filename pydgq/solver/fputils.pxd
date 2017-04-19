@@ -3,12 +3,12 @@
 
 from __future__ import division, print_function, absolute_import
 
-from pydgq.solver.pydgq_types cimport DTYPE_t
+from pydgq.solver.types cimport DTYPE_t
 
 cdef extern from "math.h":
     # fpclassify is actually a macro, so it does not have a specific input type.
-    # Here we tell Cython we would like to use it for doubles.
-    int fpclassify(double x) nogil
+    # Here we tell Cython we would like to use it for whatever type DTYPE_t is a typedef for.
+    int fpclassify(DTYPE_t x) nogil
     int FP_INFINITE
     int FP_NAN
     int FP_NORMAL

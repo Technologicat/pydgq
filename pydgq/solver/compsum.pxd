@@ -2,7 +2,7 @@
 
 from __future__ import division, print_function, absolute_import
 
-from pydgq.solver.pydgq_types cimport DTYPE_t, DTYPEZ_t
+from pydgq.solver.types cimport DTYPE_t, DTYPEZ_t
 
 # Compensated summation (Kahan summation), as accumulation to a sum variable.
 #

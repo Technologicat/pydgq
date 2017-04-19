@@ -125,7 +125,7 @@ datafiles.append( ('doc', ["doc/pydgq_user_manual.lyx", "doc/pydgq_user_manual.p
 #########################################################
 
 ext_module_ptrwrap  = ext(      "pydgq.utils.ptrwrap"               )
-ext_module_types    = ext(      "pydgq.solver.pydgq_types"          )
+ext_module_types    = ext(      "pydgq.solver.types"                )
 
 ext_module_kernintf = ext_math( "pydgq.solver.kernel_interface"     )
 ext_module_bkernels = ext_math( "pydgq.solver.builtin_kernels"      )
