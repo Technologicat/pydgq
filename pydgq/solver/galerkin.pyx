@@ -141,7 +141,7 @@ cdef DTYPE_t do_quadrature( DTYPE_t* funcvals, DTYPE_t* qw, int n, DTYPE_t dt ) 
 
 # Time-discontinuous Galerkin.
 #
-cdef int dG( params* gp ) nogil:
+cdef int dG( Params gp ) nogil:
 
 #    # array shapes and types in gp:
 #
@@ -196,6 +196,7 @@ cdef int dG( params* gp ) nogil:
     # Implicit iteration (Banach/Picard fixed point iteration)
     #
     for m in range(gp.maxit):
+        gp.rhs.begin_iteration(m)  # inform RHS kernel that a new iteration starts
 
         # Assemble u at the quadrature points for this iteration.
         #
@@ -214,7 +215,7 @@ cdef int dG( params* gp ) nogil:
 
             # Get the instantaneous value of u' at this quadrature point.
             #
-            gp.f(&gp.uass[gp.n_space_dofs*l + 0], up, gp.n_space_dofs, tcurr, gp.data)
+            gp.rhs.call(&gp.uass[gp.n_space_dofs*l + 0], up, tcurr)
 
             # At the quadrature point l, compute the value of the RHS integrand
             # in the weak form (original RHS multiplied by test function).
@@ -282,7 +283,7 @@ cdef int dG( params* gp ) nogil:
 #
 # This is almost the same code as dG, the only difference being in the handling of the load vector.
 #
-cdef int cG( params* gp ) nogil:
+cdef int cG( Params gp ) nogil:
 
 #    # array shapes and types in gp:
 #
@@ -337,6 +338,7 @@ cdef int cG( params* gp ) nogil:
     # Implicit iteration (Banach/Picard fixed point iteration)
     #
     for m in range(gp.maxit):
+        gp.rhs.begin_iteration(m)  # inform RHS kernel that a new iteration starts
 
         # Assemble latest known u at the quadrature points for this iteration.
         #
@@ -349,7 +351,7 @@ cdef int cG( params* gp ) nogil:
 
             # Get the instantaneous value of u' at this quadrature point.
             #
-            gp.f(&gp.uass[gp.n_space_dofs*l + 0], up, gp.n_space_dofs, tcurr, gp.data)
+            gp.rhs.call(&gp.uass[gp.n_space_dofs*l + 0], up, tcurr)
 
             # Compute the value of the RHS integrand in the weak form.
             for j in range(gp.n_space_dofs):

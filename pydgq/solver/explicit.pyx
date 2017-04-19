@@ -19,7 +19,7 @@ These routines use compensated summation to obtain maximal accuracy
 from __future__ import division, print_function, absolute_import
 
 from pydgq.solver.pydgq_types cimport DTYPE_t
-from pydgq.solver.kernels cimport kernelfuncptr
+from pydgq.solver.kernel_interface cimport KernelBase
 from pydgq.solver.compsum cimport accumulate
 
 
@@ -27,8 +27,9 @@ from pydgq.solver.compsum cimport accumulate
 #
 # wrk must have space for 5*n_space_dofs items.
 #
-cdef int RK4( kernelfuncptr f, DTYPE_t* w, void* data, int n_space_dofs, DTYPE_t t, DTYPE_t dt, DTYPE_t* wrk ) nogil:
+cdef int RK4( KernelBase rhs, DTYPE_t* w, DTYPE_t t, DTYPE_t dt, DTYPE_t* wrk ) nogil:
     cdef unsigned int j
+    cdef int n_space_dofs = rhs.n
     cdef DTYPE_t* wstar = wrk  # updated w, only needed for computing the next k
 
     # standard RK4 temp variables
@@ -48,19 +49,20 @@ cdef int RK4( kernelfuncptr f, DTYPE_t* w, void* data, int n_space_dofs, DTYPE_t
 
     # Compute k1, ..., k4
     #
-    f(w, k1, n_space_dofs, t, data)  # <state vector in>, <result out>, <n_dofs in>, <user data in/out (read/write access!)>
+    rhs.begin_iteration(0)  # explicit method, single iteration only
+    rhs.call(w, k1, t)
 
     for j in range(n_space_dofs):
         wstar[j] = w[j] + dtp2 * k1[j]
-    f(wstar, k2, n_space_dofs, thalf, data)
+    rhs.call(wstar, k2, thalf)
 
     for j in range(n_space_dofs):
         wstar[j] = w[j] + dtp2 * k2[j]
-    f(wstar, k3, n_space_dofs, thalf, data)
+    rhs.call(wstar, k3, thalf)
 
     for j in range(n_space_dofs):
         wstar[j] = w[j] + dt   * k3[j]
-    f(wstar, k4, n_space_dofs, tend, data)
+    rhs.call(wstar, k4, tend)
 
     # Update
     #
@@ -91,8 +93,9 @@ cdef int RK4( kernelfuncptr f, DTYPE_t* w, void* data, int n_space_dofs, DTYPE_t
 #
 # wrk must have space for 4*n_space_dofs items.
 #
-cdef int RK3( kernelfuncptr f, DTYPE_t* w, void* data, int n_space_dofs, DTYPE_t t, DTYPE_t dt, DTYPE_t* wrk ) nogil:
+cdef int RK3( KernelBase rhs, DTYPE_t* w, DTYPE_t t, DTYPE_t dt, DTYPE_t* wrk ) nogil:
     cdef unsigned int j
+    cdef int n_space_dofs = rhs.n
     cdef DTYPE_t* wstar = wrk  # updated w, only needed for computing the next k
 
     # RK temp variables
@@ -112,15 +115,16 @@ cdef int RK3( kernelfuncptr f, DTYPE_t* w, void* data, int n_space_dofs, DTYPE_t
 
     # Compute k1, ..., k3
     #
-    f(w, k1, n_space_dofs, t, data)
+    rhs.begin_iteration(0)  # explicit method, single iteration only
+    rhs.call(w, k1, t)
 
     for j in range(n_space_dofs):
         wstar[j] = w[j] + dtp2 * k1[j]
-    f(wstar, k2, n_space_dofs, thalf, data)
+    rhs.call(wstar, k2, thalf)
 
     for j in range(n_space_dofs):
         wstar[j] = w[j]  - dt * k1[j]  + twodt * k2[j]
-    f(wstar, k3, n_space_dofs, tend, data)
+    rhs.call(wstar, k3, tend)
 
     # Update
     #
@@ -158,8 +162,9 @@ cdef int RK3( kernelfuncptr f, DTYPE_t* w, void* data, int n_space_dofs, DTYPE_t
 #
 # wrk must have space for 3*n_space_dofs items.
 #
-cdef int RK2( kernelfuncptr f, DTYPE_t* w, void* data, int n_space_dofs, DTYPE_t t, DTYPE_t dt, DTYPE_t* wrk, DTYPE_t beta ) nogil:
+cdef int RK2( KernelBase rhs, DTYPE_t* w, DTYPE_t t, DTYPE_t dt, DTYPE_t* wrk, DTYPE_t beta ) nogil:
     cdef unsigned int j
+    cdef int n_space_dofs = rhs.n
     cdef DTYPE_t* wstar = wrk  # updated w, only needed for computing the next k
 
     # RK temp variables
@@ -172,7 +177,6 @@ cdef int RK2( kernelfuncptr f, DTYPE_t* w, void* data, int n_space_dofs, DTYPE_t
     weight2 *= dt
 
     cdef DTYPE_t betadt = beta*dt
-
     cdef DTYPE_t tmid   = t + betadt
 
     cdef DTYPE_t s
@@ -180,11 +184,12 @@ cdef int RK2( kernelfuncptr f, DTYPE_t* w, void* data, int n_space_dofs, DTYPE_t
 
     # Compute k1, k2
     #
-    f(w, k1, n_space_dofs, t, data)
+    rhs.begin_iteration(0)  # explicit method, single iteration only
+    rhs.call(w, k1, t)
 
     for j in range(n_space_dofs):
         wstar[j] = w[j] + betadt * k1[j]
-    f(wstar, k2, n_space_dofs, tmid, data)
+    rhs.call(wstar, k2, tmid)
 
     # Update
     #
@@ -213,10 +218,12 @@ cdef int RK2( kernelfuncptr f, DTYPE_t* w, void* data, int n_space_dofs, DTYPE_t
 #
 # wrk must have space for n_space_dofs items.
 #
-cdef int FE( kernelfuncptr f, DTYPE_t* w, void* data, int n_space_dofs, DTYPE_t t, DTYPE_t dt, DTYPE_t* wrk ) nogil:
+cdef int FE( KernelBase rhs, DTYPE_t* w, DTYPE_t t, DTYPE_t dt, DTYPE_t* wrk ) nogil:
+    cdef int n_space_dofs = rhs.n
     cdef DTYPE_t* wp = wrk  # w prime (output from RHS)
 
-    f(w, wp, n_space_dofs, t, data)
+    rhs.begin_iteration(0)  # explicit method, single iteration only
+    rhs.call(w, wp, t)
 
     for j in range(n_space_dofs):
         w[j] += dt*wp[j]
@@ -243,16 +250,19 @@ cdef int FE( kernelfuncptr f, DTYPE_t* w, void* data, int n_space_dofs, DTYPE_t 
 #
 # wrk must have space for n_space_dofs items.
 #
-cdef int SE( kernelfuncptr f, DTYPE_t* w, void* data, int n_space_dofs, DTYPE_t t, DTYPE_t dt, DTYPE_t* wrk ) nogil:
+cdef int SE( KernelBase rhs, DTYPE_t* w, DTYPE_t t, DTYPE_t dt, DTYPE_t* wrk ) nogil:
     cdef unsigned int j
+    cdef int n_space_dofs = rhs.n
     cdef DTYPE_t* wp = wrk  # w prime (output from RHS)
 
-    f(w, wp, n_space_dofs, t, data)  # of this, we will only use the v' components corresponding to the v degrees of freedom
+    rhs.begin_iteration(0)  # explicit method, single iteration only
+    rhs.call(w, wp, t)  # of this, SE uses only the v' components corresponding to the v degrees of freedom
 
     for j in range(1,n_space_dofs,2):
         w[j] += dt*wp[j]  # qdot, forward diff using current qdotdot
     for j in range(0,n_space_dofs,2):
         w[j] += dt*w[j+1]  # q, backward diff using updated qdot
+
 #    # e.g. for n_space_dofs == 4:
 #    w[1] += dt*wp[1]  # v1, forward diff using current v'1
 #    w[3] += dt*wp[3]  # v2, forward diff using current v'2

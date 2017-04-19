@@ -4,7 +4,12 @@
 from __future__ import absolute_import
 
 from pydgq.solver.pydgq_types cimport DTYPE_t, DTYPEZ_t
-from pydgq.solver.kernels cimport kernelfuncptr
+from pydgq.solver.kernel_interface cimport KernelBase
+
+
+# typeedef for easy algorithm switching in calling code
+ctypedef int (*integrator_ptr)( Params ) nogil
+
 
 # Helper routines.
 #
@@ -35,46 +40,45 @@ cdef DTYPE_t do_quadrature( DTYPE_t* funcvals, DTYPE_t* qw, int n, DTYPE_t dt ) 
 #    cdef DTYPE_t[:,::1] psi     = galerkin.helper_instance.integ_y  # basis function values at the quadrature points, psi[j,i] is N[j]( x[i] )
 #    cdef DTYPE_t[:,::1] psivis  = galerkin.helper_instance.vis_y    # basis function values at the visualization points, psivis[j,i] is N[j]( x[i] )
 #
-cdef struct params:
-    kernelfuncptr f    # RHS compute kernel
-    DTYPE_t* w         # state vector, value at end of previous timestep (dG() and cG() update this)
-    void* data         # user data for f
+cdef class Params:
+    cdef KernelBase rhs     # RHS compute kernel
+    cdef DTYPE_t* w         # state vector, value at end of previous timestep (dG() and cG() update this)
 
-    DTYPE_t t          # time value at start of current timestep
-    DTYPE_t dt         # size of current timestep
+    cdef DTYPE_t t          # time value at start of current timestep
+    cdef DTYPE_t dt         # size of current timestep
 
-    int n_space_dofs   # size of the 1st order problem
-    int n_time_dofs    # how many time DOFs to use for *each* space DOF (this is determined by the choice of q in dG(q))
+    cdef int n_space_dofs   # size of the 1st order problem
+    cdef int n_time_dofs    # how many time DOFs to use for *each* space DOF (this is determined by the choice of q in dG(q))
 
-    int maxit          # maximum number of Banach/Picard iterations in implicit solve
+    cdef int maxit          # maximum number of Banach/Picard iterations in implicit solve
 
     # instance arrays (specific to this problem instance)
-    DTYPE_t* g
-    DTYPE_t* b
-    DTYPE_t* u
-    DTYPE_t* uprev
-    DTYPE_t* uass
-    DTYPE_t* ucorr
-    DTYPE_t* uvis
-    DTYPE_t* wrk       # work space for n_space_dofs items
+    cdef DTYPE_t* g
+    cdef DTYPE_t* b
+    cdef DTYPE_t* u
+    cdef DTYPE_t* uprev
+    cdef DTYPE_t* uass
+    cdef DTYPE_t* ucorr
+    cdef DTYPE_t* uvis
+    cdef DTYPE_t* wrk       # work space for n_space_dofs items
 
     # global arrays (shared across all problems when using the same settings)
 
-    # LU decomposed mass matrix for dG(q), for one space DOF
-    DTYPE_t* LU
-    int* p
-    int* mincols
-    int* maxcols
+    # dG(q) mass matrix for one space DOF, LU decomposed
+    cdef DTYPE_t* LU
+    cdef int* p
+    cdef int* mincols
+    cdef int* maxcols
 
-    int n_quad         # number of integration points in the Gauss-Legendre rule
-    DTYPE_t* qw        # quadrature weights
-    DTYPE_t* tquad     # integration points, **scaled to [0,1]**
+    cdef int n_quad         # number of integration points in the Gauss-Legendre rule
+    cdef DTYPE_t* qw        # quadrature weights
+    cdef DTYPE_t* tquad     # integration points, **scaled to [0,1]**
 
-    DTYPE_t* psi
-    DTYPE_t* psivis
+    cdef DTYPE_t* psi
+    cdef DTYPE_t* psivis
 
-    DTYPE_t* tvis      # visualization points (accounting for the interp parameter), **scaled to [0,1]**
+    cdef DTYPE_t* tvis      # visualization points (accounting for the interp parameter), **scaled to [0,1]**
 
-cdef int dG( params* gp ) nogil
-cdef int cG( params* gp ) nogil
+cdef int dG( Params gp ) nogil
+cdef int cG( Params gp ) nogil
 

@@ -17,7 +17,8 @@ cdef class KernelBase:
 
     # interface for solver
     #
-    cdef void update_metadata(self, int timestep, int iteration) nogil
+    cdef void begin_timestep(self, int timestep) nogil
+    cdef void begin_iteration(self, int iteration) nogil
     cdef void call(self, double* w, double* out, double t) nogil
 
 # Base class for kernels implemented in Cython.

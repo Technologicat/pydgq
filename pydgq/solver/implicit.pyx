@@ -15,14 +15,15 @@
 from __future__ import division, print_function, absolute_import
 
 from pydgq.solver.pydgq_types cimport DTYPE_t
-from pydgq.solver.kernels cimport kernelfuncptr
+from pydgq.solver.kernel_interface cimport KernelBase
 
 # Implicit midpoint rule.
 #
 # wrk must have space for 4*n_space_dofs items.
 #
-cdef int IMR( kernelfuncptr f, DTYPE_t* w, void* data, int n_space_dofs, DTYPE_t t, DTYPE_t dt, DTYPE_t* wrk, int maxit ) nogil:
+cdef int IMR( KernelBase rhs, DTYPE_t* w, DTYPE_t t, DTYPE_t dt, DTYPE_t* wrk, int maxit ) nogil:
     cdef unsigned int j, m=-1, m2, nequals
+    cdef int n_space_dofs = rhs.n
     cdef int success = 0
 
     cdef DTYPE_t* whalf = wrk  # iterative approximation of w(k+1/2)
@@ -44,9 +45,11 @@ cdef int IMR( kernelfuncptr f, DTYPE_t* w, void* data, int n_space_dofs, DTYPE_t
     # Implicit iteration (Banach fixed point iteration)
     #
     for m in range(maxit):
+        rhs.begin_iteration(m)  # inform RHS kernel that a new iteration starts
+
         for j in range(n_space_dofs):
             whalf[j] = 0.5 * (w[j] + wcur[j])  # estimate midpoint value of w
-        f(whalf, wp, n_space_dofs, thalf, data)
+        rhs.call(whalf, wp, thalf)
         for j in range(n_space_dofs):
             wnew[j] = w[j] + dt*wp[j]  # new estimate of w(k+1)
 
@@ -76,9 +79,11 @@ cdef int IMR( kernelfuncptr f, DTYPE_t* w, void* data, int n_space_dofs, DTYPE_t
     #
     if not success:
         for m2 in range(5):  # we want to be able to return the original value of m
+            rhs.begin_iteration(maxit + m2)  # inform RHS kernel that a new iteration starts
+
             for j in range(n_space_dofs):
                 whalf[j] = 0.5 * (w[j] + wnew[j])  # estimate midpoint value of w
-            f(whalf, wp, n_space_dofs, thalf, data)
+            rhs.call(whalf, wp, thalf)
             for j in range(n_space_dofs):
                 wnew[j] = w[j] + dt*wp[j]  # new estimate of w(k+1)
 
@@ -101,8 +106,9 @@ cdef int IMR( kernelfuncptr f, DTYPE_t* w, void* data, int n_space_dofs, DTYPE_t
 #
 # wrk must have space for 3*n_space_dofs items.
 #
-cdef int BE( kernelfuncptr f, DTYPE_t* w, void* data, int n_space_dofs, DTYPE_t t, DTYPE_t dt, DTYPE_t* wrk, int maxit ) nogil:
+cdef int BE( KernelBase rhs, DTYPE_t* w, DTYPE_t t, DTYPE_t dt, DTYPE_t* wrk, int maxit ) nogil:
     cdef unsigned int j, m=-1, m2, nequals
+    cdef int n_space_dofs = rhs.n
     cdef int success = 0
 
     cdef DTYPE_t* wp = wrk     # iterative approximation of w'(k+1)
@@ -123,7 +129,9 @@ cdef int BE( kernelfuncptr f, DTYPE_t* w, void* data, int n_space_dofs, DTYPE_t 
     # Implicit iteration (Banach fixed point iteration)
     #
     for m in range(maxit):
-        f(wcur, wp, n_space_dofs, tend, data)
+        rhs.begin_iteration(m)  # inform RHS kernel that a new iteration starts
+
+        rhs.call(wcur, wp, tend)
         for j in range(n_space_dofs):
             wnew[j] = w[j] + dt*wp[j]  # new estimate of w(k+1)
 
@@ -142,7 +150,9 @@ cdef int BE( kernelfuncptr f, DTYPE_t* w, void* data, int n_space_dofs, DTYPE_t 
     #
     if not success:
         for m2 in range(5):  # we want to be able to return the original value of m
-            f(wnew, wp, n_space_dofs, tend, data)
+            rhs.begin_iteration(maxit + m2)  # inform RHS kernel that a new iteration starts
+
+            rhs.call(wnew, wp, tend)
             for j in range(n_space_dofs):
                 wnew[j] = w[j] + dt*wp[j]  # new estimate of w(k+1)
 

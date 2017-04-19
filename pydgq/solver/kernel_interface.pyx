@@ -63,15 +63,16 @@ Data attributes of KernelBase:
 """
         self.n = n
 
-    # TODO: The solver calls this when it begins a new timestep or a new Banach/Picard iteration.
+    # TODO: The solver calls these when it begins a new timestep or a new Banach/Picard iteration.
     #
     # This metadata is provided for the actual computational kernel; the kernel classes themselves do not need it.
     #
     # timestep : 0-based, 0 = initial condition, 1 = first timestep, 2 = second timestep, ...
-    # iteration : 0-based
+    # iteration : 0-based. Special value -1 = evaluation of final result from this timestep. (Used if saving also w' in the results arrays.)
     #
-    cdef void update_metadata(self, int timestep, int iteration) nogil:
+    cdef void begin_timestep(self, int timestep) nogil:
         self.timestep  = timestep
+    cdef void begin_iteration(self, int iteration) nogil:
         self.iteration = iteration
 
     # The call interface. TODO: The solver calls this when it wants to evaluate w'.
