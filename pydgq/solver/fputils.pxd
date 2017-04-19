@@ -1,4 +1,15 @@
 # -*- coding: utf-8 -*-
+#
+# Set Cython compiler directives. This section must appear before any code!
+#
+# For available directives, see:
+#
+# http://docs.cython.org/en/latest/src/reference/compilation.html
+#
+# cython: wraparound  = False
+# cython: boundscheck = False
+# cython: cdivision   = True
+#
 """Floating-point flags detection."""
 
 from __future__ import division, print_function, absolute_import
