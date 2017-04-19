@@ -2,7 +2,7 @@
 
 ### High priority
 
- - add some mechanism to report metadata to caller?
+ - add some mechanism to report metadata to caller (e.g. number of iterations taken at each timestep)?
  - convert docstrings to NumpyDoc style
  - write README.md
  - write some usage examples
