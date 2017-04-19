@@ -30,13 +30,19 @@ from __future__ import division, print_function, absolute_import
 
 import numpy as np
 
+cimport pydgq.solver.fputils as fputils    # nan/inf checks for arrays
+from pydgq.solver.cminmax cimport cuimax  # "C unsigned int max"
+
 from pydgq.solver.pydgq_types cimport DTYPE_t
 from pydgq.solver.pydgq_types import DTYPE
-from pydgq.solver.kernel_interface cimport KernelBase  # f() for w' = f(w)
-from pydgq.solver.cminmax cimport cuimax  # "C unsigned int max"
-cimport pydgq.solver.fputils as fputils    # nan/inf checks for arrays
+
+from pydgq.solver.kernel_interface cimport KernelBase  # RHS f() for w' = f(w,t)
+
+from pydgq.solver.integrator_interface cimport IntegratorBase  # interface for integrator algorithms
 cimport pydgq.solver.explicit as explicit  # classical explicit integrators
+import  pydgq.solver.explicit as explicit
 cimport pydgq.solver.implicit as implicit  # classical implicit integrators
+import  pydgq.solver.implicit as implicit
 cimport pydgq.solver.galerkin as galerkin  # Galerkin integrators
 import  pydgq.solver.galerkin as galerkin
 
@@ -318,7 +324,7 @@ def make_tt( double dt, int nt, int save_from, int interp=1, out=None ):
     cdef unsigned int n, k, offs, start, end
 
     # TODO: Use vis_x from integrator (gives the actually used time offsets on the reference element [-1,1], map this to [0,1] to reliably get what we need here)
-    # TODO: Currently this function has no access to it, because the galerkin.Helper instance does not exist at this time.
+    # TODO: Currently this function has no access to it, because the galerkin.datamanager instance does not (necessarily) exist at this time (or may have different settings, even if it exists).
 
     # "local" time values, i.e. offsets in [0,1] inside one timestep
     cdef DTYPE_t[::1] tloc = np.linspace(0.0, 1.0, interp)
@@ -606,10 +612,10 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
     cdef unsigned int n = 0
     cdef double t = 0.0
 
-    # Work space for classical integrators (will be allocated below, needed size depends on algorithm)
+    # Work space for store()
     #
-    cdef DTYPE_t[::1] wrk_arr
-    cdef DTYPE_t* wrk = <DTYPE_t*>0
+    cdef DTYPE_t[::1] wrk_arr = np.empty( (n_space_dofs,), dtype=DTYPE, order="C" )
+    cdef DTYPE_t* wrk = &(wrk_arr[0])
 
     # Implicit methods support
     #
@@ -622,13 +628,13 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
 
     # Galerkin methods support
     #
-    cdef galerkin.Params gp
     cdef unsigned int offs, out_start, out_end, l, noutput
     cdef DTYPE_t* pww
 
-    cdef explicit.integrator_ptr timestep_explicit = <explicit.integrator_ptr>0
-    cdef implicit.integrator_ptr timestep_implicit = <implicit.integrator_ptr>0
-    cdef galerkin.integrator_ptr timestep_galerkin = <galerkin.integrator_ptr>0
+    # Integrator object
+    #
+    cdef IntegratorBase algo
+    cdef galerkin.GalerkinIntegrator algo_g
 
     # Account for the output slot possibly used for the initial condition.
     #
@@ -642,23 +648,19 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
 
     # Integration loops
     #
-    if integrator in ["SE", "RK4", "RK3", "FE"]:
+    if integrator in ["SE", "RK4", "RK3", "RK2", "FE"]:  # classical explicit integrators
         if integrator == "SE":  # symplectic Euler
             if n_space_dofs % 2 != 0:
                 raise ValueError("SE: Symplectic Euler (SE) only makes sense for second-order systems transformed to first-order ones, but got odd number of n_space_dofs = %d" % (n_space_dofs))
-            timestep_explicit = explicit.SE
-            wrk_arr = np.empty( (1 * n_space_dofs,), dtype=DTYPE, order="C" )
+            algo = explicit.SE(rhs)
         elif integrator == "RK4":
-            timestep_explicit = explicit.RK4  # classical fourth-order Runge-Kutta
-            wrk_arr = np.empty( (5 * n_space_dofs,), dtype=DTYPE, order="C" )
+            algo = explicit.RK4(rhs)  # classical fourth-order Runge-Kutta
         elif integrator == "RK3":
-            timestep_explicit = explicit.RK3  # Kutta's third-order method
-            wrk_arr = np.empty( (4 * n_space_dofs,), dtype=DTYPE, order="C" )
+            algo = explicit.RK3(rhs)  # Kutta's third-order method
+        elif integrator == "RK2":
+            algo = explicit.RK2(rhs, RK2_beta)  # parametric second-order Runge-Kutta
         else: # integrator == "FE":
-            timestep_explicit = explicit.FE   # forward Euler
-            wrk_arr = np.empty( (1 * n_space_dofs,), dtype=DTYPE, order="C" )
-
-        wrk = &wrk_arr[0]
+            algo = explicit.FE(rhs)   # forward Euler
 
         # We release the GIL for the integration loop to let another Python thread execute
         # while this one is running through a lot of timesteps (possibly several million per solver run).
@@ -668,7 +670,7 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
                 t = (n-1)*dt  # avoid accumulating error (don't sum; for very large t, this version will tick as soon as the floating-point representation allows it)
 
                 rhs.begin_timestep(n)
-                timestep_explicit( rhs, w, t, dt, wrk )
+                algo.call( w, t, dt )
 
                 # end-of-timestep boilerplate
                 #
@@ -680,45 +682,18 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
                 if denormal_triggered or naninf_triggered:
                     break
 
-    elif integrator == "RK2":  # parametric second-order Runge-Kutta
-        # different function signature; otherwise the handling is identical to the above.
-
-        wrk_arr = np.empty( (3 * n_space_dofs,), dtype=DTYPE, order="C" )
-        wrk = &wrk_arr[0]
-
-        with nogil:
-            for n in range(1,nt+1):
-                t = (n-1)*dt
-
-                rhs.begin_timestep(n)
-                explicit.RK2( rhs, w, t, dt, wrk, RK2_beta )
-
-                # end-of-timestep boilerplate
-                #
-                t = n*dt
-                store( w, n_space_dofs, n, t, save_from, &ww[0,0], rhs, pff, pfail, 0, wrk )
-                if do_denormal_check:
-                    denormal_triggered = fputils.all_denormal( w, n_space_dofs )
-                naninf_triggered = fputils.any_naninf( w, n_space_dofs )
-                if denormal_triggered or naninf_triggered:
-                    break
-
-    elif integrator in ["BE", "IMR"]:
+    elif integrator in ["BE", "IMR"]:  # classical implicit integrators
         if integrator == "BE":  # backward Euler
-            timestep_implicit = implicit.BE
-            wrk_arr = np.empty( (3 * n_space_dofs,), dtype=DTYPE, order="C" )
+            algo = implicit.BE(rhs, maxit)
         else:
-            timestep_implicit = implicit.IMR  # implicit midpoint rule
-            wrk_arr = np.empty( (4 * n_space_dofs,), dtype=DTYPE, order="C" )
-
-        wrk = &wrk_arr[0]
+            algo = implicit.IMR(rhs, maxit)  # implicit midpoint rule
 
         with nogil:
             for n in range(1,nt+1):
                 t = (n-1)*dt
 
                 rhs.begin_timestep(n)
-                nits = timestep_implicit( rhs, w, t, dt, wrk, maxit )
+                nits = algo.call( w, t, dt )
 
                 # update the iteration statistics
                 #
@@ -748,20 +723,27 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
         print( "    min/avg/max iterations taken = %d, %g, %d; total number of non-converged timesteps %d (%g%%)%s" % (int(min_taken_its), float(totalnits)/nt_taken, int(max_taken_its), totalfailed, 100.0*float(totalfailed)/nt_taken, failed_str) )
 
     else:  # integrator in galerkin_integrators:  # Galerkin integrators
-        my_unique_id = id(ww)  # HACK: the output array is probably unique across simultaneously running instances. (TODO: odesolve could benefit from more object-orientedness)
-        gp = galerkin.setup_instance(my_unique_id, integrator, rhs, w_arr, maxit, interp)
-
+        # NOTE: instantiating DG or CG also checks whether galerkin.datamanager exists and is initialized
+        #
         if integrator == "dG":  # discontinuous Galerkin (recommended!)
-            timestep_galerkin = galerkin.dG
+            algo = galerkin.DG(rhs, maxit)
         else: # integrator == "cG":  # continuous Galerkin (doesn't work that well in practice)
-            timestep_galerkin = galerkin.cG
+            algo = galerkin.CG(rhs, maxit)
+
+        # typecast to force Cython to see private stuff defined in GalerkinIntegrator (TODO/FIXME: leaky interface, the Galerkin equivalent of store() belongs in galerkin.pyx)
+        algo_g = <galerkin.GalerkinIntegrator>algo
+
+        # final sanity check
+        #
+        if galerkin.datamanager.nx != interp:  # TODO: relax this implementation-technical limitation
+            raise NotImplementedError("%s: interp = %d, but galerkin.init() was last called with different nx = %d; currently this is not supported." % (integrator, interp, galerkin.datamanager.nx))
 
         with nogil:
             for n in range(1,nt+1):
-                gp.t = (n-1)*dt
+                t = (n-1)*dt
 
                 rhs.begin_timestep(n)
-                nits = timestep_galerkin( gp )
+                nits = algo.call( w, t, dt )
 
                 # update the iteration statistics
                 #
@@ -783,7 +765,7 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
                     # saving the end-of-timestep value of the solution from w.
                     #
                     t = n*dt
-                    store( w, n_space_dofs, n, t, save_from, &ww[0,0], rhs, pff, pfail, <int>(nits == maxit), gp.wrk )
+                    store( w, n_space_dofs, n, t, save_from, &ww[0,0], rhs, pff, pfail, <int>(nits == maxit), wrk )
                 else:
                     # Inline custom store() implementation accounting for interp (and how to assemble a Galerkin series)
                     #
@@ -791,14 +773,14 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
                         # Interpolate inside timestep using the Galerkin representation of the solution, obtaining more visualization points.
                         #
                         pww = &ww[0,0]
-                        galerkin.assemble( gp.u, gp.psivis, gp.uvis, gp.ucvis, n_space_dofs, gp.n_time_dofs, interp )
+                        algo_g.assemble( algo_g.u, algo_g.psivis, algo_g.uvis, algo_g.ucvis, n_space_dofs, algo_g.n_time_dofs, interp )
                         noutput = n - cuimax(1, save_from)  # 0-based timestep number starting from the first saved one.
                                                                     # Note that n = 1, 2, ... (also store() depends on this numbering!)
                         out_start = offs + noutput*interp
                         for l in range(interp):
                             for j in range(n_space_dofs):
                                 # uvis: [nx,n_space_dofs]
-                                pww[(out_start+l)*n_space_dofs + j] = gp.uvis[l*n_space_dofs + j]
+                                pww[(out_start+l)*n_space_dofs + j] = algo_g.uvis[l*n_space_dofs + j]
 
                         # Optionally output the time derivative of the state vector (obtained via f()).
                         #
@@ -807,8 +789,8 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
                         if pff:
                             rhs.begin_iteration(-1)  # iteration -1 = evaluating final result from this timestep
                             for l in range(interp):
-                                t = ((n-1) + gp.tvis[l]) * dt
-                                rhs.call(&gp.uvis[l*n_space_dofs + 0], wp, t)
+                                t = ((n-1) + algo_g.tvis[l]) * dt
+                                rhs.call(&algo_g.uvis[l*n_space_dofs + 0], wp, t)
                                 for j in range(n_space_dofs):
                                     pff[(out_start+l)*n_space_dofs + j] = wp[j]
 
@@ -824,8 +806,6 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
         nt_taken = max(1, n)
         failed_str = "" if totalfailed == 0 else "; last non-converged timestep %d" % (nfail)
         print( "    min/avg/max iterations taken = %d, %g, %d; total number of non-converged timesteps %d (%g%%)%s" % (int(min_taken_its), float(totalnits)/nt_taken, int(max_taken_its), totalfailed, 100.0*float(totalfailed)/nt_taken, failed_str) )
-
-        galerkin.teardown_instance(my_unique_id)
 
 
     # DEBUG/INFO: final value of w'
