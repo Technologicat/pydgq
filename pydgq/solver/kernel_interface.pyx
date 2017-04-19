@@ -48,6 +48,18 @@ Base class for all kernels.
 
 Do not inherit directly from this; instead, see CythonKernel and PythonKernel
 depending on which language you wish to implement your kernel in.
+
+Data attributes of KernelBase:
+    w : double*
+        input, old state vector (memory owned by caller)
+    out : double*
+        output, new state vector (memory owned by caller)
+    n : int
+        number of DOFs (taken from __init__)
+    timestep : int
+        number of current timestep
+    iteration : int
+        number of current nonlinear (Banach/Picard) iteration
 """
         self.n = n
 
@@ -123,9 +135,17 @@ cdef class PythonKernel(KernelBase):
 
 Base class for kernels implemented in pure Python.
 
-Python kernels will acquire the GIL for calling the user code.
+Python kernels will acquire the GIL for calling callback(),
+which is a regular Python-level method (in Cython parlance,
+"def method").
 
 See callback().
+
+Data attributes added by PythonKernel:
+    w_arr : double[::1]
+        Python-accessible view of self.w
+    out_arr : double[::1]
+        Python-accessible view of self.out
 """
         KernelBase.__init__(self, n)
 
@@ -146,8 +166,10 @@ Python-based callback (hook for custom code).
 
 Override this method in derived classes to provide your computational kernel.
 
-Your code can use self.w_arr and self.out_arr to access self.w and self.out;
-these are Python-accessible views. Both arrays have self.n elements.
+Use self.w_arr and self.out_arr to access self.w and self.out;
+these are Python-accessible views to the same memory.
+
+Both arrays have self.n elements.
 
 If callback() is not overridden, this class implements a no-op kernel: w' = 0.
 """
