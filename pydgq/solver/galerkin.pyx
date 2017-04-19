@@ -127,6 +127,7 @@ cdef class GalerkinIntegrator(ImplicitIntegrator):
     cdef void assemble( self, DTYPE_t* psi, DTYPE_t* uass, DTYPE_t* ucorr, int n_points ) nogil:
         cdef unsigned int i,j,k
         cdef int n_space_dofs = self.rhs.n
+        cdef int n_time_dofs  = self.n_time_dofs
 
 #        # naive summation
 #        for k in range(n_space_dofs):
@@ -136,7 +137,7 @@ cdef class GalerkinIntegrator(ImplicitIntegrator):
 #                uass[ i*n_space_dofs + k ] = 0.0
 #    
 #            # sum contributions from each basis function
-#            for j in range(self.n_time_dofs):
+#            for j in range(n_time_dofs):
 #                for i in range(n_points):
 #                    uass[ i*n_space_dofs + k ] += self.u[ k*n_time_dofs + j ] * psi[ j*n_points + i ]
 
@@ -160,8 +161,8 @@ cdef class GalerkinIntegrator(ImplicitIntegrator):
                 # Compute the pointers only once for each i.
                 ps = &uass[ i*n_space_dofs + k ]  # sum (accumulator)
                 pc = &ucorr[ i ]                  # correction
-                for j in range(self.n_time_dofs):
-                    accumulate( ps, pc, self.u[ k*self.n_time_dofs + j ] * psi[ j*n_points + i ] )
+                for j in range(n_time_dofs):
+                    accumulate( ps, pc, self.u[ k*n_time_dofs + j ] * psi[ j*n_points + i ] )
 
 
     # Assemble Galerkin series at the end of the timestep.
@@ -175,9 +176,10 @@ cdef class GalerkinIntegrator(ImplicitIntegrator):
     cdef void final_value( self, DTYPE_t* uass ) nogil:
         cdef unsigned int k
         cdef int n_space_dofs = self.rhs.n
+        cdef int n_time_dofs  = self.n_time_dofs
         for k in range(n_space_dofs):
             # here only one visualization point, so uass[ n_space_dofs*0 + k ] --> uass[ k ]
-            uass[ k ] = self.u[ k*self.n_time_dofs + 1 ]
+            uass[ k ] = self.u[ k*n_time_dofs + 1 ]
 
 
     # Integrate over the timestep by applying a quadrature.
@@ -263,6 +265,8 @@ cdef class DG(GalerkinIntegrator):
         cdef unsigned int nequals  # for convergence check
 
         cdef int n_space_dofs = self.rhs.n
+        cdef int n_time_dofs  = self.n_time_dofs
+        cdef int n_quad       = self.n_quad
 
         cdef DTYPE_t tcurr  # t at current quadrature point
 
@@ -277,18 +281,20 @@ cdef class DG(GalerkinIntegrator):
 
         # Initialize the Galerkin coefficients u: initially, we set u = u0, which is available in the array w.
         #
+        # u :     current value of Galerkin coefficients
+        # uprev : value of Galerkin coefficients at previous iteration, for convergence check
+        #
         for j in range(n_space_dofs):
-            self.u[j*self.n_time_dofs + 0]     = w[j]  # value at start of timestep
-            self.u[j*self.n_time_dofs + 1]     = w[j]  # value at end of timestep
-
-            # value of Galerkin coefficients at previous iteration, for convergence check
-            self.uprev[j*self.n_time_dofs + 0] = w[j]
-            self.uprev[j*self.n_time_dofs + 1] = w[j]
+            # linears
+            self.u[j*n_time_dofs + 0]     = w[j]  # value at start of timestep
+            self.u[j*n_time_dofs + 1]     = w[j]  # value at end of timestep
+            self.uprev[j*n_time_dofs + 0] = w[j]
+            self.uprev[j*n_time_dofs + 1] = w[j]
 
             # bubbles
-            for k in range(2,self.n_time_dofs):
-                self.u[j*self.n_time_dofs + k]     = 0.0
-                self.uprev[j*self.n_time_dofs + k] = 0.0
+            for k in range(2,n_time_dofs):
+                self.u[j*n_time_dofs + k]     = 0.0
+                self.uprev[j*n_time_dofs + k] = 0.0
 
         # Implicit iteration (Banach/Picard fixed point iteration)
         #
@@ -303,11 +309,11 @@ cdef class DG(GalerkinIntegrator):
             #
             # The old coefficients are then no longer needed; they get overwritten by the solver below.
             #
-            self.assemble( self.psi, self.uass, self.ucorr, self.n_quad )
+            self.assemble( self.psi, self.uass, self.ucorr, n_quad )
 
             # Form the right-hand side at each quadrature point.
             #
-            for l in range(self.n_quad):
+            for l in range(n_quad):
                 tcurr = t + dt*self.tquad[l]
 
                 # Get the instantaneous value of u' at this quadrature point, store result in "up".
@@ -322,10 +328,10 @@ cdef class DG(GalerkinIntegrator):
                 # The time DOFs here correspond to the set of test functions.
                 #
                 for j in range(n_space_dofs):
-                    for k in range(self.n_time_dofs):
+                    for k in range(n_time_dofs):
                         # g: [n_space_dofs,n_time_dofs,n_quad]
                         # psi: [n_time_dofs, n_quad]
-                        self.g[j*(self.n_time_dofs*self.n_quad) + k*self.n_quad + l] = up[j] * self.psi[k*self.n_quad + l]
+                        self.g[j*(n_time_dofs*n_quad) + k*n_quad + l] = up[j] * self.psi[k*n_quad + l]
 
             # Solve the dG linear equation system (separately for each space DOF).
             #
@@ -336,36 +342,36 @@ cdef class DG(GalerkinIntegrator):
                 # We use the Gauss-Legendre rule that was set up by init(). (This information is implicit
                 # in the array qw, and in the array psi, which was above used to evaluate the integrand.)
                 #
-                for k in range(self.n_time_dofs):
+                for k in range(n_time_dofs):
                     # b: [n_space_dofs,n_time_dofs]
                     # g: [n_space_dofs,n_time_dofs,n_quad]
-                    self.b[j*self.n_time_dofs + k] = self.do_quadrature( &self.g[j*(self.n_time_dofs*self.n_quad) + k*self.n_quad + 0], dt )
+                    self.b[j*n_time_dofs + k] = self.do_quadrature( &self.g[j*(n_time_dofs*n_quad) + k*n_quad + 0], dt )
 
                 # Add the RHS contribution from the jump term. This accounts for the initial condition for this timestep.
                 #
-                self.b[j*self.n_time_dofs + 0] += w[j]
+                self.b[j*n_time_dofs + 0] += w[j]
 
                 # Solve the dG linear equation system for this space DOF.
                 #
                 # This updates the Galerkin coefficients u.
                 #
-                dgesv_c.solve_decomposed_banded_c( self.LU, self.p, self.mincols, self.maxcols, &self.b[j*self.n_time_dofs + 0], &self.u[j*self.n_time_dofs + 0], self.n_time_dofs )
+                dgesv_c.solve_decomposed_banded_c( self.LU, self.p, self.mincols, self.maxcols, &self.b[j*n_time_dofs + 0], &self.u[j*n_time_dofs + 0], n_time_dofs )
 
             # Check convergence; break early if converged to within machine precision.
             #
             nequals = 0
             for j in range(n_space_dofs):
-                for k in range(self.n_time_dofs):
-                    if self.u[j*self.n_time_dofs + k] == self.uprev[j*self.n_time_dofs + k]:
+                for k in range(n_time_dofs):
+                    if self.u[j*n_time_dofs + k] == self.uprev[j*n_time_dofs + k]:
                         nequals += 1
-            if nequals == n_space_dofs*self.n_time_dofs:
+            if nequals == n_space_dofs*n_time_dofs:
                 break
 
             # Store the current values for performing the convergence check at the next iteration.
             #
             for j in range(n_space_dofs):
-                for k in range(self.n_time_dofs):
-                    self.uprev[j*self.n_time_dofs + k] = self.u[j*self.n_time_dofs + k]
+                for k in range(n_time_dofs):
+                    self.uprev[j*n_time_dofs + k] = self.u[j*n_time_dofs + k]
 
         # Store the value at the end of the this timestep (needed for the jump term at the next timestep).
         #
@@ -408,6 +414,8 @@ This is almost the same code as dG, the only difference being in the handling of
         cdef unsigned int nequals  # for convergence check
 
         cdef int n_space_dofs = self.rhs.n
+        cdef int n_time_dofs  = self.n_time_dofs
+        cdef int n_quad       = self.n_quad
 
         cdef DTYPE_t tcurr  # t at current quadrature point
 
@@ -423,17 +431,17 @@ This is almost the same code as dG, the only difference being in the handling of
         # Initialize the Galerkin coefficients u: initially, we set u = u0, which has been saved as the array w.
         #
         for j in range(n_space_dofs):
-            self.u[j*self.n_time_dofs + 0]     = w[j]  # value at start of timestep
-            self.u[j*self.n_time_dofs + 1]     = w[j]  # value at end of timestep
+            self.u[j*n_time_dofs + 0]     = w[j]  # value at start of timestep
+            self.u[j*n_time_dofs + 1]     = w[j]  # value at end of timestep
 
             # value of Galerkin coefficients at previous iteration, for convergence check
-            self.uprev[j*self.n_time_dofs + 0] = w[j]
-            self.uprev[j*self.n_time_dofs + 1] = w[j]
+            self.uprev[j*n_time_dofs + 0] = w[j]
+            self.uprev[j*n_time_dofs + 1] = w[j]
 
             # bubbles
-            for k in range(2,self.n_time_dofs):
-                self.u[j*self.n_time_dofs + k]     = 0.0
-                self.uprev[j*self.n_time_dofs + k] = 0.0
+            for k in range(2,n_time_dofs):
+                self.u[j*n_time_dofs + k]     = 0.0
+                self.uprev[j*n_time_dofs + k] = 0.0
 
         # Implicit iteration (Banach/Picard fixed point iteration)
         #
@@ -442,11 +450,11 @@ This is almost the same code as dG, the only difference being in the handling of
 
             # Assemble latest known u at the quadrature points for this iteration.
             #
-            self.assemble( self.psi, self.uass, self.ucorr, self.n_quad )
+            self.assemble( self.psi, self.uass, self.ucorr, n_quad )
 
             # Form the right-hand side at each quadrature point.
             #
-            for l in range(self.n_quad):
+            for l in range(n_quad):
                 tcurr = t + dt*self.tquad[l]
 
                 # Get the instantaneous value of u' at this quadrature point, store result in "up".
@@ -455,10 +463,10 @@ This is almost the same code as dG, the only difference being in the handling of
 
                 # Compute the value of the RHS integrand in the weak form.
                 for j in range(n_space_dofs):
-                    for k in range(self.n_time_dofs):
+                    for k in range(n_time_dofs):
                         # g: [n_space_dofs,n_time_dofs,n_quad]
                         # psi: [n_time_dofs, n_quad]
-                        self.g[j*(self.n_time_dofs*self.n_quad) + k*self.n_quad + l] = up[j] * self.psi[k*self.n_quad + l]
+                        self.g[j*(n_time_dofs*n_quad) + k*n_quad + l] = up[j] * self.psi[k*n_quad + l]
 
             # Solve the cG linear equation system (separately for each space DOF).
             #
@@ -466,10 +474,10 @@ This is almost the same code as dG, the only difference being in the handling of
 
                 # For this space DOF, integrate the right-hand side across the timestep (for each test function).
                 #
-                for k in range(1,self.n_time_dofs):  # note that the load vector for time DOF 0 will be filled in separately (initial condition)
+                for k in range(1,n_time_dofs):  # note that the load vector for time DOF 0 will be filled in separately (initial condition)
                     # b: [n_space_dofs,n_time_dofs]
                     # g: [n_space_dofs,n_time_dofs,n_quad]
-                    self.b[j*self.n_time_dofs + k] = self.do_quadrature( &self.g[j*(self.n_time_dofs*self.n_quad) + k*self.n_quad + 0], dt )
+                    self.b[j*n_time_dofs + k] = self.do_quadrature( &self.g[j*(n_time_dofs*n_quad) + k*n_quad + 0], dt )
 
                 # Account for the initial condition in the load vector.
                 #
@@ -479,29 +487,29 @@ This is almost the same code as dG, the only difference being in the handling of
                 # The mass matrix on the LHS has already been adjusted in init() to have the multiplicative identity on the first row,
                 # so that when the linear equation system is solved, u[j,0] will just pick up the value set here.
                 #
-                self.b[j*self.n_time_dofs + 0] = w[j]
+                self.b[j*n_time_dofs + 0] = w[j]
 
                 # Solve the cG linear equation system for this space DOF.
                 #
                 # This updates the Galerkin coefficients u.
                 #
-                dgesv_c.solve_decomposed_banded_c( self.LU, self.p, self.mincols, self.maxcols, &self.b[j*self.n_time_dofs + 0], &self.u[j*self.n_time_dofs + 0], self.n_time_dofs )
+                dgesv_c.solve_decomposed_banded_c( self.LU, self.p, self.mincols, self.maxcols, &self.b[j*n_time_dofs + 0], &self.u[j*n_time_dofs + 0], n_time_dofs )
 
             # Check convergence; break early if converged to within machine precision.
             #
             nequals = 0
             for j in range(n_space_dofs):
-                for k in range(self.n_time_dofs):
-                    if self.u[j*self.n_time_dofs + k] == self.uprev[j*self.n_time_dofs + k]:
+                for k in range(n_time_dofs):
+                    if self.u[j*n_time_dofs + k] == self.uprev[j*n_time_dofs + k]:
                         nequals += 1
-            if nequals == n_space_dofs*self.n_time_dofs:
+            if nequals == n_space_dofs*n_time_dofs:
                 break
 
             # Store the current values for performing the convergence check at the next iteration.
             #
             for j in range(n_space_dofs):
-                for k in range(self.n_time_dofs):
-                    self.uprev[j*self.n_time_dofs + k] = self.u[j*self.n_time_dofs + k]
+                for k in range(n_time_dofs):
+                    self.uprev[j*n_time_dofs + k] = self.u[j*n_time_dofs + k]
 
         # Store the value at the end of the this timestep (needed for the initial condition at the next timestep).
         #
