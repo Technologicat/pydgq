@@ -22,6 +22,7 @@
 ### Maybe later
 
  - add support for convergence tolerance (requires small changes to [`implicit.pyx`](pydgq/solver/implicit.pyx) and [`galerkin.pyx`](pydgq/solver/galerkin.pyx); see the loops that use `maxit`)
+ - separate the nonlinear iteration algorithm from the individual implicit solvers (should be implemented OnceAndOnlyOnce in `pydgq.solver.integrator_interface.ImplicitIntegrator`)
  - add support for simultaneous processing with different settings 
  - relax the technical limitation on matching `interp` to the last initialized `nx`
  - `odesolve.make_tt()` should have access to `vis_x` from `galerkin.Helper`; this array gives the actually used visualization points (Once and Only Once)
