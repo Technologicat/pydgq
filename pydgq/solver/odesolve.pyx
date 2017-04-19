@@ -937,7 +937,6 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
     # DEBUG/INFO: final value of w'
     #
     t = nt_taken*dt
-    rhs.begin_timestep(nt_taken+1)  # final evaluation
     rhs.begin_iteration(-1)  # iteration -1 = evaluating final result from this timestep
     rhs.call(w, wp, t)
 
