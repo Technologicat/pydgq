@@ -17,9 +17,9 @@ from pydgq.solver.integrator_interface cimport ImplicitIntegrator
 #    cdef DTYPE_t[:,::1]   u     = np.empty( [n_space_dofs,n_time_dofs],        dtype=DTYPE, order="C" )  # Galerkin coefficients (unknowns)
 #    cdef DTYPE_t[:,::1]   uprev = np.empty( [n_space_dofs,n_time_dofs],        dtype=DTYPE, order="C" )  # Galerkin coefficients from previous iteration
 #    cdef DTYPE_t[:,::1]   uass  = np.empty( [n_quad,n_space_dofs],             dtype=DTYPE, order="C" )  # u, assembled for integration (this ordering needed for speed!)
-#    cdef DTYPE_t[::1]     ucorr = np.empty( [n_quad],                          dtype=DTYPE, order="C" )  # correction for compensated summation in galerkin.assemble() (for integration)
+#    cdef DTYPE_t[::1]     ucorr = np.empty( [n_quad],                          dtype=DTYPE, order="C" )  # correction for compensated summation in assemble() (for integration)
 #    cdef DTYPE_t[:,::1]   uvis  = np.empty( [nx,n_space_dofs],                 dtype=DTYPE, order="C" )  # u, assembled for visualization
-#    cdef DTYPE_t[::1]     ucvis = np.empty( [nx],                              dtype=DTYPE, order="C" )  # correction for compensated summation in galerkin.assemble() (for visualization)
+#    cdef DTYPE_t[::1]     ucvis = np.empty( [nx],                              dtype=DTYPE, order="C" )  # correction for compensated summation in assemble() (for visualization)
 #
 #    # global arrays, same for each solver instance (see galerkin.DataManager.load_data(), galerkin.DataManager.prep_solver())
 #    cdef DTYPE_t[:,::1] LU      = galerkin.datamanager.LU       # LU decomposed mass matrix (packed format), for one space DOF, shape (n_time_dofs, n_time_dofs)
@@ -63,9 +63,9 @@ cdef class GalerkinIntegrator(ImplicitIntegrator):
 
     # helper methods
     #
-    cdef void assemble( self, DTYPE_t* u, DTYPE_t* psi, DTYPE_t* uass, DTYPE_t* ucorr, int n_space_dofs, int n_time_dofs, int n_points ) nogil
-    cdef void final_value( self, DTYPE_t* u, DTYPE_t* uass, int n_space_dofs, int n_time_dofs ) nogil
-    cdef DTYPE_t do_quadrature( self, DTYPE_t* funcvals, DTYPE_t* qw, int n, DTYPE_t dt ) nogil
+    cdef void assemble( self, DTYPE_t* psi, DTYPE_t* uass, DTYPE_t* ucorr, int n_points ) nogil  # assemble Galerkin series
+    cdef void final_value( self, DTYPE_t* uass ) nogil  # get final value at this timestep
+    cdef DTYPE_t do_quadrature( self, DTYPE_t* funcvals, DTYPE_t dt ) nogil  # integrate over timestep
 
 # discontinuous Galerkin
 #

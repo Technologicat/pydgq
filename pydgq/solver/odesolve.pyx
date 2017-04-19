@@ -774,7 +774,7 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
                         # Interpolate inside timestep using the Galerkin representation of the solution, obtaining more visualization points.
                         #
                         pww = &ww[0,0]
-                        algo_g.assemble( algo_g.u, algo_g.psivis, algo_g.uvis, algo_g.ucvis, n_space_dofs, algo_g.n_time_dofs, interp )
+                        algo_g.assemble( algo_g.psivis, algo_g.uvis, algo_g.ucvis, interp )  # basis, output, wrk, n_points
                         noutput = n - cuimax(1, save_from)  # 0-based timestep number starting from the first saved one.
                                                                     # Note that n = 1, 2, ... (also store() depends on this numbering!)
                         out_start = offs + noutput*interp
@@ -813,7 +813,8 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
 
 #    # DEBUG/INFO: final value of w'
 #    #
-#    t = nt_taken*dt
+#    t = nt_taken*dt  # time at start of "next" timestep
+#    rhs.begin_timestep(nt_taken+1)
 #    rhs.begin_iteration(-1)  # iteration -1 = evaluating final result from this timestep
 #    rhs.call(w, wp, t)
 #    lw  = [ "%0.18g" % w[j] for j in range(n_space_dofs) ]

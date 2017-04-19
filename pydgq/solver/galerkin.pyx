@@ -51,14 +51,15 @@ cdef class GalerkinIntegrator(ImplicitIntegrator):
         cdef DTYPE_t[:,::1]   u          = my_storage["u"]      # Galerkin coefficients (unknowns)
         cdef DTYPE_t[:,::1]   uprev      = my_storage["uprev"]  # Galerkin coefficients from previous iteration
         cdef DTYPE_t[:,::1]   uass       = my_storage["uass"]   # u, assembled for integration
-        cdef DTYPE_t[::1]     ucorr      = my_storage["ucorr"]  # correction for compensated summation in galerkin.assemble() (for integration)
+        cdef DTYPE_t[::1]     ucorr      = my_storage["ucorr"]  # correction for compensated summation in assemble() (for integration)
         cdef DTYPE_t[:,::1]   uvis       = my_storage["uvis"]   # u, assembled for visualization
-        cdef DTYPE_t[::1]     ucvis      = my_storage["ucvis"]  # correction for compensated summation in galerkin.assemble() (for visualization)
+        cdef DTYPE_t[::1]     ucvis      = my_storage["ucvis"]  # correction for compensated summation in assemble() (for visualization)
         cdef DTYPE_t[::1]     wrk_arr    = my_storage["wrk"]    # work space for dG(), cG()
 
         # get raw pointers to array data (needed by our C routines)
         #
-        # FIXME/TODO: this is brittle, since the array shape information is carried separately from the data (and only implicitly, by convention between this class and DataManager)
+        # FIXME/TODO: This is brittle, since the array shape information is carried separately from the data; and only implicitly
+        # FIXME/TODO: by convention between this class and DataManager. Could also store the arrays here?
         #
         self.g       = &g[0,0,0]
         self.b       = &b[0,0]
@@ -107,22 +108,25 @@ cdef class GalerkinIntegrator(ImplicitIntegrator):
         datamanager.free_storage(id(self))
 
 
-    # TODO: remove extraneous parameters (use self.xxx)
-
     # Assemble Galerkin series at given points inside the timestep.
     #
     # The points are specified implicitly, by evaluating the basis functions at the desired points (see the parameter psi, below).
+    # This is parametrized to allow for different use cases (integration, and visualization/reporting).
     #
     # Space DOFs are independent, each has its own Galerkin series. This assembles them all in one go.
     #
-    # u:     rank-2 array, size [n_space_dofs,  n_time_dofs]: Galerkin coefficients; u[j,i] is the coefficient of psi[i] for component u_j(x)
-    # psi:   rank-2 array, size [n_time_dofs, n_points]:      basis functions evaluated at each of the points x[i] (at which the series is to be assembled); psi[j,i] is psi[j]( x[i] )
-    # uass:  rank-2 array, size [n_points, n_space_dofs]:     output, values of u; uass[j,i] is u_i( x[j] )
-    # ucorr: rank-1 array, size [n_points]:                   correction storage for compensated summation
+    # psi:    rank-2 array, size [n_time_dofs, n_points]:     basis functions evaluated at each of the points x[i] (at which the series is to be assembled); psi[j,i] is psi[j]( x[i] )
+    # uass:   rank-2 array, size [n_points, n_space_dofs]:    output, values of u; uass[j,i] is u_i( x[j] )
+    # ucorr:  rank-1 array, size [n_points]:                  work area for correction terms in compensated summation
     #
-    #                                       coeffs      basis         output
-    cdef void assemble( self, DTYPE_t* u, DTYPE_t* psi, DTYPE_t* uass, DTYPE_t* ucorr, int n_space_dofs, int n_time_dofs, int n_points ) nogil:
+    # Additionally, this automatically uses self.u:
+    #
+    # self.u: rank-2 array, size [n_space_dofs, n_time_dofs]: Galerkin coefficients; u[j,i] is the coefficient of psi[i] for component u_j(x)
+    #
+    #                         basis         output         summ. corr. wrk
+    cdef void assemble( self, DTYPE_t* psi, DTYPE_t* uass, DTYPE_t* ucorr, int n_points ) nogil:
         cdef unsigned int i,j,k
+        cdef int n_space_dofs = self.rhs.n
 
 #        # naive summation
 #        for k in range(n_space_dofs):
@@ -132,9 +136,9 @@ cdef class GalerkinIntegrator(ImplicitIntegrator):
 #                uass[ i*n_space_dofs + k ] = 0.0
 #    
 #            # sum contributions from each basis function
-#            for j in range(n_time_dofs):
+#            for j in range(self.n_time_dofs):
 #                for i in range(n_points):
-#                    uass[ i*n_space_dofs + k ] += u[ k*n_time_dofs + j ] * psi[ j*n_points + i ]
+#                    uass[ i*n_space_dofs + k ] += self.u[ k*n_time_dofs + j ] * psi[ j*n_points + i ]
 
         # compensated summation
         cdef DTYPE_t* ps
@@ -156,46 +160,51 @@ cdef class GalerkinIntegrator(ImplicitIntegrator):
                 # Compute the pointers only once for each i.
                 ps = &uass[ i*n_space_dofs + k ]  # sum (accumulator)
                 pc = &ucorr[ i ]                  # correction
-                for j in range(n_time_dofs):
-                    accumulate( ps, pc, u[ k*n_time_dofs + j ] * psi[ j*n_points + i ] )
+                for j in range(self.n_time_dofs):
+                    accumulate( ps, pc, self.u[ k*self.n_time_dofs + j ] * psi[ j*n_points + i ] )
 
 
     # Assemble Galerkin series at the end of the timestep.
     #
     # Compared to the general-purpose assemble():
-    #   - Only N[1] (the linear basis function associated with the endpoint) is nonzero at the endpoint. Its value there is exactly 1.
-    #   - There are always at least 2 basis functions (the linear ones).
-    #   - For this purpose, n_points is always 1.
+    #   - Only N[1] (the linear basis function associated with the endpoint) is nonzero at the endpoint.
+    #   - Its value there is exactly 1, so we can just take the corresponding Galerkin coefficient from u[] as the function value.
+    #   - There are always at least 2 basis functions (the linear ones), so we don't need to check whether this basis function exists.
+    #   - Here n_points is always 1.
     #
-    cdef void final_value( self, DTYPE_t* u, DTYPE_t* uass, int n_space_dofs, int n_time_dofs ) nogil:
+    cdef void final_value( self, DTYPE_t* uass ) nogil:
         cdef unsigned int k
+        cdef int n_space_dofs = self.rhs.n
         for k in range(n_space_dofs):
             # here only one visualization point, so uass[ n_space_dofs*0 + k ] --> uass[ k ]
-            uass[ k ] = u[ k*n_time_dofs + 1 ]
+            uass[ k ] = self.u[ k*self.n_time_dofs + 1 ]
 
 
     # Integrate over the timestep by applying a quadrature.
     #
-    # funcvals: array of function values at the quadrature points (rank-1 or C order)
-    # qw:       array of quadrature weights (rank-1 or C order), length must match that of funcvals
-    # n:        number of items in funcvals and qw
-    # dt:       size of timestep (will be used for scaling the result)
+    # funcvals:    array of values of the function to be integrated, at the quadrature points (rank-1 or C order, length self.n_quad)
+    # dt:          size of timestep (will be used for scaling the result)
     #
-    cdef DTYPE_t do_quadrature( self, DTYPE_t* funcvals, DTYPE_t* qw, int n, DTYPE_t dt ) nogil:
+    # Additionally, this uses:
+    #
+    # self.qw:     array of quadrature weights (rank-1 or C order), length must match that of funcvals
+    # self.n_quad: number of items in funcvals and qw
+    #
+    cdef DTYPE_t do_quadrature( self, DTYPE_t* funcvals, DTYPE_t dt ) nogil:
         cdef unsigned int i
 
 #        # naive summation (not good for problems sensitive to initial conditions, such as vibration problems with low damping)
 #        cdef DTYPE_t s
 #        s = 0.0
-#        for i in range(n):
-#            s += qw[i]*funcvals[i]
+#        for i in range(self.n_quad):
+#            s += self.qw[i]*funcvals[i]
 
         # compensated summation
         cdef DTYPE_t s, c
-        s = qw[0]*funcvals[0]  # first term in sum; no correction by Kahan algorithm (if we wanted to correct, we should take the roundoff from this multiplication, instead)
+        s = self.qw[0]*funcvals[0]  # first term in sum; no correction by Kahan algorithm (if we wanted to correct, we should take the roundoff from this multiplication, instead)
         c = 0.0
-        for i in range(1,n):
-            accumulate( &s, &c, qw[i]*funcvals[i] )
+        for i in range(1,self.n_quad):
+            accumulate( &s, &c, self.qw[i]*funcvals[i] )
 
         # Scale the result to account for the length of the timestep.
         #
@@ -294,7 +303,7 @@ cdef class DG(GalerkinIntegrator):
             #
             # The old coefficients are then no longer needed; they get overwritten by the solver below.
             #
-            self.assemble( self.u, self.psi, self.uass, self.ucorr, n_space_dofs, self.n_time_dofs, self.n_quad )
+            self.assemble( self.psi, self.uass, self.ucorr, self.n_quad )
 
             # Form the right-hand side at each quadrature point.
             #
@@ -330,7 +339,7 @@ cdef class DG(GalerkinIntegrator):
                 for k in range(self.n_time_dofs):
                     # b: [n_space_dofs,n_time_dofs]
                     # g: [n_space_dofs,n_time_dofs,n_quad]
-                    self.b[j*self.n_time_dofs + k] = self.do_quadrature( &self.g[j*(self.n_time_dofs*self.n_quad) + k*self.n_quad + 0], self.qw, self.n_quad, dt )
+                    self.b[j*self.n_time_dofs + k] = self.do_quadrature( &self.g[j*(self.n_time_dofs*self.n_quad) + k*self.n_quad + 0], dt )
 
                 # Add the RHS contribution from the jump term. This accounts for the initial condition for this timestep.
                 #
@@ -360,9 +369,7 @@ cdef class DG(GalerkinIntegrator):
 
         # Store the value at the end of the this timestep (needed for the jump term at the next timestep).
         #
-        self.final_value( self.u, self.uvis, n_space_dofs, self.n_time_dofs )  # TODO: why not store directly into w?
-        for j in range(n_space_dofs):
-            w[j] = self.uvis[0*n_space_dofs + j]  # first row of uvis = first visualization point
+        self.final_value( w )
 
         return (m+1)
 
@@ -435,7 +442,7 @@ This is almost the same code as dG, the only difference being in the handling of
 
             # Assemble latest known u at the quadrature points for this iteration.
             #
-            self.assemble( self.u, self.psi, self.uass, self.ucorr, n_space_dofs, self.n_time_dofs, self.n_quad )
+            self.assemble( self.psi, self.uass, self.ucorr, self.n_quad )
 
             # Form the right-hand side at each quadrature point.
             #
@@ -462,7 +469,7 @@ This is almost the same code as dG, the only difference being in the handling of
                 for k in range(1,self.n_time_dofs):  # note that the load vector for time DOF 0 will be filled in separately (initial condition)
                     # b: [n_space_dofs,n_time_dofs]
                     # g: [n_space_dofs,n_time_dofs,n_quad]
-                    self.b[j*self.n_time_dofs + k] = self.do_quadrature( &self.g[j*(self.n_time_dofs*self.n_quad) + k*self.n_quad + 0], self.qw, self.n_quad, dt )
+                    self.b[j*self.n_time_dofs + k] = self.do_quadrature( &self.g[j*(self.n_time_dofs*self.n_quad) + k*self.n_quad + 0], dt )
 
                 # Account for the initial condition in the load vector.
                 #
@@ -498,9 +505,7 @@ This is almost the same code as dG, the only difference being in the handling of
 
         # Store the value at the end of the this timestep (needed for the initial condition at the next timestep).
         #
-        self.final_value( self.u, self.uvis, n_space_dofs, self.n_time_dofs )  # TODO: why not store directly into w?
-        for j in range(n_space_dofs):
-            w[j] = self.uvis[0*n_space_dofs + j]  # first row of uvis = first visualization point
+        self.final_value( w )
 
         return (m+1)
 
