@@ -606,7 +606,7 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
     cdef unsigned int n = 0
     cdef double t = 0.0
 
-    # Work space for integrators (will be allocated below, needed size depends on algorithm)
+    # Work space for classical integrators (will be allocated below, needed size depends on algorithm)
     #
     cdef DTYPE_t[::1] wrk_arr
     cdef DTYPE_t* wrk = <DTYPE_t*>0
@@ -622,29 +622,8 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
 
     # Galerkin methods support
     #
-    cdef galerkin.Params gp = galerkin.Params()
-
-    cdef unsigned int n_time_dofs, n_quad
-    cdef DTYPE_t[:,:,::1] g
-    cdef DTYPE_t[:,::1]   b
-    cdef DTYPE_t[:,::1]   u
-    cdef DTYPE_t[:,::1]   uprev
-    cdef DTYPE_t[:,::1]   uass
-    cdef DTYPE_t[::1]     ucorr
-    cdef DTYPE_t[:,::1]   LU
-    cdef int[::1]         p
-    cdef int[::1]         mincols
-    cdef int[::1]         maxcols
-    cdef DTYPE_t[::1]     qw
-    cdef DTYPE_t[:,::1]   psi
-    cdef DTYPE_t[:,::1]   uvis
-    cdef DTYPE_t[::1]     ucvis
-    cdef DTYPE_t[:,::1]   psivis
-    cdef DTYPE_t[::1]     tvis
-    cdef DTYPE_t[::1]     tquad
-
+    cdef galerkin.Params gp
     cdef unsigned int offs, out_start, out_end, l, noutput
-    cdef DTYPE_t* puvis
     cdef DTYPE_t* pww
 
     cdef explicit.integrator_ptr timestep_explicit = <explicit.integrator_ptr>0
@@ -689,7 +668,6 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
                 t = (n-1)*dt  # avoid accumulating error (don't sum; for very large t, this version will tick as soon as the floating-point representation allows it)
 
                 rhs.begin_timestep(n)
-
                 timestep_explicit( rhs, w, t, dt, wrk )
 
                 # end-of-timestep boilerplate
@@ -713,7 +691,6 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
                 t = (n-1)*dt
 
                 rhs.begin_timestep(n)
-
                 explicit.RK2( rhs, w, t, dt, wrk, RK2_beta )
 
                 # end-of-timestep boilerplate
@@ -741,7 +718,6 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
                 t = (n-1)*dt
 
                 rhs.begin_timestep(n)
-
                 nits = timestep_implicit( rhs, w, t, dt, wrk, maxit )
 
                 # update the iteration statistics
@@ -772,88 +748,8 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
         print( "    min/avg/max iterations taken = %d, %g, %d; total number of non-converged timesteps %d (%g%%)%s" % (int(min_taken_its), float(totalnits)/nt_taken, int(max_taken_its), totalfailed, 100.0*float(totalfailed)/nt_taken, failed_str) )
 
     else:  # integrator in galerkin_integrators:  # Galerkin integrators
-
-        # Common setup for Galerkin methods
-
-        ghelper = galerkin.helper_instance
-
-        if ghelper is None:
-            raise RuntimeError("%s: galerkin.init() must be called first." % integrator)
-        if not ghelper.available:
-            raise RuntimeError("%s: Cannot use Galerkin integrators because the auxiliary class did not initialize." % integrator)
-        if ghelper.method != integrator:
-            raise RuntimeError("%s: Trying to integrate with %s, but the auxiliary class has been initialized for %s." % (integrator, integrator, ghelper.method))
-        if ghelper.nx != interp:  # TODO: relax this implementation-technical limitation
-            raise NotImplementedError("%s: interp = %d, but galerkin.init() was last called with different nx = %d; currently this is not supported." % (integrator, interp, ghelper.nx))
-
         my_unique_id = id(ww)  # HACK: the output array is probably unique across simultaneously running instances. (TODO: odesolve could benefit from more object-orientedness)
-        instance_storage = ghelper.allocate_storage(my_unique_id)
-
-        n_time_dofs  = ghelper.n_time_dofs
-        n_quad       = ghelper.rule   # number of quadrature points (Gauss-Legendre integration points)
-
-        # fill in parameters to galerkin.params
-        gp.rhs          = rhs
-        gp.w            = w
-        gp.n_space_dofs = n_space_dofs
-        gp.n_time_dofs  = n_time_dofs
-        gp.n_quad       = n_quad
-        gp.maxit        = maxit
-
-        # retrieve instance arrays
-        #
-        g          = instance_storage["g"]      # effective load vector, for each space DOF, for each time DOF, at each integration point
-        b          = instance_storage["b"]      # right-hand sides (integral, over the timestep, of g*psi)
-        u          = instance_storage["u"]      # Galerkin coefficients (unknowns)
-        uprev      = instance_storage["uprev"]  # Galerkin coefficients from previous iteration
-        uass       = instance_storage["uass"]   # u, assembled for integration
-        ucorr      = instance_storage["ucorr"]  # correction for compensated summation in galerkin.assemble() (for integration)
-        uvis       = instance_storage["uvis"]   # u, assembled for visualization
-        ucvis      = instance_storage["ucvis"]  # correction for compensated summation in galerkin.assemble() (for visualization)
-        wrk_arr    = instance_storage["wrk"]    # work space for dG(), cG()
-
-        # feed raw pointers to array data into galerkin.params
-        gp.g       = &g[0,0,0]
-        gp.b       = &b[0,0]
-        gp.u       = &u[0,0]
-        gp.uprev   = &uprev[0,0]
-        gp.uass    = &uass[0,0]
-        gp.ucorr   = &ucorr[0]
-        gp.uvis    = &uvis[0,0]
-        gp.wrk     = &wrk_arr[0]
-
-        # retrieve global arrays
-        #
-        LU         = ghelper.LU       # LU decomposed mass matrix (packed format), for one space DOF, shape (n_time_dofs, n_time_dofs)
-        p          = ghelper.p        # row permutation information, length n_time_dofs
-        mincols    = ghelper.mincols  # band information for L, length n_time_dofs
-        maxcols    = ghelper.maxcols  # band information for U, length n_time_dofs
-        qw         = ghelper.integ_w  # quadrature weights (Gauss-Legendre)
-        psi        = ghelper.integ_y  # basis function values at the quadrature points, qy[j,i] is N[j]( x[i] )
-        psivis     = ghelper.vis_y    # basis function values at the visualization points, qy[j,i] is N[j]( x[i] )
-        tvis       = ghelper.vis_x    # time values at the visualization points (on the reference element [-1,1])
-
-        # tvis: map [-1,1] --> [0,1] (reference element --> offset within timestep)
-        for j in range(n_time_dofs):
-            tvis[j] += 1.0
-            tvis[j] *= 0.5
-
-        # integration points (and do the same mapping also here)
-        tquad = ghelper.integ_x       # Gauss-Legendre points of the chosen rule, in (-1,1)
-        for j in range(n_quad):
-            tquad[j] += 1.0
-            tquad[j] *= 0.5
-
-        # feed raw pointers to array data into galerkin.params
-        gp.LU      = &LU[0,0]
-        gp.p       = &p[0]
-        gp.mincols = &mincols[0]
-        gp.maxcols = &maxcols[0]
-        gp.qw      = &qw[0]
-        gp.psi     = &psi[0,0]
-        gp.psivis  = &psivis[0,0]
-        gp.tvis    = &tvis[0]
-        gp.tquad   = &tquad[0]
+        gp = galerkin.setup_instance(my_unique_id, integrator, rhs, w_arr, maxit, interp)
 
         if integrator == "dG":  # discontinuous Galerkin (recommended!)
             timestep_galerkin = galerkin.dG
@@ -865,7 +761,6 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
                 gp.t = (n-1)*dt
 
                 rhs.begin_timestep(n)
-
                 nits = timestep_galerkin( gp )
 
                 # update the iteration statistics
@@ -895,16 +790,15 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
                     if n >= save_from:
                         # Interpolate inside timestep using the Galerkin representation of the solution, obtaining more visualization points.
                         #
-                        puvis = &uvis[0,0]
                         pww = &ww[0,0]
-                        galerkin.assemble( &u[0,0], &psivis[0,0], puvis, &ucvis[0], n_space_dofs, n_time_dofs, interp )
+                        galerkin.assemble( gp.u, gp.psivis, gp.uvis, gp.ucvis, n_space_dofs, gp.n_time_dofs, interp )
                         noutput = n - cuimax(1, save_from)  # 0-based timestep number starting from the first saved one.
                                                                     # Note that n = 1, 2, ... (also store() depends on this numbering!)
                         out_start = offs + noutput*interp
                         for l in range(interp):
                             for j in range(n_space_dofs):
                                 # uvis: [nx,n_space_dofs]
-                                pww[(out_start+l)*n_space_dofs + j] = puvis[l*n_space_dofs + j]
+                                pww[(out_start+l)*n_space_dofs + j] = gp.uvis[l*n_space_dofs + j]
 
                         # Optionally output the time derivative of the state vector (obtained via f()).
                         #
@@ -913,8 +807,8 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
                         if pff:
                             rhs.begin_iteration(-1)  # iteration -1 = evaluating final result from this timestep
                             for l in range(interp):
-                                t = ((n-1) + tvis[l]) * dt
-                                rhs.call(&puvis[l*n_space_dofs + 0], wp, t)
+                                t = ((n-1) + gp.tvis[l]) * dt
+                                rhs.call(&gp.uvis[l*n_space_dofs + 0], wp, t)
                                 for j in range(n_space_dofs):
                                     pff[(out_start+l)*n_space_dofs + j] = wp[j]
 
@@ -931,7 +825,7 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
         failed_str = "" if totalfailed == 0 else "; last non-converged timestep %d" % (nfail)
         print( "    min/avg/max iterations taken = %d, %g, %d; total number of non-converged timesteps %d (%g%%)%s" % (int(min_taken_its), float(totalnits)/nt_taken, int(max_taken_its), totalfailed, 100.0*float(totalfailed)/nt_taken, failed_str) )
 
-        ghelper.free_storage(my_unique_id)
+        galerkin.teardown_instance(my_unique_id)
 
 
     # DEBUG/INFO: final value of w'

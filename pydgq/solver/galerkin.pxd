@@ -60,6 +60,7 @@ cdef class Params:
     cdef DTYPE_t* uass
     cdef DTYPE_t* ucorr
     cdef DTYPE_t* uvis
+    cdef DTYPE_t* ucvis
     cdef DTYPE_t* wrk       # work space for n_space_dofs items
 
     # global arrays (shared across all problems when using the same settings)

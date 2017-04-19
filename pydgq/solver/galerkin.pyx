@@ -468,7 +468,9 @@ class Helper:
     """Helper class to manage the Galerkin solver."""
 
     def __init__(self, q, method, nx, rule=None):
-        """Perform global initialization of the Galerkin solver.
+        """def __init__(self, q, method, nx, rule=None):
+
+        Perform global initialization of the Galerkin solver.
 
         This object must be instantiated before using the integrators "dG" or "cG".
         See the module-level global function init(), which does this.
@@ -799,7 +801,9 @@ class Helper:
         print( "        Banded solver detected bandwidths L=%d (lower bw), U=%d (upper bw)" % (bwL, bwU) )
 
     def allocate_storage(self, solver_id, n_space_dofs):
-        """Allocate and return per-problem storage.
+        """def allocate_storage(self, solver_id, n_space_dofs):
+
+        Allocate and return per-problem storage.
 
         This must be called separately for each problem that will be running simultaneously (even if same settings),
         as each problem instance needs its own work space.
@@ -858,9 +862,13 @@ class Helper:
 
 helper_instance = None
 def init(q=3, method="dG", nx=1, rule=None):
-    """Initialize Galerkin solver.
+    """def init(q=3, method="dG", nx=1, rule=None):
 
-    This function must be called before using the integrators "dG" or "cG".
+    Initialize Galerkin solver.
+
+    This function loads common precalculated data.
+
+    This must be called before using the integrators "dG" or "cG".
 
     During one session (run of the process), one initialization is enough for all simulations
     using the same method (combination of "q" and "method"). To change the settings, simply initialize again.
@@ -889,4 +897,107 @@ def init(q=3, method="dG", nx=1, rule=None):
     # TODO: relax the technical limitation on nx <-> interp
     global helper_instance
     helper_instance = Helper(q, method, nx, rule)
+
+
+def setup_instance(unique_id, str integrator, KernelBase rhs, DTYPE_t[::1] w_arr, int maxit, int interp):
+    """Problem instance specific setup for Galerkin solver.
+
+Allocates arrays.
+
+Internal method called by pydgq.solver.odesolve."""
+    global helper_instance
+
+    if helper_instance is None:
+        raise RuntimeError("%s: init() must be called first." % integrator)
+    if not helper_instance.available:
+        raise RuntimeError("%s: Cannot use Galerkin integrators because the auxiliary class did not initialize." % integrator)
+    if helper_instance.method != integrator:
+        raise RuntimeError("%s: Trying to integrate with %s, but the auxiliary class has been initialized for %s." % (integrator, integrator, helper_instance.method))
+    if helper_instance.nx != interp:  # TODO: relax this implementation-technical limitation
+        raise NotImplementedError("%s: interp = %d, but init() was last called with different nx = %d; currently this is not supported." % (integrator, interp, helper_instance.nx))
+
+    problem_specific_storage = helper_instance.allocate_storage(unique_id)
+
+    cdef int n_space_dofs = rhs.n
+    cdef int n_time_dofs  = helper_instance.n_time_dofs
+    cdef int n_quad       = helper_instance.rule   # number of quadrature points (Gauss-Legendre integration points)
+
+    cdef DTYPE_t* w = &w_arr[0]  # we only need a raw pointer
+
+    cdef Params gp = Params()
+
+    # fill in parameters to galerkin.params
+    gp.rhs          = rhs
+    gp.w            = w
+    gp.n_space_dofs = n_space_dofs
+    gp.n_time_dofs  = n_time_dofs
+    gp.n_quad       = n_quad
+    gp.maxit        = maxit
+
+    # retrieve instance arrays
+    #
+    cdef DTYPE_t[:,:,::1] g          = problem_specific_storage["g"]      # effective load vector, for each space DOF, for each time DOF, at each integration point
+    cdef DTYPE_t[:,::1]   b          = problem_specific_storage["b"]      # right-hand sides (integral, over the timestep, of g*psi)
+    cdef DTYPE_t[:,::1]   u          = problem_specific_storage["u"]      # Galerkin coefficients (unknowns)
+    cdef DTYPE_t[:,::1]   uprev      = problem_specific_storage["uprev"]  # Galerkin coefficients from previous iteration
+    cdef DTYPE_t[:,::1]   uass       = problem_specific_storage["uass"]   # u, assembled for integration
+    cdef DTYPE_t[::1]     ucorr      = problem_specific_storage["ucorr"]  # correction for compensated summation in galerkin.assemble() (for integration)
+    cdef DTYPE_t[:,::1]   uvis       = problem_specific_storage["uvis"]   # u, assembled for visualization
+    cdef DTYPE_t[::1]     ucvis      = problem_specific_storage["ucvis"]  # correction for compensated summation in galerkin.assemble() (for visualization)
+    cdef DTYPE_t[::1]     wrk_arr    = problem_specific_storage["wrk"]    # work space for dG(), cG()
+
+    # feed raw pointers to array data into galerkin.params
+    gp.g       = &g[0,0,0]
+    gp.b       = &b[0,0]
+    gp.u       = &u[0,0]
+    gp.uprev   = &uprev[0,0]
+    gp.uass    = &uass[0,0]
+    gp.ucorr   = &ucorr[0]
+    gp.uvis    = &uvis[0,0]
+    gp.ucvis   = &ucvis[0]
+    gp.wrk     = &wrk_arr[0]
+
+    # retrieve global arrays
+    #
+    cdef DTYPE_t[:,::1]   LU         = helper_instance.LU       # LU decomposed mass matrix (packed format), for one space DOF, shape (n_time_dofs, n_time_dofs)
+    cdef int[::1]         p          = helper_instance.p        # row permutation information, length n_time_dofs
+    cdef int[::1]         mincols    = helper_instance.mincols  # band information for L, length n_time_dofs
+    cdef int[::1]         maxcols    = helper_instance.maxcols  # band information for U, length n_time_dofs
+    cdef DTYPE_t[::1]     qw         = helper_instance.integ_w  # quadrature weights (Gauss-Legendre)
+    cdef DTYPE_t[:,::1]   psi        = helper_instance.integ_y  # basis function values at the quadrature points, qy[j,i] is N[j]( x[i] )
+    cdef DTYPE_t[:,::1]   psivis     = helper_instance.vis_y    # basis function values at the visualization points, qy[j,i] is N[j]( x[i] )
+    cdef DTYPE_t[::1]     tvis       = helper_instance.vis_x    # time values at the visualization points (on the reference element [-1,1])
+
+    # tvis: map [-1,1] --> [0,1] (reference element --> offset within timestep)
+    for j in range(n_time_dofs):
+        tvis[j] += 1.0
+        tvis[j] *= 0.5
+
+    # integration points (and do the same mapping also here)
+    cdef DTYPE_t[::1]     tquad = helper_instance.integ_x       # Gauss-Legendre points of the chosen rule, in (-1,1)
+    for j in range(n_quad):
+        tquad[j] += 1.0
+        tquad[j] *= 0.5
+
+    # feed raw pointers to array data into galerkin.params
+    gp.LU      = &LU[0,0]
+    gp.p       = &p[0]
+    gp.mincols = &mincols[0]
+    gp.maxcols = &maxcols[0]
+    gp.qw      = &qw[0]
+    gp.psi     = &psi[0,0]
+    gp.psivis  = &psivis[0,0]
+    gp.tvis    = &tvis[0]
+    gp.tquad   = &tquad[0]
+
+    return gp
+
+def teardown_instance(unique_id):
+    """Opposite of setup_instance().
+
+Frees memory.
+
+Internal method called by pydgq.solver.odesolve."""
+    global helper_instance
+    helper_instance.free_storage(unique_id)
 
