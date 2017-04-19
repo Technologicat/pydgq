@@ -169,9 +169,12 @@ cdef class GalerkinIntegrator(ImplicitIntegrator):
     #
     # Compared to the general-purpose assemble():
     #   - Only N[1] (the linear basis function associated with the endpoint) is nonzero at the endpoint.
-    #   - Its value there is exactly 1, so we can just take the corresponding Galerkin coefficient from u[] as the function value.
+    #   - Its value there is exactly 1, so we can just take the corresponding Galerkin coefficient from u[] as the function value
+    #     (no need to actually sum anything).
     #   - There are always at least 2 basis functions (the linear ones), so we don't need to check whether this basis function exists.
     #   - Here n_points is always 1.
+    #
+    # uass:   rank-1 array, size [n_space_dofs]:    output, values of u; uass[i] is u_i( x )
     #
     cdef void final_value( self, DTYPE_t* uass ) nogil:
         cdef unsigned int k
