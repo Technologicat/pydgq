@@ -2,9 +2,6 @@
 
 ### High priority
 
- - provide a mechanism for Python-level kernels `f()`
-   - see the discussion [Passing functions to Cython](https://groups.google.com/forum/#!topic/cython-users/nuMpfVeAUA0)
-   - better yet, [cdef classes](http://docs.cython.org/en/latest/src/tutorial/cdef_classes.html)
  - remove prints in normal operation
    - add some mechanism to report metadata to caller?
  - convert docstrings to NumpyDoc style
