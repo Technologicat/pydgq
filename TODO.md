@@ -2,6 +2,8 @@
 
 ### High priority
 
+ - ease of use: allow passing None for ww in ivp(); if so, create and return it
+ - use banded solver in builtin_kernels (trivial to do and likely improves speed)
  - write some usage examples
  - write some unit tests
    - linear problem? Known solution... (and good for testing the provided example kernels)
