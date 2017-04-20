@@ -686,7 +686,7 @@ Returns:
                 t = (n-1)*dt  # avoid accumulating error (don't sum; for very large t, this version will tick as soon as the floating-point representation allows it)
 
                 rhs.begin_timestep(n)
-                algo.call( w, t, dt )
+                nits = algo.call( w, t, dt )
 
                 # update the iteration statistics
                 #
