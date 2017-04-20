@@ -69,11 +69,11 @@ is not visible from the Python level. See the source code in
 pydgq.solvers.integrator_interface.pyx for details.
 
 Basically, when implementing a new algorithm, the derived cdef class
-should override the method
+should override the method:
 
     cdef int call(self, DTYPE_t* w, DTYPE_t t, DTYPE_t dt) nogil:
 
-where:
+where the parameters are:
     w  : in/out
         old state vector in -> new state vector out
     t  : in
@@ -81,6 +81,11 @@ where:
         to support RHS that explicitly depend on t)
     dt : in
         size of timestep to take
+
+and the return value is:
+    int :
+        number of implicit solve iterations taken for this timestep.
+        Explicit integrators must always return 1.
 """
         self.name = name
         self.rhs  = rhs

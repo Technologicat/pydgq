@@ -24,6 +24,8 @@ cdef class IntegratorBase:
     # t  : in: time at the beginning of the timestep (passed through to self.rhs.call())
     # dt : in: size of timestep to take
     #
+    # return value: number of implicit solve iterations taken for this timestep (explicit integrators must always return 1)
+    #
     cdef int call(self, DTYPE_t* w, DTYPE_t t, DTYPE_t dt) nogil
 
 # Base class for explicit integrators.
