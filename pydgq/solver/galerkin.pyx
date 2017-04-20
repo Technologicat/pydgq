@@ -62,7 +62,7 @@ Parameters:
 
         self.n_time_dofs  = datamanager.n_time_dofs
         self.n_quad       = datamanager.rule   # number of quadrature points (Gauss-Legendre integration points)
-        self.n_vis        = datamanager.nx
+        self.n_vis        = datamanager.nt_vis
 
         # allocate instance-specific arrays
         #
@@ -290,8 +290,8 @@ Time-discontinuous Galerkin.
     #    cdef DTYPE_t[:,::1]   uprev = np.empty( [n_space_dofs,n_time_dofs],        dtype=DTYPE, order="C" )  # Galerkin coefficients from previous iteration
     #    cdef DTYPE_t[:,::1]   uass  = np.empty( [n_quad,n_space_dofs],             dtype=DTYPE, order="C" )  # u, assembled for integration (this ordering needed for speed!)
     #    cdef DTYPE_t[::1]     ucorr = np.empty( [n_quad],                          dtype=DTYPE, order="C" )  # correction for compensated summation in assemble() (for integration)
-    #    cdef DTYPE_t[:,::1]   uvis  = np.empty( [nx,n_space_dofs],                 dtype=DTYPE, order="C" )  # u, assembled for visualization
-    #    cdef DTYPE_t[::1]     ucvis = np.empty( [nx],                              dtype=DTYPE, order="C" )  # correction for compensated summation in assemble() (for visualization)
+    #    cdef DTYPE_t[:,::1]   uvis  = np.empty( [nt_vis,n_space_dofs],             dtype=DTYPE, order="C" )  # u, assembled for visualization
+    #    cdef DTYPE_t[::1]     ucvis = np.empty( [nt_vis],                          dtype=DTYPE, order="C" )  # correction for compensated summation in assemble() (for visualization)
     #
     #    # global arrays, same for each solver instance (see galerkin.DataManager.load_data(), galerkin.DataManager.prep_solver())
     #    cdef RTYPE_t[:,::1] LU      = galerkin.datamanager.LU       # LU decomposed mass matrix (packed format), for one space DOF, shape (n_time_dofs, n_time_dofs)
@@ -452,8 +452,8 @@ This is almost the same code as dG, the only difference being in the handling of
     #    cdef DTYPE_t[:,::1]   uprev = np.empty( [n_space_dofs,n_time_dofs],        dtype=DTYPE, order="C" )  # Galerkin coefficients from previous iteration
     #    cdef DTYPE_t[:,::1]   uass  = np.empty( [n_quad,n_space_dofs],             dtype=DTYPE, order="C" )  # u, assembled for integration (this ordering needed for speed!)
     #    cdef DTYPE_t[::1]     ucorr = np.empty( [n_quad],                          dtype=DTYPE, order="C" )  # correction for compensated summation in assemble() (for integration)
-    #    cdef DTYPE_t[:,::1]   uvis  = np.empty( [nx,n_space_dofs],                 dtype=DTYPE, order="C" )  # u, assembled for visualization
-    #    cdef DTYPE_t[::1]     ucvis = np.empty( [nx],                              dtype=DTYPE, order="C" )  # correction for compensated summation in assemble() (for visualization)
+    #    cdef DTYPE_t[:,::1]   uvis  = np.empty( [nt_vis,n_space_dofs],             dtype=DTYPE, order="C" )  # u, assembled for visualization
+    #    cdef DTYPE_t[::1]     ucvis = np.empty( [nt_vis],                          dtype=DTYPE, order="C" )  # correction for compensated summation in assemble() (for visualization)
     #
     #    # global arrays, same for each solver instance (see galerkin.DataManager.load_data(), galerkin.DataManager.prep_solver())
     #    cdef RTYPE_t[:,::1] LU      = galerkin.datamanager.LU       # LU decomposed mass matrix (packed format), for one space DOF, shape (n_time_dofs, n_time_dofs)
@@ -630,8 +630,8 @@ This is almost the same code as dG, the only difference being in the handling of
 class DataManager:
     """Helper class to manage the Galerkin solver."""
 
-    def __init__(self, q, method, nx, rule=None):
-        """def __init__(self, q, method, nx, rule=None):
+    def __init__(self, q, method, nt_vis, rule=None):
+        """def __init__(self, q, method, nt_vis, rule=None):
 
 Perform global initialization of the Galerkin solver.
 
@@ -668,14 +668,14 @@ Parameters:
             more intuitive for visualization, but note that usually the approximation
             is much worse than with dG.
 
-    nx : int
+    nt_vis : int
         Number of visualization points per computed timestep.
 
         This corresponds to the parameter "interp" of odesolve.result_len(),
         odesolve.make_tt() and odesolve.ivp().
 
         !!! Currently, the value of interp in all subsequent calls to odesolve.ivp() must be the same
-            as the value of nx passed here. This is a implementation-technical limitation
+            as the value of nt_vis passed here. This is a implementation-technical limitation
             that may be removed in the future. !!!
 
     rule : int or None
@@ -687,15 +687,15 @@ Parameters:
 
         if q < 1:
             raise ValueError( "q must be >= 1; got %d" % (q) )
-        if nx < 1:
-            raise ValueError( "nx must be >= 1; got %d" % (nx) )
+        if nt_vis < 1:
+            raise ValueError( "nt_vis must be >= 1; got %d" % (nt_vis) )
         if method not in ["dG", "cG"]:
             raise ValueError( "Unknown method '%s'; valid: 'dG', 'cG'" % (method) )
 
         self.method      = method
-        self.q           = q    # degree of basis
-        self.n_time_dofs = q+1  # the hierarchical basis of degree q has q+1 degrees of freedom.
-        self.nx          = nx   # number of visualization points per timestep
+        self.q           = q       # degree of basis
+        self.n_time_dofs = q+1     # the hierarchical basis of degree q has q+1 degrees of freedom.
+        self.nt_vis      = nt_vis  # number of visualization points per timestep
 
         try:
             self.__load_data(rule)
@@ -715,7 +715,7 @@ Parameters:
             # precomputed data for timestep visualization
             self.vis_x       = None   # visualization points (time values on reference element [-1,1])
             self.vis_y       = None   # values of basis functions at visualization points
-            self.nx          = None   # number of visualization points within each timestep
+            self.nt_vis      = None   # number of visualization points within each timestep
 
             self.q           = None   # degree of basis
             self.n_time_dofs = None   # number of "time degrees of freedom" for each "space degree of freedom"
@@ -751,7 +751,7 @@ Parameters:
 """
         q           = self.q
         n_time_dofs = self.n_time_dofs
-        nx          = self.nx
+        nt_vis      = self.nt_vis
 
         # TODO: use pkg_resources to find installed data file
 
@@ -763,23 +763,23 @@ Parameters:
             print( "    Cannot find data file '%s'. The file can be generated by running the module pydqg.solver.precalc as the main program." % (filename), file=sys.stderr )
             raise
 
-        maxq    = data["maxq"]
-        maxnx   = data["vis"]["maxnx"]
-        maxrule = data["integ"]["maxrule"]
+        maxq      = data["maxq"]
+        maxnt_vis = data["vis"]["maxnx"]
+        maxrule   = data["integ"]["maxrule"]
 
         # save maximum values available in data file, for information
         #
-        self.maxq    = maxq
-        self.maxnx   = maxnx
-        self.maxrule = maxrule
+        self.maxq      = maxq
+        self.maxnt_vis = maxnt_vis
+        self.maxrule   = maxrule
 
         # Sanity check that we have enough data available
         #
         if q > maxq:
             raise ValueError("Data file '%s' contains data up to degree maxq=%d, but the requested degree was higher, q=%d. Use a lower q or re-run pydqg.solver.precalc for higher maxq." % (filename, maxq, q))
-        needx = nx+1 if self.method == "cG" else nx  # "visualization" points are used for evaluating the result inside the timestep (see parameter "interp" of odesolve.result_len() and odesolve.ivp()).
-        if needx > maxnx:
-            raise ValueError("Data file '%s' contains data up to visualization maxnx=%d, but the needed number of points is higher, %d. Use a lower nx or re-run pydqg.solver.precalc for higher maxnx." % (filename, maxnx, needx))
+        needx = nt_vis+1 if self.method == "cG" else nt_vis  # "visualization" points are used for evaluating the result inside the timestep (see parameter "interp" of odesolve.result_len() and odesolve.ivp()).
+        if needx > maxnt_vis:
+            raise ValueError("Data file '%s' contains data up to visualization maxnt_vis=%d, but the needed number of points is higher, %d. Use a lower nt_vis or re-run pydqg.solver.precalc for higher maxnx (same thing as our maxnt_vis)." % (filename, maxnt_vis, needx))
         if rule is not None and rule > maxrule:
             raise ValueError("Data file '%s' contains data for integration rules up to order %d, but the requested order was higher, rule=%d. Use a lower rule." % (filename, maxrule, rule))
 
@@ -813,18 +813,18 @@ Parameters:
             #
             #  The start-of-next-timestep point represents the limit from the right.)
             #
-            # Thus, we just take the subdivision that has nx points (including both endpoints).
+            # Thus, we just take the subdivision that has nt_vis points (including both endpoints).
             #
-            vis = data["vis"][nx]
+            vis = data["vis"][nt_vis]
 
         else: # self.method == "cG":
             # In cG, the endpoint of timestep n is the start point of timestep n+1.
             # Avoid visualizing it twice.
             #
             # To get the desired number of points, take one more, and then discard the start point,
-            # obtaining nx unique points.
+            # obtaining nt_vis unique points.
             #
-            vis = data["vis"][nx+1]
+            vis = data["vis"][nt_vis+1]
             vis["x"] = vis["x"][1:]
             vis["y"] = vis["y"][:,1:]
 
@@ -955,11 +955,11 @@ Parameters:
         assert self.__storage is not None
         assert self.n_time_dofs is not None
         assert self.rule is not None
-        assert self.nx is not None
+        assert self.nt_vis is not None
 
         n_time_dofs = self.n_time_dofs
         n_quad      = self.rule  # Gauss-Legendre has as many quadrature points as the order of the rule being used.
-        nx          = self.nx
+        nt_vis      = self.nt_vis
 
         cdef DTYPE_t[:,:,::1] g     = np.empty( [n_space_dofs,n_time_dofs,n_quad], dtype=DTYPE, order="C" )  # effective load vector, for each space DOF, for each time DOF, at each integration point
         cdef DTYPE_t[:,::1]   b     = np.empty( [n_space_dofs,n_time_dofs],        dtype=DTYPE, order="C" )  # right-hand sides (integral, over the timestep, of g*psi)
@@ -967,8 +967,8 @@ Parameters:
         cdef DTYPE_t[:,::1]   uprev = np.empty( [n_space_dofs,n_time_dofs],        dtype=DTYPE, order="C" )  # Galerkin coefficients from previous iteration
         cdef DTYPE_t[:,::1]   uass  = np.empty( [n_quad,n_space_dofs],             dtype=DTYPE, order="C" )  # u, assembled for integration (this ordering needed for speed!)
         cdef DTYPE_t[::1]     ucorr = np.empty( [n_quad],                          dtype=DTYPE, order="C" )  # correction for compensated summation in assemble() (for integration)
-        cdef DTYPE_t[:,::1]   uvis  = np.empty( [nx,n_space_dofs],                 dtype=DTYPE, order="C" )  # u, assembled for visualization
-        cdef DTYPE_t[::1]     ucvis = np.empty( [nx],                              dtype=DTYPE, order="C" )  # correction for compensated summation in assemble() (for visualization)
+        cdef DTYPE_t[:,::1]   uvis  = np.empty( [nt_vis,n_space_dofs],             dtype=DTYPE, order="C" )  # u, assembled for visualization
+        cdef DTYPE_t[::1]     ucvis = np.empty( [nt_vis],                          dtype=DTYPE, order="C" )  # correction for compensated summation in assemble() (for visualization)
         cdef DTYPE_t[::1]     wrk   = np.empty( [n_space_dofs],                    dtype=DTYPE, order="C" )  # work space for dG(), cG()
 
         items = {}
@@ -998,8 +998,8 @@ Parameters:
 
 
 datamanager = None
-def init(q=3, method="dG", nx=1, rule=None):
-    """def init(q=3, method="dG", nx=1, rule=None):
+def init(q=3, method="dG", nt_vis=1, rule=None):
+    """def init(q=3, method="dG", nt_vis=1, rule=None):
 
 Initialize Galerkin solver.
 
@@ -1020,18 +1020,18 @@ Parameters (see DataManager.__init__ for full description):
     method : str
         Which Galerkin method to use.
 
-    nx : int, >= 1
+    nt_vis : int, >= 1
         Number of visualization points per computed timestep.
 
          !!! Currently, the value of interp in all subsequent calls to odesolve.ivp() must be the same
-             as the value of nx passed here. This is a implementation-technical limitation
+             as the value of nt_vis passed here. This is a implementation-technical limitation
              that may be removed in the future. !!!
 
     rule : int or None
         Order of the Gauss-Legendre quadrature to use for integrating the load vector.
         None = highest available.
 """
-    # TODO: relax the technical limitation on nx <-> interp
+    # TODO: relax the technical limitation on nt_vis <-> interp
     global datamanager
-    datamanager = DataManager(q, method, nx, rule)
+    datamanager = DataManager(q, method, nt_vis, rule)
 

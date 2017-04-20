@@ -174,7 +174,7 @@ Parameters:
         This sets the number of result points that will be generated
         per computed timestep.
 
-        The maximum allowed value for interp is galerkin.datamanager.maxnx
+        The maximum allowed value for interp is galerkin.datamanager.maxnt_vis
         (initialized when galerkin.init() loads its data file).
 
         interp=1 means that only the value at the endpoint
@@ -697,8 +697,8 @@ Return value:
 
         # final sanity check
         #
-        if galerkin.datamanager.nx != interp:  # TODO: relax this implementation-technical limitation
-            raise NotImplementedError("%s: interp = %d, but galerkin.init() was last called with different nx = %d; currently this is not supported." % (integrator, interp, galerkin.datamanager.nx))
+        if galerkin.datamanager.nt_vis != interp:  # TODO: relax this implementation-technical limitation
+            raise NotImplementedError("%s: interp = %d, but galerkin.init() was last called with different nt_vis = %d; currently this is not supported." % (integrator, interp, galerkin.datamanager.nt_vis))
 
         with nogil:
             for n in range(1,nt+1):
@@ -742,7 +742,7 @@ Return value:
                             t = ((n-1) + algo_g.tvis[l]) * dt
                             ptt[(out_start+l)] = t
                             for j in range(n_space_dofs):
-                                # uvis: [nx,n_space_dofs]
+                                # uvis: [nt_vis,n_space_dofs]
                                 pww[(out_start+l)*n_space_dofs + j] = algo_g.uvis[l*n_space_dofs + j]
 
                         # Optionally output the time derivative of the state vector (obtained via f()).

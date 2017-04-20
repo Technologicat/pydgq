@@ -42,15 +42,15 @@ save_from = 0
 dt = 1.0  # dG can typically use huge timesteps
 
 if integrator_to_test in ["dG", "cG"]:
-    nx_vis = 11  # visualization points per timestep in Galerkin methods
+    nt_vis = 11  # visualization points per timestep in Galerkin methods
 else:
-    nx_vis = 1   # other methods compute only the end value for each timestep
+    nt_vis = 1   # other methods compute only the end value for each timestep
 
 
 def test():
     n_saved_timesteps = pydgq.solver.odesolve.n_saved_timesteps( nt, save_from )
-    result_len        = pydgq.solver.odesolve.result_len( nt, save_from, interp=nx_vis )
-    startj,endj       = pydgq.solver.odesolve.timestep_boundaries( nt, save_from, interp=nx_vis )
+    result_len        = pydgq.solver.odesolve.result_len( nt, save_from, interp=nt_vis )
+    startj,endj       = pydgq.solver.odesolve.timestep_boundaries( nt, save_from, interp=nt_vis )
 
     n   = 3  # number of DOFs in the 1st-order system
     w0  = np.zeros( (n,), dtype=DTYPE, order="C" )  # a trivial IC
@@ -66,7 +66,7 @@ def test():
     # solve problem
     ww,tt = pydgq.solver.odesolve.ivp( integrator=integrator_to_test, allow_denormals=False,
                                        w0=w0, dt=dt, nt=nt,
-                                       save_from=save_from, interp=nx_vis,
+                                       save_from=save_from, interp=nt_vis,
                                        rhs=rhs,
                                        ww=ww, ff=ff, fail=fail,
                                        maxit=100 )
@@ -93,7 +93,7 @@ def test():
 if __name__ == '__main__':
     # initialize Galerkin integrators
     if integrator_to_test in ["dG", "cG"]:
-        init(q=q, method=integrator_to_test, nx=nx_vis, rule=None)
+        init(q=q, method=integrator_to_test, nt_vis=nt_vis, rule=None)
 
     test()
     plt.show()

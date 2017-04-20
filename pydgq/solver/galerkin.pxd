@@ -19,8 +19,8 @@ from pydgq.solver.integrator_interface cimport ImplicitIntegrator
 #    cdef DTYPE_t[:,::1]   uprev = np.empty( [n_space_dofs,n_time_dofs],        dtype=DTYPE, order="C" )  # Galerkin coefficients from previous iteration
 #    cdef DTYPE_t[:,::1]   uass  = np.empty( [n_quad,n_space_dofs],             dtype=DTYPE, order="C" )  # u, assembled for integration (this ordering needed for speed!)
 #    cdef DTYPE_t[::1]     ucorr = np.empty( [n_quad],                          dtype=DTYPE, order="C" )  # correction for compensated summation in assemble() (for integration)
-#    cdef DTYPE_t[:,::1]   uvis  = np.empty( [nx,n_space_dofs],                 dtype=DTYPE, order="C" )  # u, assembled for visualization
-#    cdef DTYPE_t[::1]     ucvis = np.empty( [nx],                              dtype=DTYPE, order="C" )  # correction for compensated summation in assemble() (for visualization)
+#    cdef DTYPE_t[:,::1]   uvis  = np.empty( [nt_vis,n_space_dofs],             dtype=DTYPE, order="C" )  # u, assembled for visualization
+#    cdef DTYPE_t[::1]     ucvis = np.empty( [nt_vis],                          dtype=DTYPE, order="C" )  # correction for compensated summation in assemble() (for visualization)
 #
 #    # global arrays, same for each solver instance (see galerkin.DataManager.load_data(), galerkin.DataManager.prep_solver())
 #    cdef RTYPE_t[:,::1] LU      = galerkin.datamanager.LU       # LU decomposed mass matrix (packed format), for one space DOF, shape (n_time_dofs, n_time_dofs)
