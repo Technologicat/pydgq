@@ -559,7 +559,7 @@ Returns:
 
     cdef int n_slots = result_len( nt, save_from, interp )  # only needed for sanity check
     if ww.shape[0] != n_slots:
-        raise ValueError( "shape of output array ww not compatible with length of output: shape(ww)[0] = %d, but %d timesteps are to be saved" % (ww.shape[0], n_slots) )
+        raise ValueError( "shape of output array ww not compatible with length of output: shape(ww)[0] = %d, but %d values are to be saved" % (ww.shape[0], n_slots) )
     cdef int n_space_dofs = w0.shape[0]  # this is actually needed below
     if ww.shape[1] != n_space_dofs:
         raise ValueError( "shape of output array ww not compatible with n_space_dofs: shape(ww)[1] = %d, but n_space_dofs = %d" % (ww.shape[1], n_space_dofs) )
