@@ -58,7 +58,7 @@ The problem reads
 Trivial example to invoke this kernel:
 
     from pydgq.solver.builtin_kernels import Linear1stOrderKernel
-    from pydgq.odesolve import ivp
+    from pydgq.solver.odesolve import ivp
 
     n   = 3  # number of DOFs in your 1st-order system
     w0  = np.ones( (n,), dtype=np.float64, order="C" )  # your IC here
@@ -118,7 +118,7 @@ This class obtains w' by first computing A w', and then solving a linear equatio
 Trivial example to invoke this kernel:
 
     from pydgq.solver.builtin_kernels import Linear1stOrderKernelWithMassMatrix
-    from pydgq.odesolve import ivp
+    from pydgq.solver.odesolve import ivp
 
     n   = 3  # number of DOFs in your 1st-order system
     w0  = np.ones( (n,), dtype=np.float64, order="C" )  # your IC here
@@ -183,7 +183,7 @@ The parameter n specifies the size of the *1st-order* system; n is always even.
 Trivial example to invoke this kernel:
 
     from pydgq.solver.builtin_kernels import Linear2ndOrderKernel
-    from pydgq.odesolve import ivp
+    from pydgq.solver.odesolve import ivp
 
     m   = 3        # number of DOFs in your 2nd-order system here
     n   = 2*m      # corresponding number of DOFs in the reduced 1st-order system (always 2*m)
@@ -266,7 +266,7 @@ the other m DOFs (u') are obtained directly.
 Trivial example to invoke this kernel:
 
     from pydgq.solver.builtin_kernels import Linear2ndOrderKernelWithMassMatrix
-    from pydgq.odesolve import ivp
+    from pydgq.solver.odesolve import ivp
 
     m   = 3        # number of DOFs in your 2nd-order system here
     n   = 2*m      # corresponding number of DOFs in the reduced 1st-order system (always 2*m)
