@@ -17,8 +17,8 @@ import numpy as np
 import sympy.mpmath
 
 from pydgq.solver.types import RTYPE  # the precalc data is always real-valued regardless of DTYPE
-import pydgq.utils.mpi_shim
-import pydgq.utils.listutils
+import pydgq.utils.mpi_shim as mpi_shim
+import pydgq.utils.listutils as listutils
 
 # version of precalc.py (this is NOT the version of the pydgq package)
 __version__ = "1.0.1"
