@@ -13,8 +13,8 @@ import functools  # reduce (Python 3 compatibility)
 import numpy as np
 import sympy.mpmath
 
-import mpi_shim
-import listutils
+import pydgq.utils.mpi_shim
+import pydgq.utils.listutils
 
 # version of precalc.py (this is NOT the version of the pydgq package)
 __version__ = "1.0.1"
