@@ -58,7 +58,7 @@ Parameters:
             raise RuntimeError("%s: Trying to integrate with %s, but the auxiliary class has been initialized for %s." % (name, name, datamanager.method))
 
         # super
-        ImplicitIntegrator.__init__(name, rhs, maxit)
+        ImplicitIntegrator.__init__(self, name, rhs, maxit)
 
         self.n_time_dofs  = datamanager.n_time_dofs
         self.n_quad       = datamanager.rule   # number of quadrature points (Gauss-Legendre integration points)
