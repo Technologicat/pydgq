@@ -75,7 +75,7 @@ def test():
     plt.figure(1)
     plt.clf()
 
-    tt = pydgq.solver.odesolve.make_tt( dt, nt, save_from, interp=nx_vis, out=None )  # out=None --> create a new array and return it
+    tt = pydgq.solver.odesolve.make_tt( dt, nt, save_from, interp=nx_vis, integrator=integrator_to_test, out=None )  # out=None --> create a new array and return it
 
     # show the discontinuities at timestep boundaries if using dG
     if integrator_to_test == "dG":

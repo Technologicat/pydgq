@@ -299,12 +299,20 @@ Returns:
     return (np.asanyarray(startj), np.asanyarray(endj))
 
 
-def make_tt( double dt, int nt, int save_from, int interp=1, out=None ):
-    """def make_tt( double dt, int nt, int save_from, int interp=1, out=None ):
+def make_tt( double dt, int nt, int save_from, int interp=1, integrator="other", out=None ):
+    """def make_tt( double dt, int nt, int save_from, int interp=1, integrator="other", out=None ):
 
 Generate rank-1 np.array of the time values that correspond to the solution values output by ivp().
 
 Parameters:
+    integrator : str
+        One of:
+            "cG" : continuous Galerkin
+                This has different handling of visualization points, so must be specified.
+
+            any other string : (default: "other")
+                Any method except cG.
+
     out : rank-1 np.array or None.
          If None:
             tt will be created and returned.
@@ -334,9 +342,14 @@ Returns:
     # TODO: Currently this function has no access to it, because the galerkin.datamanager instance does not (necessarily) exist at this time (or may have different settings, even if it exists).
 
     # "local" time values, i.e. offsets in [0,1] inside one timestep
-    cdef DTYPE_t[::1] tloc = np.linspace(0.0, 1.0, interp)
+    cdef DTYPE_t[::1] tloc
     if interp == 1:  # special case: for one point, linspace gives the beginning of the range, but we want the end
-        tloc[0] = 1.0
+        tloc = np.array( (1.0,) )
+    else:
+        if integrator == "cG":
+            tloc = np.linspace(0.0, 1.0, interp+1)[1:]  # cG special case: cut away duplicate point at the beginning of the timestep
+        else:
+            tloc = np.linspace(0.0, 1.0, interp)  # dG
 
     # global time values
     cdef DTYPE_t[::1] tt
