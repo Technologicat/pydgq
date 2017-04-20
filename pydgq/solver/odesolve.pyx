@@ -379,11 +379,11 @@ Returns:
 #########################################################################################
 
 # TODO: add convergence tolerance (needs some changes in implicit.pyx and galerkin.pyx (basically wherever "maxit" is used))
-def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt, int save_from, int interp,
-         KernelBase rhs, DTYPE_t[:,::1] ww, DTYPE_t[:,::1] ff, int[::1] fail, double RK2_beta=1.0,
+def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0 not None, double dt, int nt, int save_from, int interp,
+         KernelBase rhs, DTYPE_t[:,::1] ww not None, DTYPE_t[:,::1] ff, int[::1] fail, double RK2_beta=1.0,
          int maxit=100 ):
-    """def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt, int save_from, int interp,
-         KernelBase rhs, DTYPE_t[:,::1] ww, DTYPE_t[:,::1] ff, int[::1] fail, double RK2_beta=1.0,
+    """def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0 not None, double dt, int nt, int save_from, int interp,
+         KernelBase rhs, DTYPE_t[:,::1] ww not None, DTYPE_t[:,::1] ff, int[::1] fail, double RK2_beta=1.0,
          int maxit=100 ):
 
 Solve initial value problem.
@@ -516,7 +516,9 @@ Parameters:
     ff : DTYPE_t[:,::1] of size [result_len(),n_space_dofs] or None
         If not None, output array for w' (the time derivative of w).
 
-    fail : int[::1] of size [result_len(),] or None.
+    fail : int[::1] of size [n_saved_timesteps(),] or None.
+        (NOTE: size on axis 0 different from that of ww and ff! One entry per timestep, regardless of interp.)
+
         If not None, output array for status flag for each timestep:
             0 = converged to machine precision
             1 = did not converge to machine precision
