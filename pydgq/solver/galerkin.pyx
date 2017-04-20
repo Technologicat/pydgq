@@ -838,17 +838,23 @@ Parameters:
         #   - DTYPE_t in the cdef vs. DTYPE in the Python call to np.empty()
         #   - C storage order
         #
-        cdef DTYPE_t[::1]   integ_x = np.empty( [ rule ],              dtype=DTYPE, order="C" )
-        cdef DTYPE_t[::1]   integ_w = np.empty( [ rule ],              dtype=DTYPE, order="C" )
-        cdef DTYPE_t[:,::1] integ_y = np.empty( [ n_time_dofs, rule ], dtype=DTYPE, order="C" )
-        cdef DTYPE_t[::1]   vis_x   = np.empty( [ nx ],                dtype=DTYPE, order="C" )
-        cdef DTYPE_t[:,::1] vis_y   = np.empty( [ n_time_dofs, nx ],   dtype=DTYPE, order="C" )
+#        cdef DTYPE_t[::1]   integ_x = np.empty( [ rule ],              dtype=DTYPE, order="C" )
+#        cdef DTYPE_t[::1]   integ_w = np.empty( [ rule ],              dtype=DTYPE, order="C" )
+#        cdef DTYPE_t[:,::1] integ_y = np.empty( [ n_time_dofs, rule ], dtype=DTYPE, order="C" )
+#        cdef DTYPE_t[::1]   vis_x   = np.empty( [ nx ],                dtype=DTYPE, order="C" )
+#        cdef DTYPE_t[:,::1] vis_y   = np.empty( [ n_time_dofs, nx ],   dtype=DTYPE, order="C" )
+#
+#        integ_x[:]   = integ["x"][:]
+#        integ_y[:,:] = integ["y"][:,:]
+#        integ_w[:]   = integ["w"][:]
+#        vis_x[:]     = vis["x"][:]
+#        vis_y[:,:]   = vis["y"][:,:]
 
-        integ_x[:]   = integ["x"][:]
-        integ_y[:,:] = integ["y"][:,:]
-        integ_w[:]   = integ["w"][:]
-        vis_x[:]     = vis["x"][:]
-        vis_y[:,:]   = vis["y"][:,:]
+        cdef DTYPE_t[::1]   integ_x = integ["x"].copy(order="C")
+        cdef DTYPE_t[::1]   integ_w = integ["w"].copy(order="C")
+        cdef DTYPE_t[:,::1] integ_y = integ["y"].copy(order="C")
+        cdef DTYPE_t[::1]   vis_x   = vis["x"].copy(order="C")
+        cdef DTYPE_t[:,::1] vis_y   = vis["y"].copy(order="C")
 
         self.integ_x = integ_x
         self.integ_y = integ_y
