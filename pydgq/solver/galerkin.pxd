@@ -55,13 +55,13 @@ cdef class GalerkinIntegrator(ImplicitIntegrator):
     cdef int* maxcols
 
     cdef int n_quad         # number of integration points in the Gauss-Legendre rule
-    cdef RTYPE_t* qw        # quadrature weights
     cdef RTYPE_t* tquad     # integration points, **scaled to [0,1]**
+    cdef RTYPE_t* qw        # quadrature weights
+    cdef RTYPE_t* psi       # basis function values at integration points
 
-    cdef RTYPE_t* psi
-    cdef RTYPE_t* psivis
-
+    cdef int n_vis
     cdef RTYPE_t* tvis      # visualization points (accounting for the interp parameter), **scaled to [0,1]**
+    cdef RTYPE_t* psivis    # basis function values at visualization points
 
     # helper methods:
 

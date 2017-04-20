@@ -62,6 +62,7 @@ Parameters:
 
         self.n_time_dofs  = datamanager.n_time_dofs
         self.n_quad       = datamanager.rule   # number of quadrature points (Gauss-Legendre integration points)
+        self.n_vis        = datamanager.nx
 
         # allocate instance-specific arrays
         #
@@ -120,7 +121,7 @@ Parameters:
 
         # map tvis and tquad: [-1,1] --> [0,1] (reference element --> offset within timestep)
         cdef unsigned int j
-        for j in range(self.n_time_dofs):
+        for j in range(self.n_vis):
             tvis[j] += 1.0
             tvis[j] *= 0.5
         for j in range(self.n_quad):

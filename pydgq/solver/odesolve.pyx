@@ -76,9 +76,10 @@ import  pydgq.solver.galerkin as galerkin
 #
 # Galerkin integrators have their own implementation that accounts for interp.
 #
-# wrk must have space for n_space_dofs items.
+# - t is the time value at the point where the solution is being stored.
+# - wrk must have space for n_space_dofs items.
 #
-cdef inline void store( DTYPE_t* w, int n_space_dofs, int timestep, RTYPE_t t, int save_from, DTYPE_t* ww, KernelBase rhs, DTYPE_t* ff, int* pfail, int failure, DTYPE_t* wrk ) nogil:
+cdef inline void store( DTYPE_t* w, int n_space_dofs, int timestep, RTYPE_t t, int save_from, DTYPE_t* ww, RTYPE_t* tt, KernelBase rhs, DTYPE_t* ff, int* pfail, int failure, DTYPE_t* wrk ) nogil:
     cdef unsigned int n, j
     cdef DTYPE_t* wp = wrk
 
@@ -91,6 +92,7 @@ cdef inline void store( DTYPE_t* w, int n_space_dofs, int timestep, RTYPE_t t, i
         n = timestep - save_from
 
         # Write output.
+        tt[n] = t
         for j in range(n_space_dofs):
             ww[n*n_space_dofs + j] = w[j]
 
@@ -299,104 +301,16 @@ Returns:
     return (np.asanyarray(startj), np.asanyarray(endj))
 
 
-def make_tt( RTYPE_t dt, int nt, int save_from, int interp=1, integrator="other", out=None ):
-    """def make_tt( RTYPE_t dt, int nt, int save_from, int interp=1, integrator="other", out=None ):
-
-Generate rank-1 np.array of the time values that correspond to the solution values output by ivp().
-
-Parameters:
-    integrator : str
-        One of:
-            "cG" : continuous Galerkin
-                This has different handling of visualization points, so must be specified.
-
-            any other string : (default: "other")
-                Any method except cG.
-
-    out : rank-1 np.array or None.
-         If None:
-            tt will be created and returned.
-         If supplied:
-            The user-given array will be filled in. No bounds checking - make sure it is large enough!
-
-    For the other parameters, see result_len().
-
-Returns:
-    rank-1 np.array of RTYPE:
-        The time values.
-"""
-    if dt == 0.0:
-        raise ValueError( "dt cannot be zero" )
-    if nt < 1:
-        raise ValueError( "nt must be >= 1, got %d" % (nt) )
-    if save_from < 0:
-        raise ValueError( "save_from must be >= 0, got %d" % (save_from) )
-    if save_from > nt:
-        raise ValueError( "save_from must be <= nt, otherwise nothing to do; got save_from = %d, nt = %d" % (save_from, nt) )
-    if interp < 1:
-        raise ValueError( "interp must be >= 1, got %d" % (interp) )
-
-    cdef unsigned int n, k, offs, start, end
-
-    # TODO: Use vis_x from integrator (gives the actually used time offsets on the reference element [-1,1], map this to [0,1] to reliably get what we need here)
-    # TODO: Currently this function has no access to it, because the galerkin.datamanager instance does not (necessarily) exist at this time (or may have different settings, even if it exists).
-
-    # "local" time values, i.e. offsets in [0,1] inside one timestep
-    cdef RTYPE_t[::1] tloc
-    if interp == 1:  # special case: for one point, linspace gives the beginning of the range, but we want the end
-        tloc = np.array( (1.0,), dtype=RTYPE )
-    else:
-        if integrator == "cG":
-            tloc = np.linspace(0.0, 1.0, interp+1, dtype=RTYPE)[1:]  # cG special case: cut away duplicate point at the beginning of the timestep
-        else:
-            tloc = np.linspace(0.0, 1.0, interp, dtype=RTYPE)  # dG
-
-    # global time values
-    cdef RTYPE_t[::1] tt
-    if out is None:
-        nvals = result_len( nt, save_from, interp )
-        tt = np.empty( [nvals], dtype=RTYPE, order="C" )
-    else:
-        tt = out
-
-    if save_from == 0:
-        tt[0] = 0.0  # initial condition occurs at t=0
-        offs = 1  # one output slot was taken; shift the rest when writing
-    else:
-        offs = 0
-
-    # avoid allocating extra memory using a compiled C loop
-    cdef RTYPE_t startt
-    with nogil:
-        # Loop over the timesteps.
-        #
-        # save_from = 0  -->  initial condition, nt steps (corrected for by offs)
-        # save_from = 1  -->  nt steps (discard IC)
-        # save_from = 2  -->  nt-1 steps (discard IC and first step)
-        # ...
-        #
-        startt = (cuimax(1, save_from) - 1)*dt
-        for n in range(nt - (cuimax(1, save_from) - 1)):
-            # Loop over visualization points in the timestep.
-            #
-            start = offs  + n*interp
-            end   = start +   interp  # actually one-past-end
-            for k in range(end - start):
-                tt[start + k] = startt + (<RTYPE_t>(n) + tloc[k])*dt
-
-    return np.asanyarray(tt)
-
-
 #########################################################################################
 # Integrator
 #########################################################################################
 
 # TODO: add convergence tolerance (needs some changes in implicit.pyx and galerkin.pyx (basically wherever "maxit" is used))
 def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0 not None, RTYPE_t dt, int nt, int save_from, int interp,
-         KernelBase rhs, DTYPE_t[:,::1] ww not None, DTYPE_t[:,::1] ff, int[::1] fail, RTYPE_t RK2_beta=1.0,
+         KernelBase rhs, DTYPE_t[:,::1] ww, DTYPE_t[:,::1] ff, int[::1] fail, RTYPE_t RK2_beta=1.0,
          int maxit=100 ):
     """def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0 not None, RTYPE_t dt, int nt, int save_from, int interp,
-         KernelBase rhs, DTYPE_t[:,::1] ww not None, DTYPE_t[:,::1] ff, int[::1] fail, RTYPE_t RK2_beta=1.0,
+         KernelBase rhs, DTYPE_t[:,::1] ww, DTYPE_t[:,::1] ff, int[::1] fail, RTYPE_t RK2_beta=1.0,
          int maxit=100 ):
 
 Solve initial value problem.
@@ -523,13 +437,17 @@ Parameters:
     rhs : instance of class derived from KernelBase
         Kernel implementing the right-hand side of  u' = f(u, t)
 
-    ww : DTYPE_t[:,::1] of size [result_len(),n_space_dofs]
-        Output array for w
+    ww : DTYPE_t[:,::1] of size [result_len(),n_space_dofs] or None
+        Output array for w.
+         If None:
+            Will be created and returned.
+         If supplied:
+            The user-given array will be filled in. No bounds checking - make sure it is large enough!
 
     ff : DTYPE_t[:,::1] of size [result_len(),n_space_dofs] or None
         If not None, output array for w' (the time derivative of w).
 
-    fail : int[::1] of size [n_saved_timesteps(),] or None.
+    fail : int[::1] of size [n_saved_timesteps(),] or None
         (NOTE: size on axis 0 different from that of ww and ff! One entry per timestep, regardless of interp.)
 
         If not None, output array for status flag for each timestep:
@@ -545,8 +463,14 @@ Parameters:
 
         Only meaningful if an implicit integrator is used (BE, IMR, dG, cG).
 
-Returns:
-    None
+Return value:
+    tuple (ww, tt):
+        ww : DTYPE_t[:,::1] of size [result_len(),n_space_dofs]
+            Solution.
+            If input ww is not None, it is passed through here.
+            If input ww is None, the created array is returned here.
+        tt : DTYPE_t[::1] of size [result_len()]
+            Time values corresponding to the solution values in ww.
 """
     # Parameter validation
     #
@@ -572,12 +496,13 @@ Returns:
     if maxit < 1:
         raise ValueError( "maxit must be >= 1, got %d" % (maxit) )
 
-    cdef int n_slots = result_len( nt, save_from, interp )  # only needed for sanity check
-    if ww.shape[0] != n_slots:
-        raise ValueError( "shape of output array ww not compatible with length of output: shape(ww)[0] = %d, but %d values are to be saved" % (ww.shape[0], n_slots) )
-    cdef int n_space_dofs = w0.shape[0]  # this is actually needed below
-    if ww.shape[1] != n_space_dofs:
-        raise ValueError( "shape of output array ww not compatible with n_space_dofs: shape(ww)[1] = %d, but n_space_dofs = %d" % (ww.shape[1], n_space_dofs) )
+    cdef int n_slots      = result_len( nt, save_from, interp )
+    cdef int n_space_dofs = w0.shape[0]
+    if ww is not None:
+        if ww.shape[0] != n_slots:
+            raise ValueError( "shape of output array ww not compatible with length of output: shape(ww)[0] = %d, but %d values are to be saved" % (ww.shape[0], n_slots) )
+        if ww.shape[1] != n_space_dofs:
+            raise ValueError( "shape of output array ww not compatible with n_space_dofs: shape(ww)[1] = %d, but n_space_dofs = %d" % (ww.shape[1], n_space_dofs) )
 
     if ff is not None:
         if ff.shape[0] != n_slots:
@@ -591,12 +516,29 @@ Returns:
     cdef int denormal_triggered = 0
     cdef int naninf_triggered   = 0
 
+    # output: w
+    #
+    if ww is None:
+        ww = np.empty( (n_slots,n_space_dofs), dtype=DTYPE, order="C" )
+    cdef DTYPE_t* pww = &ww[0,0]
+
+    # output: time values
+    #
+    cdef RTYPE_t[::1] tt = np.empty( (n_slots,), dtype=RTYPE, order="C" )
+    cdef RTYPE_t* ptt = &tt[0]
+
+    # optional output: w'
+    #
+    # ("ff" because it is the value of the RHS f())
+    #
     cdef DTYPE_t* pff
     if ff is not None:
         pff = &ff[0,0]
     else:
         pff = <DTYPE_t*>0  # store() knows to omit saving w' if the pointer is NULL
 
+    # optional output: status flag, one per timestep
+    #
     cdef int* pfail
     if fail is not None:
         pfail = &fail[0]
@@ -619,6 +561,7 @@ Returns:
     if save_from == 0:
         # State vector w
         ww[0,:] = w0
+        tt[0]   = 0.
 
         # w'
         if ff is not None:
@@ -654,7 +597,6 @@ Returns:
     # Galerkin methods support
     #
     cdef unsigned int offs, out_start, out_end, l, noutput
-    cdef DTYPE_t* pww
 
     # Integrator object
     #
@@ -721,7 +663,7 @@ Returns:
                 # end-of-timestep boilerplate
                 #
                 t = n*dt
-                store( w, n_space_dofs, n, t, save_from, &ww[0,0], rhs, pff, pfail, <int>(nits == maxit), wrk )
+                store( w, n_space_dofs, n, t, save_from, pww, ptt, rhs, pff, pfail, <int>(nits == maxit), wrk )
                 if do_denormal_check:
                     # In practice this check seems good enough for an IVP solver, although it does run the theoretical risk
                     # of triggering (with a nonzero probability) when the solution just passes through zero.
@@ -785,19 +727,20 @@ Returns:
                     # saving the end-of-timestep value of the solution from w.
                     #
                     t = n*dt
-                    store( w, n_space_dofs, n, t, save_from, &ww[0,0], rhs, pff, pfail, <int>(nits == maxit), wrk )
+                    store( w, n_space_dofs, n, t, save_from, pww, ptt, rhs, pff, pfail, <int>(nits == maxit), wrk )
                 else:
                     # Inline custom store() implementation accounting for interp (and how to assemble a Galerkin series)
                     #
                     if n >= save_from:
                         # Interpolate inside timestep using the Galerkin representation of the solution, obtaining more visualization points.
                         #
-                        pww = &ww[0,0]
                         algo_g.assemble( algo_g.psivis, algo_g.uvis, algo_g.ucvis, interp )  # basis, output, wrk, n_points
                         noutput = n - cuimax(1, save_from)  # 0-based timestep number starting from the first saved one.
                                                                     # Note that n = 1, 2, ... (also store() depends on this numbering!)
                         out_start = offs + noutput*interp
                         for l in range(interp):
+                            t = ((n-1) + algo_g.tvis[l]) * dt
+                            ptt[(out_start+l)] = t
                             for j in range(n_space_dofs):
                                 # uvis: [nx,n_space_dofs]
                                 pww[(out_start+l)*n_space_dofs + j] = algo_g.uvis[l*n_space_dofs + j]
@@ -865,8 +808,11 @@ Returns:
             failflag = 1
 
         ww[out_start:,:] = fill
+        tt[out_start:]   = np.nan  # always real-valued NaN
         if ff is not None:
             ff[out_start:,:] = fill
         if fail is not None:
             fail[(offs + noutput):] = failflag  # no interp in flag array
+
+    return (np.asanyarray(ww), np.asanyarray(tt))
 

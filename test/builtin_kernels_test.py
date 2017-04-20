@@ -40,23 +40,21 @@ def test():
     rhs = pydgq.solver.builtin_kernels.Linear1stOrderKernel(n, M)
 
     # create output arrays
-    ww   = np.empty( (result_len,n), dtype=DTYPE, order="C" )          # mandatory, result array for w
+    ww   = None #np.empty( (result_len,n), dtype=DTYPE, order="C" )    # result array for w; if None, will be created by ivp()
     ff   = np.empty( (result_len,n), dtype=DTYPE, order="C" )          # optional,  result array for w', could be None
     fail = np.empty( (n_saved_timesteps,), dtype=np.intc, order="C" )  # optional,  fail flag for each timestep, could be None
 
     # solve problem
-    pydgq.solver.odesolve.ivp( integrator=integrator_to_test, allow_denormals=False,
-                               w0=w0, dt=dt, nt=nt,
-                               save_from=save_from, interp=nx_vis,
-                               rhs=rhs,
-                               ww=ww, ff=ff, fail=fail,
-                               maxit=100 )
+    ww,tt = pydgq.solver.odesolve.ivp( integrator=integrator_to_test, allow_denormals=False,
+                                       w0=w0, dt=dt, nt=nt,
+                                       save_from=save_from, interp=nx_vis,
+                                       rhs=rhs,
+                                       ww=ww, ff=ff, fail=fail,
+                                       maxit=100 )
 
     # visualize
     plt.figure(1)
     plt.clf()
-
-    tt = pydgq.solver.odesolve.make_tt( dt, nt, save_from, interp=nx_vis, integrator=integrator_to_test, out=None )  # out=None --> create a new array and return it
 
     # show the discontinuities at timestep boundaries if using dG
     if integrator_to_test == "dG":
