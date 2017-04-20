@@ -7,9 +7,16 @@
    - linear problem? Known solution... (and good for testing the provided example kernels)
    - Lorenz problem?
    - and/or compare solutions to the same problem computed by different algorithms
+ - update user manual:
+   - change the title
+   - add a short introductory paragraph about what the software is for
+   - note Python and Cython kernel support
+   - note that the user manual explains the algorithms
+   - note that for usage of the code itself, see tests and examples
  - write README.md
+   - mention financial support from Jenny and Antti Wihuri foundation
  - figure out how to distribute pydgq_data.bin (and make the installation find it), this file is rather large
- - update user manual (mainly title and a new introductory paragraph)
+   - maybe make a small version of the file available with the distribution (will do for now?)
  - publish on GitHub
  - tag v0.1.0
  - release v0.1.0 on GitHub
