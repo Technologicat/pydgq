@@ -17,6 +17,7 @@
    - mention financial support from Jenny and Antti Wihuri foundation
  - figure out how to distribute pydgq_data.bin (and make the installation find it), this file is rather large
    - maybe make a small version of the file available with the distribution (will do for now?)
+     - yes: -q 10 -nx 101 gives a ~500kB file, good enough for practical use, and small enough even for archiving to git.
  - publish on GitHub
  - tag v0.1.0
  - release v0.1.0 on GitHub
