@@ -7,7 +7,9 @@ from pydgq.solver.types cimport DTYPE_t
 from pydgq.solver.kernel_interface cimport KernelBase
 from pydgq.solver.integrator_interface cimport ImplicitIntegrator
 
-# base class for Galerkin integrators
+# Base class for Galerkin integrators.
+#
+# Handles data array allocation and provides helper methods common to all Galerkin integrators.
 #
 #    # array shapes and types:
 #
@@ -61,11 +63,16 @@ cdef class GalerkinIntegrator(ImplicitIntegrator):
 
     cdef DTYPE_t* tvis      # visualization points (accounting for the interp parameter), **scaled to [0,1]**
 
-    # helper methods
-    #
-    cdef void assemble( self, DTYPE_t* psi, DTYPE_t* uass, DTYPE_t* ucorr, int n_points ) nogil  # assemble Galerkin series
-    cdef void final_value( self, DTYPE_t* uass ) nogil  # get final value at this timestep
-    cdef DTYPE_t do_quadrature( self, DTYPE_t* funcvals, DTYPE_t dt ) nogil  # integrate over timestep
+    # helper methods:
+
+    # assemble Galerkin series of u at given points
+    cdef void assemble( self, DTYPE_t* psi, DTYPE_t* uass, DTYPE_t* ucorr, int n_points ) nogil
+
+    # get the value of u at the end of this timestep
+    cdef void final_value( self, DTYPE_t* uass ) nogil
+
+    # integrate a function (provided as values at the quadrature points) over the timestep
+    cdef DTYPE_t do_quadrature( self, DTYPE_t* funcvals, DTYPE_t dt ) nogil
 
 # discontinuous Galerkin
 #

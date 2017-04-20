@@ -12,10 +12,16 @@
 #
 """Solve the initial value problem of a first-order ordinary differential equation (ODE) system
 
-  w'     = f(w,t)
-  w(t=0) = w0  (initial condition)
+    w'     = f(w,t)
+    w(t=0) = w0      (initial condition)
 
-where f may be nonlinear.
+where f is an arbitrary user-supplied function.
+
+See PythonKernel and CythonKernel in pydgq.solver.kernel_interface, and pydgq.solver.builtin_kernels
+for examples of implementing Cython kernels).
+
+The main point of interest in this module is the function ivp(). Some auxiliary routines are also
+provided.
 """
 
 from __future__ import division, print_function, absolute_import
@@ -111,20 +117,18 @@ cdef inline void store( DTYPE_t* w, int n_space_dofs, int timestep, double t, in
 def n_saved_timesteps( nt, save_from ):
     """def n_saved_timesteps( nt, save_from ):
 
-    Determine number of timesteps that will be saved.
+Determine number of timesteps that will be saved.
 
-    Note that this is not the length of the result array; for that, see result_len().
-    The number returned by this function matches the length of the output arrays from timestep_boundaries().
+Note that this is **not** the length of the result array; for that, see result_len().
+The number returned by this function matches the length of the output arrays from timestep_boundaries().
 
-    For an explanation of parameters, see result_len().
+Parameters:
+    See result_len().
 
-    If save_from == 0, the initial condition qualifies as one timestep.
-
-    Returns:
-        int:
-            the number of timesteps that will be saved.
-
-    """
+Returns:
+    int:
+        the number of timesteps that will be saved.
+"""
     if nt < 1:
         raise ValueError( "nt must be >= 1, got %d" % (nt) )
     if save_from < 0:
@@ -142,82 +146,83 @@ def n_saved_timesteps( nt, save_from ):
 def result_len( int nt, int save_from, int interp=1 ):
     """def result_len( int nt, int save_from, int interp=1 ):
 
-    Determine length of storage needed on the time axis for ivp().
+Determine length of storage needed on the time axis for ivp().
 
-    Parameters:
+Parameters:
+    nt : int, >= 1
+        Number of timesteps to take.
 
-        nt        = int, number of timesteps to take.
+    save_from : int, >= 0
+        Index of first timestep to save.
 
-        save_from = int, first timestep index to save, 0-based.
-                    This allows discarding part of the data at the beginning.
+        This allows discarding part of the data at the beginning.
 
-                    The special value 0 means that also the initial condition
-                    will be copied into the results. The initial condition
-                    always produces exactly one item.
+        The special value 0 means that also the initial condition
+        will be copied into the results. The initial condition
+        always produces exactly one item.
 
-                    A value of 1 means "save results from first actual timestep onward";
-                    likewise for higher values (e.g. 2 -> second timestep onward).
+        A value of 1 means "save results from first actual timestep onward";
+        likewise for higher values (e.g. 2 -> second timestep onward).
 
-        interp    = int. Galerkin integrators, such as dG, have the possibility of
-                    evaluating the solution at points inside the timestep,
-                    by evaluating the computed Galerkin approximation.
+    interp : int, >= 1
+        Galerkin integrators, such as dG, have the possibility of
+        evaluating the solution at points inside the timestep,
+        by evaluating the computed Galerkin approximation.
 
-                    This sets the number of result points that will be generated
-                    per computed timestep.
+        This sets the number of result points that will be generated
+        per computed timestep.
 
-                    The maximum allowed value for interp is the "maxnx"
-                    reported when galerkin.init() loads its data file.
+        The maximum allowed value for interp is galerkin.datamanager.maxnx
+        (initialized when galerkin.init() loads its data file).
 
-                    interp=1 means that only the value at the endpoint
-                    of each timestep will be saved.
+        interp=1 means that only the value at the endpoint
+        of each timestep will be saved.
 
-                    For all non-Galerkin integrators, interp=1 is the only valid setting.
-                    (Because the other integrators are based on collocation methods
-                     (point-based methods), the value of the solution at points
-                     other than the timestep boundaries is undefined for them.)
+        For all non-Galerkin integrators, interp=1 is the only valid setting.
+        This is because the other integrators are based on collocation methods
+        (point-based methods), so the value of the solution at points other
+        than the timestep boundaries is undefined for them.
 
-                    For dG:
-                        A value of interp >= 2 means that n values equally spaced in time,
-                        from the start of the timestep to its end, will be saved.
+        For dG:
+            A value of interp >= 2 means that n values equally spaced in time,
+            from the start of the timestep to its end, will be saved.
 
-                        E.g.:
-                          - interp=2 means to save the start and end values
-                            for each timestep.
-                          - interp=3 saves these and also the midpoint value.
-                          - interp=11 gives a nice spacing of 10 equal intervals
-                            (i.e. 11 values!) across each timestep.
+            Examples:
+              - interp=2 saves the start and end values for each timestep.
+              - interp=3 saves these and also the midpoint value.
+              - interp=11 gives a nice spacing of 10 equal intervals
+                (i.e. 11 values including the fencepost) across each timestep.
 
-                        Note that due to *discontinuous* Galerkin,
-                        the start value of a timestep will be different
-                        from the end value of the previous timestep,
-                        although these share the same time coordinate!
+            Note that in **discontinuous** Galerkin,
+            the start value of a timestep will be different
+            from the end value of the previous timestep,
+            although these share the same time coordinate!
 
-                        The solution is defined to be left-continuous
-                        i.e. the "end value" is the actual value.
-                        The "start value" is actually a one-sided limit
-                        from the right, toward the start of the timestep.
+            Mathematically, the solution is defined to be left-continuous,
+            i.e., the "end value" is the actual value. The "start value"
+            is actually a one-sided limit from the right, taken toward
+            the start of the timestep.
 
-                    For cG:
-                        In cG, the solution is continuous, so the endpoint of timestep n
-                        is the start point of timestep n+1.
+        For cG:
+            In **continuous** Galerkin, the solution is continuous,
+            so the endpoint of timestep n is the start point of timestep n+1.
 
-                        The values are equally spaced, but avoiding the duplicate.
-                        Effectively this takes the visualization points for interp
-                        one larger than specified, discarding the first one.
+            The values are equally spaced, but avoiding the duplicate.
+            Effectively this takes the visualization points for interp
+            one larger than specified, and discards the first one.
 
-                        Thus, e.g.:
-                          - interp=2 means to save the midpoint and end values
-                            for each timestep.
-                          - interp=4 saves values at relative offsets dt/4,
-                            dt/2, 3dt/4 and dt from the timestep start.
-                            There are effectively five "fenceposts" and
-                            four intervals in [n*dt, (n+1)*dt].
+            Examples:
+              - interp=2 saves the midpoint and end values for each timestep.
+              - interp=4 saves values at relative offsets dt/4,
+                dt/2, 3dt/4 and dt from the timestep start.
+                There are effectively five "fenceposts" and
+                four intervals in each timestep [n*dt, (n+1)*dt].
 
-    Returns:
-
-        Number of storage slots (i.e. array length) needed along the time axis.
-
-    """
+Returns:
+    int:
+        Number of storage slots (i.e. array length) along the time axis,
+        that are needed by ivp(), when called with the given parameter values.
+"""
     if nt < 1:
         raise ValueError( "nt must be >= 1, got %d" % (nt) )
     if save_from < 0:
@@ -239,21 +244,23 @@ def result_len( int nt, int save_from, int interp=1 ):
 def timestep_boundaries( int nt, int save_from, int interp=1 ):
     """def timestep_boundaries( int nt, int save_from, int interp=1 ):
 
-    Return start and one-past-end indices for each timestep in the result. These can be used to index tt, ww and ff on the time axis.
+Return start and one-past-end indices for each timestep in the result.
 
-    This is useful with Galerkin integrators, which support several visualization points per timestep (interp > 1).
+These can be used to index the arrays tt, ww and ff (see ivp()) on the time axis.
 
-    Parameters are the same as for result_len().
+This is useful with Galerkin integrators, which support several visualization points per timestep (interp > 1).
 
-    Returns:
+Parameters:
+    See result_len().
 
-        Tuple (startj, endj), where startj (endj) is a rank-1 np.array containing the start and one-past-end indices for each timestep.
+Returns:
+    Tuple (startj, endj):
+        startj (endj) is a rank-1 np.array containing the start and one-past-end indices for each timestep.
 
         The indices for timestep n are range(startj[n], endj[n]).
 
         If save_from == 0, the initial condition (always exactly one point) counts as "timestep 0"; otherwise "timestep 0" is the first saved timestep.
-
-    """
+"""
     if nt < 1:
         raise ValueError( "nt must be >= 1, got %d" % (nt) )
     if save_from < 0:
@@ -295,21 +302,21 @@ def timestep_boundaries( int nt, int save_from, int interp=1 ):
 def make_tt( double dt, int nt, int save_from, int interp=1, out=None ):
     """def make_tt( double dt, int nt, int save_from, int interp=1, out=None ):
 
-    Generate rank-1 np.array of the time values that correspond to the solution values output by ivp().
+Generate rank-1 np.array of the time values that correspond to the solution values output by ivp().
 
-    Parameters:
-
-        out    = rank-1 np.array or None.
-                 If None, tt will be created by this call.
-                 If supplied, the user-given array will be filled. (No bounds checking - make sure it is large enough!)
+Parameters:
+    out : rank-1 np.array or None.
+         If None:
+            tt will be created and returned.
+         If supplied:
+            The user-given array will be filled in. No bounds checking - make sure it is large enough!
 
     For the other parameters, see result_len().
 
-    Returns:
-
-        rank-1 np.array of double, the time values.
-
-    """
+Returns:
+    rank-1 np.array of double:
+        The time values.
+"""
     if dt == 0.0:
         raise ValueError( "dt cannot be zero" )
     if nt < 1:
@@ -379,150 +386,153 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
          KernelBase rhs, DTYPE_t[:,::1] ww, DTYPE_t[:,::1] ff, int[::1] fail, double RK2_beta=1.0,
          int maxit=100 ):
 
-    Solve initial value problem.
+Solve initial value problem.
 
-    This routine integrates first-order ordinary differential equation (ODE) systems of the form
+This routine integrates first-order ordinary differential equation (ODE) systems of the form
 
-        w'     = f(w, t),  0 < t <= t_end
-        w(t=0) = w0
+    w'     = f(w, t)
+    w(t=0) = w0       (initial condition)
 
-    where f is a user-provided kernel for computing the RHS.
+where f is a user-provided kernel for computing the RHS.
 
-    Parameters:
+Parameters:
 
-        integrator : str
-            Time integration algorithm. One of:
+    integrator : str
+        Time integration algorithm. One of:
 
-                SE : Symplectic Euler (also known as semi-implicit Euler)
-                    1st order accuracy, symplectic, conserves energy approximately,
-                    very fast, may require a smaller timestep than the others.
+            SE : Symplectic Euler (also known as semi-implicit Euler)
+                1st order accuracy, symplectic, conserves energy approximately,
+                very fast, may require a smaller timestep than the others.
 
-                    !!! Only for second-order problems which have been reduced
-                        to first-order form. See the user manual for details. !!!
+                !!! Only for second-order problems which have been reduced
+                    to first-order form. See the user manual for details. !!!
 
-                BE : Backward Euler (implicit Euler).
-                    1st order accuracy, high numerical dissipation.
+            BE : Backward Euler (implicit Euler).
+                1st order accuracy, high numerical dissipation.
 
-                    A-stable for linear problems, but due to implementation constraints,
-                    in this nonlinear solver arbitrarily large timesteps cannot be used.
+                A-stable for linear problems, but due to implementation constraints,
+                in this nonlinear solver arbitrarily large timesteps cannot be used.
 
-                    (The timestep size is limited by the loss of contractivity in the
-                     Banach iteration as the timestep becomes larger than some
-                     situation-specific critical value.)
+                (The timestep size is limited by the loss of contractivity in the
+                 Banach iteration as the timestep becomes larger than some
+                 situation-specific critical value.)
 
-                IMR : Implicit Midpoint Rule.
-                    2nd order accuracy, symplectic, conserves energy approximately.
-                    Slow, but may work with a larger timestep than others.
+            IMR : Implicit Midpoint Rule.
+                2nd order accuracy, symplectic, conserves energy approximately.
+                Slow, but may work with a larger timestep than others.
 
-                RK4 : 4th order Runge-Kutta.
-                    4th order accuracy, but not symplectic and does not conserve energy;
-                    computed orbits may drift arbitrarily far from the true orbits
-                    in a long simulation (esp. in a vibration simulation). Moderately fast.
+            RK4 : 4th order Runge-Kutta.
+                4th order accuracy, but not symplectic and does not conserve energy;
+                computed orbits may drift arbitrarily far from the true orbits
+                in a long simulation (esp. in a vibration simulation). Moderately fast.
 
-                RK3 : Kutta's third-order method.
+            RK3 : Kutta's third-order method.
 
-                RK2 : parametric second-order Runge-Kutta.
-                    Takes the optional parameter RK2_beta, which controls where inside the timestep
-                    the second evaluation of f() is taken.
+            RK2 : parametric second-order Runge-Kutta.
+                Takes the optional parameter RK2_beta, which controls where inside the timestep
+                the second evaluation of f() is taken.
 
-                    RK2_beta must be in the half-open interval (0, 1]. Very small values
-                    will cause problems (beta appears in the denominator in the final summation formula).
+                RK2_beta must be in the half-open interval (0, 1]. Very small values
+                will cause problems (beta appears in the denominator in the final summation formula).
 
-                    Popular choices:
-                        beta = 1/2          , explicit midpoint method
-                        beta = 2/3          , Ralston's method
-                        beta = 1   (default), Heun's method, also known as the explicit trapezoid rule
+                Popular choices:
+                    beta = 1/2          , explicit midpoint method
+                    beta = 2/3          , Ralston's method
+                    beta = 1   (default), Heun's method, also known as the explicit trapezoid rule
 
-                FE : Forward Euler (explicit Euler).
-                    1st order accuracy, very unstable, requires a very small timestep.
+            FE : Forward Euler (explicit Euler).
+                1st order accuracy, very unstable, requires a very small timestep.
 
-                    Provided for reference only.
+                Provided for reference only.
 
-                dG : discontinuous Galerkin (recommended)
-                    An advanced implicit method. Finds a weak solution that is finitely
-                    discontinuous (C^{-1}) across timestep boundaries.
-                    Typically works with large-ish timesteps.
+            dG : discontinuous Galerkin (recommended)
+                An advanced implicit method. Finds a weak solution that is finitely
+                discontinuous (C^{-1}) across timestep boundaries.
+                Typically works with large-ish timesteps.
 
-                    The solution satisfies the Galerkin orthogonality property:
-                    the residual of the result is L2-orthogonal to the basis functions.
-                    Roughly, this means that the numerical solution is, in the least-squares sense,
-                    the best representation (in the given basis) of the unknown true solution.
+                The solution satisfies the Galerkin orthogonality property:
+                the residual of the result is L2-orthogonal to the basis functions.
+                Roughly, this means that the numerical solution is, in the least-squares sense,
+                the best representation (in the given basis) of the unknown true solution.
 
-                    See galerkin.init() for configuration (polynomial degree of basis).
+                See galerkin.init() for configuration (polynomial degree of basis).
 
-                cG : continuous Galerkin.
-                    Like dG, but the solution is C^0 continuous across timestep boundaries.
+            cG : continuous Galerkin.
+                Like dG, but the solution is C^0 continuous across timestep boundaries.
 
-                    See galerkin.init() for configuration (polynomial degree of basis).
+                See galerkin.init() for configuration (polynomial degree of basis).
 
-        allow_denormals : bool
-                    If True,  allow denormal numbers in computation (10...100x performance penalty
-                              on most modern processors).
+    allow_denormals : bool
+        If True,  allow denormal numbers in computation (10...100x performance penalty
+                  on most modern processors).
 
-                    If False, stop computation and fill the rest of the solution with zeroes
-                              when denormal numbers are reached.
+        If False, stop computation and fill the rest of the solution with zeroes
+                  when denormal numbers are reached.
 
-                    Denormal numbers are usually encountered in cases with high damping (beta) and
-                    low external load (mu_m, Pi_F); in such a case the system quickly spirals in onto
-                    the equilibrium point at the origin, with the magnitude of the numbers decreasing
-                    very rapidly.
+        Denormal numbers are usually encountered in cases with high damping (beta) and
+        low external load (mu_m, Pi_F); in such a case the system quickly spirals in onto
+        the equilibrium point at the origin, with the magnitude of the numbers decreasing
+        very rapidly.
 
-                    Setting this to True gives a more beautiful plot in such cases, but that can be
-                    traded for a large performance increase by setting this to False.
+        Setting this to True gives a more beautiful plot in such cases, but that can be
+        traded for a large performance increase by setting this to False.
 
-                    In cases where denormal numbers are not encountered, this option has no effect
-                    on the results.
+        In cases where denormal numbers are not encountered, this option has no effect
+        on the results.
 
-        w0 : rank-1 np.array
-            initial state (w1, w2, ..., wn).
-            This also automatically sets n_space_dofs (for the current problem) to len(w0).
+    w0 : rank-1 np.array
+        initial state (w1, w2, ..., wn).
+        This also automatically sets n_space_dofs (for the current problem) to len(w0).
 
-        dt : double, != 0
-            timestep size
+    dt : double, != 0
+        timestep size
 
-            Negative values can be used to integrate backward in time.
+        Negative values can be used to integrate backward in time.
 
-            !!! The time t always starts at zero; if your RHS explicitly depends on t,
-                take this into account! !!!
+        !!! The time t always starts at zero; if your RHS explicitly depends on t,
+            take this into account! !!!
 
-        nt : int, >= 1
-            number of timesteps to take
+    nt : int, >= 1
+        number of timesteps to take
 
-        save_from : int, >= 0, <= nt
-            first timestep index to save, 0-based (allows discarding part of the data at the beginning)
+    save_from : int, >= 0, <= nt
+        first timestep index to save, 0-based (allows discarding part of the data at the beginning)
 
-            0 = save initial condition and all timesteps in results
-            1 = save all timesteps (but don't save initial condition)
-            2 = save from second timestep onward
-            ...
+        0 = save initial condition and all timesteps in results
+        1 = save all timesteps (but don't save initial condition)
+        2 = save from second timestep onward
+        ...
 
-        interp : int
-            For Galerkin methods: how many visualization points to produce per computed timestep.
-            For all other integrators, interp must be 1.
+    interp : int
+        For Galerkin methods: how many visualization points to produce per computed timestep.
+        For all other integrators, interp must be 1.
 
-        rhs : instance of class derived from KernelBase
-            Kernel implementing the right-hand side of  u' = f(u, t)
+    rhs : instance of class derived from KernelBase
+        Kernel implementing the right-hand side of  u' = f(u, t)
 
-        ww : DTYPE_t[:,::1] of size [result_len(),n_space_dofs]
-            Output array for w
+    ww : DTYPE_t[:,::1] of size [result_len(),n_space_dofs]
+        Output array for w
 
-        ff : DTYPE_t[:,::1] of size [result_len(),n_space_dofs] or None
-            If not None, output array for w' (the time derivative of w).
+    ff : DTYPE_t[:,::1] of size [result_len(),n_space_dofs] or None
+        If not None, output array for w' (the time derivative of w).
 
-        fail : int[::1] of size [result_len(),] or None.
-            If not None, output array for status flag for each timestep:
-                0 = converged to machine precision
-                1 = did not converge to machine precision
+    fail : int[::1] of size [result_len(),] or None.
+        If not None, output array for status flag for each timestep:
+            0 = converged to machine precision
+            1 = did not converge to machine precision
 
-            This data is only meaningful for implicit methods (IMR, BE, dG, cG); explicit methods will simply flag success for each timestep.
+        This data is only meaningful for implicit methods (IMR, BE, dG, cG); explicit methods will simply flag success for each timestep.
 
-            If save_from == 0, the initial condition counts as the zeroth timestep, and is always considered as converged.
+        If save_from == 0, the initial condition counts as the zeroth timestep, and is always considered as converged.
 
-        maxit : int, >= 1
-            Maximum number of Banach/Picard iterations to take at each timestep.
+    maxit : int, >= 1
+        Maximum number of Banach/Picard iterations to take at each timestep.
 
-            Only meaningful if an implicit integrator is used (BE, IMR, dG, cG).
-    """
+        Only meaningful if an implicit integrator is used (BE, IMR, dG, cG).
+
+Returns:
+    None
+"""
     # Parameter validation
     #
     known_integrators    = ["IMR", "BE", "RK4", "RK3", "RK2", "FE", "dG", "cG", "SE"]
@@ -677,6 +687,13 @@ def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0, double dt, int nt
                 t = n*dt
                 store( w, n_space_dofs, n, t, save_from, &ww[0,0], rhs, pff, pfail, 0, wrk )
                 if do_denormal_check:
+                    # In practice this check seems good enough for an IVP solver, although it does run the theoretical risk
+                    # of triggering (with a nonzero probability) when the solution just passes through zero.
+                    #
+                    # To be more sure, we could check the l-infinity (max abs) vector norm of the solution,
+                    # and see if it has been decreasing for N timesteps (for some suitable N) before
+                    # declaring the rest of the solution as denormal.
+                    #
                     denormal_triggered = fputils.all_denormal( w, n_space_dofs )
                 naninf_triggered = fputils.any_naninf( w, n_space_dofs )
                 if denormal_triggered or naninf_triggered:

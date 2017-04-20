@@ -5,9 +5,11 @@ from __future__ import absolute_import
 from pydgq.solver.types cimport DTYPE_t
 from pydgq.solver.kernel_interface cimport KernelBase
 
-# base class for all integrators
+# Base class for all integrators.
 #
-# (Do not inherit directly from this! Inherit from ExplicitIntegrator or ImplicitIntegrator depending on your algorithm.)
+# Do not inherit directly from this!
+#
+# Inherit from ExplicitIntegrator or ImplicitIntegrator depending on your algorithm.
 #
 cdef class IntegratorBase:
     cdef str name              # human-readable name of algorithm (set by derived classes): "RK4", "dG", etc.
@@ -24,12 +26,12 @@ cdef class IntegratorBase:
     #
     cdef int call(self, DTYPE_t* w, DTYPE_t t, DTYPE_t dt) nogil
 
-# base class for explicit methods
+# Base class for explicit integrators.
 #
 cdef class ExplicitIntegrator(IntegratorBase):
     pass  # no new data attributes or cdef methods
 
-# base class for implicit methods
+# Base class for implicit integrators.
 #
 cdef class ImplicitIntegrator(IntegratorBase):
     cdef int maxit  # maximum number of Banach/Picard iterations in implicit solve

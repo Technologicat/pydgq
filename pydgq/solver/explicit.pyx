@@ -12,8 +12,8 @@
 #
 """Classical explicit integrators to update w by one timestep.
 
-These routines use compensated summation to obtain maximal accuracy
-(at the cost of 4x math in the final summation step).
+These routines use compensated summation to obtain maximal accuracy,
+at the cost of 4x math in the final summation step.
 """
 
 from __future__ import division, print_function, absolute_import
@@ -29,8 +29,13 @@ from pydgq.solver.compsum cimport accumulate
 
 cdef class RK4(ExplicitIntegrator):
     def __init__(self, KernelBase rhs):
-        """Fourth-order Runge-Kutta (RK4)."""
+        """def __init__(self, KernelBase rhs):
 
+Fourth-order Runge-Kutta (RK4).
+
+Parameters:
+    as in ancestor (pydgq.solver.integrator_interface.ExplicitIntegrator).
+"""
         # super
         ExplicitIntegrator.__init__(self, name="RK4", rhs=rhs)
 
@@ -41,7 +46,7 @@ cdef class RK4(ExplicitIntegrator):
     cdef int call(self, DTYPE_t* w, DTYPE_t t, DTYPE_t dt) nogil:
         cdef unsigned int j
         cdef int n_space_dofs = self.rhs.n
-        cdef DTYPE_t* wstar   = self.wrk  # updated w, only needed for computing the next k
+        cdef DTYPE_t* wstar   = self.wrk  # updated w, used for computing the next k
 
         # standard RK4 temp variables
         cdef DTYPE_t* k1 = &(self.wrk[n_space_dofs])
@@ -102,7 +107,13 @@ cdef class RK4(ExplicitIntegrator):
 
 cdef class RK3(ExplicitIntegrator):
     def __init__(self, KernelBase rhs):
-        """Kutta's third-order method (commonly known as RK3)."""
+        """def __init__(self, KernelBase rhs):
+
+Kutta's third-order method (commonly known as RK3).
+
+Parameters:
+    as in ancestor (pydgq.solver.integrator_interface.ExplicitIntegrator).
+"""
         # super
         ExplicitIntegrator.__init__(self, name="RK3", rhs=rhs)
 
@@ -113,7 +124,7 @@ cdef class RK3(ExplicitIntegrator):
     cdef int call(self, DTYPE_t* w, DTYPE_t t, DTYPE_t dt) nogil:
         cdef unsigned int j
         cdef int n_space_dofs = self.rhs.n
-        cdef DTYPE_t* wstar   = self.wrk  # updated w, only needed for computing the next k
+        cdef DTYPE_t* wstar   = self.wrk  # updated w, used for computing the next k
 
         # RK temp variables
         cdef DTYPE_t* k1 = &(self.wrk[n_space_dofs])
@@ -169,18 +180,29 @@ cdef class RK3(ExplicitIntegrator):
 
 cdef class RK2(ExplicitIntegrator):
     def __init__(self, KernelBase rhs, DTYPE_t beta):
-        """Parametric second-order Runge-Kutta (RK2).
+        """def __init__(self, KernelBase rhs, DTYPE_t beta):
 
-The beta parameter controls where inside the timestep the second evaluation of the RHS is taken.
+Parametric second-order Runge-Kutta (RK2).
 
-beta must be in the half-open interval (0, 1].
+Parameters:
+    beta : DTYPE_t
+        Where inside the timestep to take the second evaluation of the RHS.
 
-Very small values will cause problems (beta appears in the denominator in the final summation formula).
+        beta must be in the half-open interval (0, 1].
 
-Popular choices:
-    beta = 1/2, explicit midpoint method
-    beta = 2/3, Ralston's method
-    beta = 1,   Heun's method, also known as the explicit trapezoid rule
+        Very small values will cause problems (beta appears in the denominator
+        in the final summation formula).
+
+        Popular choices:
+            1/2 :
+                explicit midpoint method
+            2/3 :
+                Ralston's method
+            1 :
+                Heun's method, also known as the explicit trapezoid rule
+
+    other parameters:
+        as in ancestor (pydgq.solver.integrator_interface.ExplicitIntegrator).
 """
         # super
         ExplicitIntegrator.__init__(self, name=("RK2 (beta = %g)" % (beta)), rhs=rhs)
@@ -194,7 +216,7 @@ Popular choices:
     cdef int call(self, DTYPE_t* w, DTYPE_t t, DTYPE_t dt) nogil:
         cdef unsigned int j
         cdef int n_space_dofs = self.rhs.n
-        cdef DTYPE_t* wstar   = self.wrk  # updated w, only needed for computing the next k
+        cdef DTYPE_t* wstar   = self.wrk  # updated w, used for computing the next k
 
         # RK temp variables
         cdef DTYPE_t* k1 = &(self.wrk[n_space_dofs])
@@ -241,11 +263,17 @@ Popular choices:
 
 cdef class FE(ExplicitIntegrator):
     def __init__(self, KernelBase rhs):
-        """Forward Euler.
+        """def __init__(self, KernelBase rhs):
 
-The most unstable integrator known. Requires a very small timestep. Accuracy O(dt).
+Forward Euler.
 
-Provided for reference only."""
+The most unstable integrator known. Requires a very small timestep. Accuracy is O(dt).
+
+Provided for reference only.
+
+Parameters:
+    as in ancestor (pydgq.solver.integrator_interface.ExplicitIntegrator).
+"""
         # super
         ExplicitIntegrator.__init__(self, name="FE", rhs=rhs)
 
@@ -268,21 +296,38 @@ Provided for reference only."""
 
 cdef class SE(ExplicitIntegrator):
     def __init__(self, KernelBase rhs):
-        """Symplectic Euler.
+        """def __init__(self, KernelBase rhs):
+
+Symplectic Euler.
 
 Accuracy is O(dt).
 
 This method is applicable only to second-order ODE systems
 which have been reduced to first order using the companion method.
 
-See e.g.:
+Let v = u'.
+
+Storage format of w:
+    u1, v1, u2, v2, [...], um, vm
+
+where
+    m = n / 2
+
+is the size of the original 2nd-order system that was reduced
+to the 1st-order system of size n.
+
+Parameters:
+    as in ancestor (pydgq.solver.integrator_interface.ExplicitIntegrator).
+
+For a quick explanation of the method, see e.g.:
     http://en.wikipedia.org/wiki/Semi-implicit_Euler_method
     http://www.phy.uct.ac.za/courses/opencontent/phylab2/worksheet9_09.pdf
     http://umu.diva-portal.org/smash/get/diva2:140361/FULLTEXT01.pdf   p.29 ff.
 
-Let v = u'. Storage format of w:  u1, v1, u2, v2, [...], um, vm
-
-where  m = n_space_dofs / 2  is the size of the original 2nd-order system."""
+Original reference:
+    Niiranen, Jouko: Fast and accurate symmetric Euler algorithm for electromechanical simulations.
+    Proceedings of the Electrimacs'99, Sept. 14-16, 1999 Lisboa, Portugal, Vol. 1, pages 71 - 78.
+"""
         # super
         ExplicitIntegrator.__init__(self, name="SE", rhs=rhs)
 

@@ -10,17 +10,21 @@
 # cython: boundscheck = False
 # cython: cdivision   = True
 #
-"""Compensated summation (Kahan algorithm), Python/Cython."""
+"""Compensated summation (Kahan algorithm), Python/Cython.
+
+This Python interface exposes compensated cumulative summation of rank-1 arrays.
+"""
 
 from __future__ import division, print_function, absolute_import
 
 from pydgq.solver.types cimport DTYPE_t, DTYPEZ_t
-cimport pydgq.solver.compsum as compsum
+from pydgq.solver.types import DTYPE, DTYPEZ
 
 import numpy as np
 
+
 #########################################################################################
-# Cumulative sum using compensated summation
+# Python interface
 #########################################################################################
 
 # These are provided to produce accurate cumulative sums.
@@ -29,11 +33,10 @@ import numpy as np
 def cumsum1d_compensated( data ):
     """def cumsum1d_compensated( data ):
 
-    Like np.cumsum(), but using compensated summation (Kahan algorithm).
+Like np.cumsum(), but using compensated summation (Kahan algorithm).
 
-    Implemented only for rank-1 np.arrays of dtypes double (np.float64) and double complex (np.complex128).
-
-    """
+Implemented only for rank-1 np.arrays of dtypes double (np.float64) and double complex (np.complex128).
+"""
     cdef DTYPE_t[::1]  inr, outr
     cdef DTYPEZ_t[::1] inz, outz
 
@@ -54,6 +57,14 @@ def cumsum1d_compensated( data ):
         raise TypeError("Unsupported argument type '%s' for cumsum1d_compensated(); %s" % (type(data), np.ndarray))
 
 
+#########################################################################################
+# Cython interface
+#########################################################################################
+
+# data : in, values to sum (length n)
+# out  : out, cumulative sum (length n-1)
+# n    : length of input data
+#
 cdef void cs1dr( DTYPE_t* data, DTYPE_t* out, unsigned int n ) nogil:
     cdef DTYPE_t s = data[0]
     cdef DTYPE_t c = 0.0
@@ -63,6 +74,10 @@ cdef void cs1dr( DTYPE_t* data, DTYPE_t* out, unsigned int n ) nogil:
         accumulate( &s, &c, data[j] )
         out[j] = s
 
+# data : in, values to sum (length n)
+# out  : out, cumulative sum (length n-1)
+# n    : length of input data
+#
 cdef void cs1dz( DTYPEZ_t* data, DTYPEZ_t* out, unsigned int n ) nogil:
     cdef DTYPEZ_t s = data[0]
     cdef DTYPEZ_t c = 0.0

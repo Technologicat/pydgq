@@ -17,19 +17,9 @@ with and without mass matrices on the LHS.
 
 (Autonomous: f = f(w), i.e. f does not explicitly depend on t.)
 
+All matrices in this module are assumed to have C memory layout.
+
 See the code and comments in pydgq/solver/builtin_kernels.pyx for details.
-
-Note that if the problem is nonlinear, the options are to:
-
-  - A) implement a custom kernel:
-    - a) implement cdef class derived from pydgq.solver.kernel_interface.CythonKernel
-      - override __init__(), add any needed parameters, call CythonKernel.__init__(self, n)
-      - override cdef callback(...) to compute w' for your RHS
-    - b) implement regular Python class derived from pydgq.solver.kernel_interface.PythonKernel
-      - override __init__(), add any needed parameters, call PythonKernel.__init__(self, n)
-      - override def callback(...) to compute w' for your RHS
-  - B) linearize at each timestep, and then use a linear kernel
-    - horrible performance, not recommended.
 """
 
 from __future__ import division, print_function, absolute_import
@@ -59,25 +49,22 @@ cdef class Linear1stOrderKernel(CythonKernel):
         """def __init__(self, int n, double[:,::1] M):
 
 A generic kernel for a linear 1st-order problem.
-(This is basically just a matrix-vector product.)
+This is basically just a matrix-vector product.
 
 The problem reads
 
     w' = M w
 
-The matrix M must use C memory layout.
-
-To use this kernel with NumPy arrays, do something like this in your Python code
-(but using the initial values and matrix from your actual problem):
+Trivial example to invoke this kernel:
 
     from pydgq.solver.builtin_kernels import Linear1stOrderKernel
     from pydgq.odesolve import ivp
 
-    n  = 4
-    w0 = np.ones( (n,), dtype=np.float64, order="C" )
-    M  = np.eye( n, dtype=np.float64, order="C" )
-    k  = Linear1stOrderKernel(n, M)
-    pydgq.odesolve.ivp( ..., kernel=k, w0=w0 )
+    n   = 3  # number of DOFs in your 1st-order system
+    w0  = np.ones( (n,), dtype=np.float64, order="C" )  # your IC here
+    M   = np.eye( n, dtype=np.float64, order="C" )  # your "M" matrix here
+    rhs = Linear1stOrderKernel(n, M)
+    ivp( ..., rhs=rhs, w0=w0 )
 """
         # super
         CythonKernel.__init__(self, n)
@@ -117,25 +104,28 @@ First-order problem that has a nontrivial (but constant-in-time) mass matrix on 
 
     A w' = M w
 
-Mainly this is a code demonstration. If A is small enough to invert, just write
-w' = inv(A) M w  and use a Linear1stOrderKernel with  inv(A) M  as the matrix.
+Note that if "A" is small enough to invert, one can instead write
 
-Here we obtain w' by first computing A w', and then solving for w':
+    w' = inv(A) M w
+
+and just use a Linear1stOrderKernel with  inv(A) M  as the matrix.
+
+This class obtains w' by first computing A w', and then solving a linear equation system for w':
 
     g := M w
     A w' = g
 
-To use this kernel, example:
+Trivial example to invoke this kernel:
 
     from pydgq.solver.builtin_kernels import Linear1stOrderKernelWithMassMatrix
     from pydgq.odesolve import ivp
 
-    n  = 4
-    w0 = np.ones( (n,), dtype=np.float64, order="C" )
-    A  = np.eye( n, dtype=np.float64, order="C" )
-    M  = np.eye( n, dtype=np.float64, order="C" )
-    k  = Linear1stOrderKernelWithMassMatrix(n, M, A)
-    ivp( ..., kernel=k, w0=w0 )
+    n   = 3  # number of DOFs in your 1st-order system
+    w0  = np.ones( (n,), dtype=np.float64, order="C" )  # your IC here
+    A   = np.eye( n, dtype=np.float64, order="C" )  # your "A" matrix here
+    M   = np.eye( n, dtype=np.float64, order="C" )  # your "M" matrix here
+    rhs = Linear1stOrderKernelWithMassMatrix(n, M, A)
+    ivp( ..., rhs=rhs, w0=w0 )
 """
         # super
         Linear1stOrderKernel.__init__(self, n, M)
@@ -167,9 +157,7 @@ cdef class Linear2ndOrderKernel(CythonKernel):
     def __init__(self, int n, double[:,::1] M0, double[:,::1] M1):
         """def __init__(self, int n, double[:,::1] M0, double[:,::1] M1):
 
-A generic kernel for a linear 2nd-order problem, as commonly encountered in mechanics.
-
-The problem reads
+A generic kernel for the linear 2nd-order problem:
 
     u'' = M0 u + M1 u'
 
@@ -177,7 +165,7 @@ Following the companion method, we define
 
     v := u'
 
-obtaining a 1st-order problem
+obtaining a twice larger 1st-order problem
 
     v' = M0 u + M1 v
     u' = v
@@ -191,6 +179,21 @@ where m is the number of DOFs of the original 2nd-order system.
 Given w, M0 and M1, this class computes w'.
 
 The parameter n specifies the size of the *1st-order* system; n is always even.
+
+Trivial example to invoke this kernel:
+
+    from pydgq.solver.builtin_kernels import Linear2ndOrderKernel
+    from pydgq.odesolve import ivp
+
+    m   = 3        # number of DOFs in your 2nd-order system here
+    n   = 2*m      # corresponding number of DOFs in the reduced 1st-order system (always 2*m)
+    w0  = np.empty( (n,), dtype=np.float64, order="C" )
+    w0[0::2] = 0.  # your IC on u  here
+    w0[1::2] = 1.  # your IC on u' here
+    M0  = np.eye( m, dtype=np.float64, order="C" )  # your "M0" matrix here
+    M1  = np.eye( m, dtype=np.float64, order="C" )  # your "M1" matrix here
+    rhs = Linear1stOrderKernel(n, M0, M1)  # NOTE: size parameter is n, not m
+    ivp( ..., rhs=rhs, w0=w0 )
 """
         if n % 2 != 0:
             raise ValueError("For a 2nd-order problem reduced to a 1st-order one, n must be even; got %d" % (n))
@@ -244,11 +247,11 @@ cdef class Linear2ndOrderKernelWithMassMatrix(Linear2ndOrderKernel):
     def __init__(self, int n, double[:,::1] M0, double[:,::1] M1, double[:,::1] M2):
         """def __init__(self, int n, double[:,::1] M0, double[:,::1] M1, double[:,::1] M2):
 
-Second-order problem with a nontrivial (but constant-in-time) mass matrix:
+A generic kernel for the linear 2nd-order problem with a nontrivial (but constant-in-time) mass matrix:
 
     M2 u'' = M0 u + M1 u'
 
-This is also commonly encountered in mechanics.
+This problem is commonly encountered in mechanics.
 
 Companion form:
 
@@ -257,8 +260,24 @@ Companion form:
 
 The parameter n specifies the size of the *1st-order* system; n is always even.
 
-Here we gain an advantage by considering the companion form; we need to solve only an  m x m  linear system
-for the DOFs representing v'; the other m DOFs (u') are obtained directly.
+Note that the kernel needs to solve only an  m x m  linear system for the DOFs representing v';
+the other m DOFs (u') are obtained directly.
+
+Trivial example to invoke this kernel:
+
+    from pydgq.solver.builtin_kernels import Linear2ndOrderKernelWithMassMatrix
+    from pydgq.odesolve import ivp
+
+    m   = 3        # number of DOFs in your 2nd-order system here
+    n   = 2*m      # corresponding number of DOFs in the reduced 1st-order system (always 2*m)
+    w0  = np.empty( (n,), dtype=np.float64, order="C" )
+    w0[0::2] = 0.  # your IC on u  here
+    w0[1::2] = 1.  # your IC on u' here
+    M0  = np.eye( m, dtype=np.float64, order="C" )  # your "M0" matrix here
+    M1  = np.eye( m, dtype=np.float64, order="C" )  # your "M1" matrix here
+    M2  = np.eye( m, dtype=np.float64, order="C" )  # your "M2" matrix here
+    rhs = Linear2ndOrderKernelWithMassMatrix(n, M0, M1, M2)  # NOTE: size parameter is n, not m
+    ivp( ..., rhs=rhs, w0=w0 )
 """
         # super
         Linear2ndOrderKernel.__init__(self, n, M0, M1)
@@ -275,7 +294,7 @@ for the DOFs representing v'; the other m DOFs (u') are obtained directly.
         self.wrk3 = &(self.wrk_arr[n+self.m])  # last m elements of work space
 
     cdef void callback(self, double t) nogil:  # t unused in this example
-        # compute RHS, store result in wrk1
+        # compute RHS (i.e. w'), store result in wrk1
         #
         # Note that the RHS is exactly the same as in Linear2ndOrderKernel,
         # only the interpretation of the result differs.
@@ -286,7 +305,8 @@ for the DOFs representing v'; the other m DOFs (u') are obtained directly.
 
         # reorder DOFs, store result in wrk2
         #
-        # (we must undo the interleaving to use pylu.dgesv)
+        # We must undo the interleaving  w' = ( u'1, M2 v'1, u'2, M2 v'2,..., u'm, M2 v'm )
+        # to use pylu.dgesv on the  M2 v'  DOFs only.
         #
         cdef int j
         for j in range(self.m):

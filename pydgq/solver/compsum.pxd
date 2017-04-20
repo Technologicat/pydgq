@@ -27,9 +27,9 @@ from pydgq.solver.types cimport DTYPE_t, DTYPEZ_t
 #     http://en.wikipedia.org/wiki/Kahan_summation_algorithm
 #
 # Parameters:
-#     s: accumulated sum, DTYPE_t* pointing to a single DTYPE_t
-#     c: accumulated correction, DTYPE_t* pointing to a single DTYPE_t
-#     operand: the new term to add to the sum, DTYPE_t
+#     s :       in/out, accumulated sum, DTYPE_t* pointing to a single DTYPE_t
+#     c :       in/out, accumulated correction, DTYPE_t* pointing to a single DTYPE_t
+#     operand : in,     the new term to add to the sum, DTYPE_t
 #
 # We use pointers only for the ability to use "in/out" parameters.
 #
@@ -43,7 +43,9 @@ from pydgq.solver.types cimport DTYPE_t, DTYPEZ_t
 #     cdef int k
 #     for k in range(10):
 #       accumulate( &s, &c, my_data[k] )  # here my_data is an array of DTYPE_t containing the numbers to be summed.
-#     # now s is the result of the sum
+#     # now:
+#     #  - s is the result of the sum
+#     #  - c contains the final correction term (that is too small to be representable in s)
 #
 # Or, slightly optimized (may matter with small arrays):
 #
@@ -54,7 +56,9 @@ from pydgq.solver.types cimport DTYPE_t, DTYPEZ_t
 #     cdef int k
 #     for k in range(1,10):
 #       accumulate( &s, &c, my_data[k] )
-#     # now s is the result of the sum
+#     # now:
+#     #  - s is the result of the sum
+#     #  - c contains the final correction term (that is too small to be representable in s)
 #
 cdef inline void accumulate( DTYPE_t* s, DTYPE_t* c, DTYPE_t operand ) nogil:
     # In compensated summation (Kahan summation),
@@ -76,7 +80,7 @@ cdef inline void accumulate( DTYPE_t* s, DTYPE_t* c, DTYPE_t operand ) nogil:
     s[0] = t
 
 
-# Version for complex numbers. Provided for completeness.
+# Version for complex numbers.
 #
 cdef inline void accumulatez( DTYPEZ_t* s, DTYPEZ_t* c, DTYPEZ_t operand ) nogil:
     cdef DTYPEZ_t y = operand - c[0]
@@ -86,6 +90,8 @@ cdef inline void accumulatez( DTYPEZ_t* s, DTYPEZ_t* c, DTYPEZ_t operand ) nogil
 
 
 # Cumulative summation for 1D data (like np.cumsum, but with compensated summation).
+#
+# See compsum.pyx for an explanation of the parameters.
 #
 cdef void cs1dr( DTYPE_t* data, DTYPE_t* out, unsigned int n ) nogil
 cdef void cs1dz( DTYPEZ_t* data, DTYPEZ_t* out, unsigned int n ) nogil

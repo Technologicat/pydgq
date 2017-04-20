@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 #
+# Floating-point flags detection. Available at Cython level only.
+#
+#
 # Set Cython compiler directives. This section must appear before any code!
 #
 # For available directives, see:
@@ -9,8 +12,6 @@
 # cython: wraparound  = False
 # cython: boundscheck = False
 # cython: cdivision   = True
-#
-"""Floating-point flags detection."""
 
 from __future__ import division, print_function, absolute_import
 
@@ -37,13 +38,6 @@ cdef inline int all_denormal( DTYPE_t* w, int n ) nogil:
         if fpclassify(w[j]) == FP_SUBNORMAL:
             n_denormal += 1
 
-    # In practice this seems good enough, although it does run the theoretical risk
-    # of triggering (with a nonzero probability) when the solution just passes through zero.
-    #
-    # The problem is that denormal numbers are so small that we cannot square them;
-    # checking that the vector norm of the solution has been decreasing for N timesteps
-    # (for some N) before triggering this is thus difficult.
-    #
     if n_denormal == n:
         return 1
     else:

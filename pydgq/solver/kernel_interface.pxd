@@ -4,9 +4,9 @@
 
 # cpdef methods cannot be nogil, so we must work around as follows:
 #
-# KernelBase --> cdef call() nogil... (interface) (NOTE: this class **does not** define callback())
-#   CythonKernel --> implements call(), provides hook for Cython callback() (nogil)
-#   PythonKernel --> implements call(), provides hook for Python callback() (called in a "with gil" block)
+# KernelBase --> cdef void call(...) nogil, abstract method for interface (NOTE: this class **does not** define callback())
+#   CythonKernel --> implement call(), provide hook for Cython cdef callback(...) nogil
+#   PythonKernel --> implement call(), provide hook for Python def callback(...), which our call() invokes in a "with gil" block
 
 cdef class KernelBase:
     cdef double* w    # old state vector (memory owned by caller)
@@ -19,14 +19,14 @@ cdef class KernelBase:
     #
     cdef void begin_timestep(self, int timestep) nogil
     cdef void begin_iteration(self, int iteration) nogil
-    cdef void call(self, double* w, double* out, double t) nogil
+    cdef void call(self, double* w, double* out, double t) nogil  # interface for solver (abstract method)
 
 # Base class for kernels implemented in Cython.
 #
 # Cython kernels will run in nogil mode.
 #
 cdef class CythonKernel(KernelBase):
-    cdef void call(self, double* w, double* out, double t) nogil  # interface for solver
+    cdef void call(self, double* w, double* out, double t) nogil  # interface for solver (implemented here)
     cdef void callback(self, double t) nogil  # hook for user code
 
 # Base class for kernels implemented in pure Python.
@@ -37,6 +37,6 @@ cdef class PythonKernel(KernelBase):
     cdef double[::1] w_arr    # Python-accessible view into w
     cdef double[::1] out_arr  # Python-accessible view into out
 
-    cdef void call(self, double* w, double* out, double t) nogil  # interface for solver
+    cdef void call(self, double* w, double* out, double t) nogil  # interface for solver (implemented here)
     # here callback() is a Python (regular def) function  # hook for user code
 

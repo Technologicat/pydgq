@@ -32,30 +32,37 @@ cdef class IntegratorBase:
 
 Base class for all integration algorithms.
 
-Do not inherit directly from this! Inherit from ExplicitIntegrator or ImplicitIntegrator depending on your algorithm.
+Do not inherit directly from this!
+
+Inherit from ExplicitIntegrator or ImplicitIntegrator depending on your algorithm.
 
 Parameters:
     name : str
         Human-readable algorithm name such as "RK4", "dG", etc.
-        This is intended to be filled in by a concrete derived class
-        that implements a specific algorithm.
+
+        This is intended to be provided by __init__ of a concrete
+        derived class that implements a specific algorithm.
 
         See pydgq.solver.explicit, pydgq.solver.implicit and
         pydgq.solver.galerkin for examples.
 
     rhs : KernelBase instance (in practice, an instance of a derived class)
-        The RHS computational kernel. This is intended to be
-        chosen by the user at problem solve time.
+        The RHS computational kernel.
 
-Data attributes of IntegratorBase:
+        This is intended to be supplied by the user at problem solve time,
+        so derived classes should also keep rhs as a parameter to __init__.
+
+Data attributes:
     name : str
         saved from __init__
     rhs : KernelBase instance
-        saved from __init
+        saved from __init__
     wrk_arr : DTYPE_t[::1]
-        work space for integration algorithm (to be allocated by derived classes)
+        work space for integration algorithm, underlying NumPy array
+        (set to None in __init__; actual array to be allocated by derived classes)
     wrk : DTYPE_t*
-        raw C pointer to wrk_arr (to be filled in by derived classes)
+        raw C pointer to data in wrk_arr, only visible at Cython level
+        (set to NULL in __init___; to be filled in by derived classes)
 
 No further docstrings are provided, because the rest of this class
 is not visible from the Python level. See the source code in
@@ -66,11 +73,12 @@ should override the method
 
     cdef int call(self, DTYPE_t* w, DTYPE_t t, DTYPE_t dt) nogil:
 
-where
+where:
     w  : in/out
-        old state vector -> new state vector
+        old state vector in -> new state vector out
     t  : in
-        time at the beginning of the timestep (passed through to self.rhs.call())
+        time at the beginning of the timestep (passed through to self.rhs.call()
+        to support RHS that explicitly depend on t)
     dt : in
         size of timestep to take
 """
@@ -82,7 +90,7 @@ where
         self.wrk = <DTYPE_t*>0
 
     cdef int call(self, DTYPE_t* w, DTYPE_t t, DTYPE_t dt) nogil:
-        return 0  # no-op, no iterations taken
+        return 0  # default implementation: no-op, no iterations taken
 
 
 cdef class ExplicitIntegrator(IntegratorBase):
@@ -111,7 +119,7 @@ Note that inheriting from this class simply marks the algorithm
 as an implicit one; each integrator needs to implement the
 nonlinear iteration loop separately.
 
-New parameters:
+Parameters added by ImplicitIntegrator:
     maxit : int
         Maximum number of Banach/Picard iterations to take
         in the nonlinear iteration loop.

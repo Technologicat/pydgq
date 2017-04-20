@@ -13,9 +13,27 @@
 """Interface for evaluating the f() in  w' = f(w, t).
 
 These base classes connect the IVP solver with the user-provided custom code
-for computing the RHS.
+for computing the RHS. Cython and Python interfaces are available.
 
-Cython and Python interfaces are available.
+For a specific, arbitrary nonlinear problem, a custom kernel must be provided.
+This can be done in either of two ways:
+
+    - a) implement a cdef class
+        - inherit from pydgq.solver.kernel_interface.CythonKernel
+        - override __init__(), add any needed parameters, call CythonKernel.__init__(self, n)
+        - override cdef callback(...) to compute w' for your RHS
+
+    - b) implement a regular Python class
+        - inherit from pydgq.solver.kernel_interface.PythonKernel
+        - override __init__(), add any needed parameters, call PythonKernel.__init__(self, n)
+        - override def callback(...) to compute w' for your RHS
+
+Cython kernels run in nogil mode, allowing parallel processing of several independent problems.
+Useful in use cases with many independent small problems, and for OpenMP based parallel processing
+inside callback() (using cython.parallel.prange()).
+
+Python kernels acquire the GIL for each call of callback(). Useful for quick prototyping
+of new ODE systems, and for large problems where the Python function call overhead is not significant.
 
 See pydgq.solver.builtin_kernels for some Cython-based example kernels.
 """
@@ -40,16 +58,16 @@ cdef class KernelBase:
     def __init__(self, int n):
         """def __init__(self, int n):
 
-Parameters:
-    n : int
-        Number of DOFs of the ODE system.
-
 Base class for all kernels.
 
 Do not inherit directly from this; instead, see CythonKernel and PythonKernel
 depending on which language you wish to implement your kernel in.
 
-Data attributes of KernelBase:
+Parameters:
+    n : int
+        Number of DOFs of the ODE system.
+
+Data attributes:
     w : double*
         input, old state vector (memory owned by caller)
     out : double*

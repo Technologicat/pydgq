@@ -24,7 +24,13 @@ from pydgq.solver.integrator_interface cimport ImplicitIntegrator
 
 cdef class IMR(ImplicitIntegrator):
     def __init__(self, KernelBase rhs, int maxit):
-        """Implicit midpoint rule."""
+        """def __init__(self, KernelBase rhs, int maxit):
+
+Implicit midpoint rule.
+
+Parameters:
+    as in ancestor (pydgq.solver.integrator_interface.ImplicitIntegrator).
+"""
         # super
         ImplicitIntegrator.__init__(self, name="IMR", rhs=rhs, maxit=maxit)
 
@@ -115,7 +121,13 @@ cdef class IMR(ImplicitIntegrator):
 
 cdef class BE(ImplicitIntegrator):
     def __init__(self, KernelBase rhs, int maxit):
-        """Backward Euler (implicit Euler)."""
+        """def __init__(self, KernelBase rhs, int maxit):
+
+Backward Euler (implicit Euler).
+
+Parameters:
+    as in ancestor (pydgq.solver.integrator_interface.ImplicitIntegrator).
+"""
         # super
         ImplicitIntegrator.__init__(self, name="BE", rhs=rhs, maxit=maxit)
 

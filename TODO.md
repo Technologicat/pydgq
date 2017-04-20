@@ -3,7 +3,7 @@
 ### High priority
 
  - add some mechanism to report metadata to caller (e.g. number of iterations taken at each timestep)?
- - convert docstrings to NumpyDoc style
+ - combine explicit and implicit timestepping loops (trivial since the iteration is done on the algorithm side)
  - write README.md
  - write some usage examples
  - write some unit tests
