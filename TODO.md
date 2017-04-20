@@ -2,17 +2,14 @@
 
 ### High priority
 
- - add some mechanism to report metadata to caller (e.g. number of iterations taken at each timestep)?
- - write README.md
  - write some usage examples
  - write some unit tests
    - linear problem? Known solution... (and good for testing the provided example kernels)
    - Lorenz problem?
    - and/or compare solutions to the same problem computed by different algorithms
- - clean up `doc/legtest*.py`
- - update user manual (mainly title and a new introductory paragraph)
+ - write README.md
  - figure out how to distribute pydgq_data.bin (and make the installation find it), this file is rather large
- - fix keywords in `setup.py`
+ - update user manual (mainly title and a new introductory paragraph)
  - publish on GitHub
  - tag v0.1.0
  - release v0.1.0 on GitHub
@@ -20,6 +17,8 @@
 
 ### Maybe later
 
+ - clean up `doc/legtest*.py`
+ - add some mechanism to report metadata to caller (e.g. number of iterations taken at each timestep)?
  - add support for convergence tolerance (requires small changes to [`implicit.pyx`](pydgq/solver/implicit.pyx) and [`galerkin.pyx`](pydgq/solver/galerkin.pyx); see anything that uses `maxit`)
  - finish unifying the integrator interface; let the user pass in an IntegratorBase reference
    - implication: switchable user-defined integrators, no need to modify odesolve.pyx to add a new algorithm
