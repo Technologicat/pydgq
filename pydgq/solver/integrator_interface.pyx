@@ -23,7 +23,7 @@ See the source code in pydgq.solvers.integrator_interface.pyx for details.
 
 from __future__ import absolute_import
 
-from pydgq.solver.types cimport DTYPE_t
+from pydgq.solver.types cimport DTYPE_t, RTYPE_t
 from pydgq.solver.kernel_interface cimport KernelBase
 
 cdef class IntegratorBase:
@@ -71,7 +71,7 @@ pydgq.solvers.integrator_interface.pyx for details.
 Basically, when implementing a new algorithm, the derived cdef class
 should override the method:
 
-    cdef int call(self, DTYPE_t* w, DTYPE_t t, DTYPE_t dt) nogil:
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil:
 
 where the parameters are:
     w  : in/out
@@ -94,7 +94,7 @@ and the return value is:
         self.wrk_arr = None
         self.wrk = <DTYPE_t*>0
 
-    cdef int call(self, DTYPE_t* w, DTYPE_t t, DTYPE_t dt) nogil:
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil:
         return 0  # default implementation: no-op, no iterations taken
 
 

@@ -13,6 +13,7 @@ import functools  # reduce (Python 3 compatibility)
 import numpy as np
 import sympy.mpmath
 
+from pydgq.solver.types import RTYPE  # the precalc data is always real-valued regardless of DTYPE
 import pydgq.utils.mpi_shim
 import pydgq.utils.listutils
 
@@ -116,7 +117,7 @@ class Precalc:
         # Do the local work for task-local items.
         #
         N = self.N
-        ly = np.empty( [self.q+1, len(my_i)], dtype=np.float64 )  # local y (basis function values)
+        ly = np.empty( [self.q+1, len(my_i)], dtype=RTYPE )  # local y (basis function values)
         # use caching (if available) to avoid slow re-evaluation of the polynomials for x values already seen.
         if self.cache is not None:
             for li,gi in enumerate(my_i):  # local i, corresponding global i
@@ -126,7 +127,7 @@ class Precalc:
                     if x in self.cache[j]:
                         ly[j,li] = self.cache[j][x]
                     else:
-                        ly[j,li] = N[j]( x )  # Compute. Writing into the ly array forces conversion to float64, as we want.
+                        ly[j,li] = N[j]( x )  # Compute. Writing into the ly array forces conversion to RTYPE, as we want.
                         self.cache[j][x] = ly[j,li]
 
         else:
@@ -144,7 +145,7 @@ class Precalc:
             # We have the correct x indices in split_i; at the first step we just glue together the data arrays in sequence using MPI's Gatherv().
             #
             gshape  = [nx, self.q+1]  # transposed global shape (see below)
-            recv    = np.empty( np.prod(gshape), dtype=np.float64 )  # linear buffer for global data (we'll reshape this after receiving)
+            recv    = np.empty( np.prod(gshape), dtype=RTYPE )  # linear buffer for global data (we'll reshape this after receiving)
 
             counts  = [len(lis)*(self.q+1) for lis in split_i]  # lis contains the task-local item indices; all tasks handle q+1 basis functions
             disps   = [0] + np.cumsum( np.array(counts, dtype=int)[:-1] ).tolist()   #  e.g. [3,3,3,2] -> [0,3,6,9]
@@ -160,7 +161,15 @@ class Precalc:
             #    https://wiki.gwdg.de/index.php/Mpi4py
             #
             sendbuf = [ np.reshape(np.transpose(ly),-1), counts[mpi_shim.get_rank()] ]  # local_data, local_count (must be counts[mpi_rank])
-            recvbuf = [ recv, counts, disps, mpi_shim.get_mpi().DOUBLE ]  # data, counts, displacements, mpi_datatype
+
+            # TODO: other dtypes?
+            if RTYPE == np.float64:
+                MPI_datatype = mpi_shim.get_mpi().DOUBLE
+            elif RTYPE == np.float32:
+                MPI_datatype = mpi_shim.get_mpi().SINGLE
+            else:
+                raise NotImplementedError("Unknown RTYPE %s, cannot transmit data buffer" % (RTYPE))
+            recvbuf = [ recv, counts, disps, MPI_datatype ]  # data, counts, displacements, mpi_datatype
             comm = mpi_shim.get_comm_world()
             comm.Allgatherv( sendbuf, recvbuf )
 
@@ -255,9 +264,9 @@ def main(q, nx, **kwargs):
             # Considering the use of this data in ODE system integration (odesolve.pyx),
             # the end of the timestep is the most reasonable choice in the case of a single point.
             #
-            xx = np.array( [1.], dtype=np.float64 )
+            xx = np.array( [1.], dtype=RTYPE )
         else:
-            xx = np.linspace( -1., 1., k )
+            xx = np.linspace( -1., 1., k, dtype=RTYPE )
 
         mpi_shim.mpi_print( "    Computing for %d points" % k )
 
@@ -356,7 +365,7 @@ if __name__ == '__main__':
             import argparse
             parser = argparse.ArgumentParser(description="""Precalculate hierarchical (Lobatto) basis functions for Galerkin integrators.
 
-For high degrees, the definition of the bubble functions exhibits numerical cancellation, and must thus be computed at increased precision before casting the result to double precision. This is done using arbitrary-precision floating point math, which relies on a pure software implementation and is thus very slow. This script performs the required precomputation and saves the result to disk.
+For high degrees, the definition of the bubble functions exhibits numerical cancellation, and must thus be computed at increased precision before casting the result to target precision. This is done using arbitrary-precision floating point math, which relies on a pure software implementation and is thus very slow. This script performs the required precomputation and saves the result to disk.
 
 This script supports MPI for parallelization.""", formatter_class=argparse.RawDescriptionHelpFormatter)
 

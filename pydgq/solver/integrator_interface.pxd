@@ -2,7 +2,7 @@
 
 from __future__ import absolute_import
 
-from pydgq.solver.types cimport DTYPE_t
+from pydgq.solver.types cimport DTYPE_t, RTYPE_t
 from pydgq.solver.kernel_interface cimport KernelBase
 
 # Base class for all integrators.
@@ -26,7 +26,7 @@ cdef class IntegratorBase:
     #
     # return value: number of implicit solve iterations taken for this timestep (explicit integrators must always return 1)
     #
-    cdef int call(self, DTYPE_t* w, DTYPE_t t, DTYPE_t dt) nogil
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil
 
 # Base class for explicit integrators.
 #

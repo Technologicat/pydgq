@@ -11,6 +11,7 @@
 
 from __future__ import division, print_function, absolute_import
 
+from pydgq.solver.types cimport DTYPE_t, RTYPE_t
 from pydgq.solver.kernel_interface cimport CythonKernel
 
 
@@ -25,11 +26,11 @@ from pydgq.solver.kernel_interface cimport CythonKernel
 # This class assumes M is constant in time.
 #
 cdef class Linear1stOrderKernel(CythonKernel):
-    cdef double* M
-    cdef double[:,::1] M_arr
+    cdef DTYPE_t* M
+    cdef DTYPE_t[:,::1] M_arr
 
-    cdef void callback(self, double t) nogil
-    cdef void compute(self, double* w_in, double* wp_out) nogil
+    cdef void callback(self, RTYPE_t t) nogil
+    cdef void compute(self, DTYPE_t* w_in, DTYPE_t* wp_out) nogil
 
 
 # A w' = M w
@@ -39,18 +40,18 @@ cdef class Linear1stOrderKernel(CythonKernel):
 # Same note about "M" as above.
 #
 cdef class Linear1stOrderKernelWithMassMatrix(Linear1stOrderKernel):
-    cdef double* LU
+    cdef DTYPE_t* LU
     cdef int* p
     cdef int* mincols
     cdef int* maxcols
-    cdef double* wrk
-    cdef double[:,::1] LU_arr
+    cdef DTYPE_t* wrk
+    cdef DTYPE_t[:,::1] LU_arr
     cdef int[::1] p_arr
     cdef int[::1] mincols_arr
     cdef int[::1] maxcols_arr
-    cdef double[::1] wrk_arr
+    cdef DTYPE_t[::1] wrk_arr
 
-    cdef void callback(self, double t) nogil
+    cdef void callback(self, RTYPE_t t) nogil
 
 
 # u'' = M0 u + M1 u'
@@ -69,13 +70,13 @@ cdef class Linear1stOrderKernelWithMassMatrix(Linear1stOrderKernel):
 #
 cdef class Linear2ndOrderKernel(CythonKernel):
     cdef int m  # size of original 2nd-order system, m = n/2
-    cdef double* M0
-    cdef double* M1
-    cdef double[:,::1] M0_arr
-    cdef double[:,::1] M1_arr
+    cdef DTYPE_t* M0
+    cdef DTYPE_t* M1
+    cdef DTYPE_t[:,::1] M0_arr
+    cdef DTYPE_t[:,::1] M1_arr
 
-    cdef void callback(self, double t) nogil
-    cdef void compute(self, double* w_in, double* wp_out) nogil
+    cdef void callback(self, RTYPE_t t) nogil
+    cdef void compute(self, DTYPE_t* w_in, DTYPE_t* wp_out) nogil
 
 
 # M2 u'' = M0 u + M1 u'
@@ -97,18 +98,18 @@ cdef class Linear2ndOrderKernel(CythonKernel):
 cdef class Linear2ndOrderKernelWithMassMatrix(Linear2ndOrderKernel):
     # cdef classes are single inheritance only, so we have some duplication here
     # (since this is both a "linear 2nd-order kernel" as well as a "kernel with mass matrix").
-    cdef double* LU
+    cdef DTYPE_t* LU
     cdef int* p
     cdef int* mincols
     cdef int* maxcols
-    cdef double* wrk1  # n elements
-    cdef double* wrk2  # m elements
-    cdef double* wrk3  # m elements
-    cdef double[:,::1] LU_arr
+    cdef DTYPE_t* wrk1  # n elements
+    cdef DTYPE_t* wrk2  # m elements
+    cdef DTYPE_t* wrk3  # m elements
+    cdef DTYPE_t[:,::1] LU_arr
     cdef int[::1] p_arr
     cdef int[::1] mincols_arr
     cdef int[::1] maxcols_arr
-    cdef double[::1] wrk_arr  # wrk1, wrk2, wrk3 all stored here
+    cdef DTYPE_t[::1] wrk_arr  # wrk1, wrk2, wrk3 all stored here
 
-    cdef void callback(self, double t) nogil
+    cdef void callback(self, RTYPE_t t) nogil
 

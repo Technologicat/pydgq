@@ -20,8 +20,8 @@ from __future__ import division, print_function, absolute_import
 
 import numpy as np
 
-from pydgq.solver.types cimport DTYPE_t
-from pydgq.solver.types import DTYPE
+from pydgq.solver.types cimport DTYPE_t, RTYPE_t
+from pydgq.solver.types import DTYPE, RTYPE
 from pydgq.solver.kernel_interface cimport KernelBase
 from pydgq.solver.integrator_interface cimport ExplicitIntegrator
 from pydgq.solver.compsum cimport accumulate
@@ -43,7 +43,7 @@ Parameters:
         self.wrk_arr = np.empty( (5*n_space_dofs,), dtype=DTYPE, order="C" )
         self.wrk     = &(self.wrk_arr[0])
 
-    cdef int call(self, DTYPE_t* w, DTYPE_t t, DTYPE_t dt) nogil:
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil:
         cdef unsigned int j
         cdef int n_space_dofs = self.rhs.n
         cdef DTYPE_t* wstar   = self.wrk  # updated w, used for computing the next k
@@ -54,11 +54,11 @@ Parameters:
         cdef DTYPE_t* k3 = &(self.wrk[3*n_space_dofs])
         cdef DTYPE_t* k4 = &(self.wrk[4*n_space_dofs])
 
-        cdef DTYPE_t dtp2  = dt/2.0
-        cdef DTYPE_t dtp6  = dt/6.0
+        cdef RTYPE_t dtp2  = dt/2.0
+        cdef RTYPE_t dtp6  = dt/6.0
 
-        cdef DTYPE_t thalf = t + dtp2
-        cdef DTYPE_t tend  = t + dt
+        cdef RTYPE_t thalf = t + dtp2
+        cdef RTYPE_t tend  = t + dt
 
         cdef DTYPE_t s
         cdef DTYPE_t c
@@ -121,7 +121,7 @@ Parameters:
         self.wrk_arr = np.empty( (4*n_space_dofs,), dtype=DTYPE, order="C" )
         self.wrk     = &(self.wrk_arr[0])
 
-    cdef int call(self, DTYPE_t* w, DTYPE_t t, DTYPE_t dt) nogil:
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil:
         cdef unsigned int j
         cdef int n_space_dofs = self.rhs.n
         cdef DTYPE_t* wstar   = self.wrk  # updated w, used for computing the next k
@@ -131,12 +131,12 @@ Parameters:
         cdef DTYPE_t* k2 = &(self.wrk[2*n_space_dofs])
         cdef DTYPE_t* k3 = &(self.wrk[3*n_space_dofs])
 
-        cdef DTYPE_t dtp2  = dt/2.0
-        cdef DTYPE_t twodt = 2.0*dt
-        cdef DTYPE_t dtp6  = dt/6.0
+        cdef RTYPE_t dtp2  = dt/2.0
+        cdef RTYPE_t twodt = 2.0*dt
+        cdef RTYPE_t dtp6  = dt/6.0
 
-        cdef DTYPE_t thalf = t + dtp2
-        cdef DTYPE_t tend  = t + dt
+        cdef RTYPE_t thalf = t + dtp2
+        cdef RTYPE_t tend  = t + dt
 
         cdef DTYPE_t s
         cdef DTYPE_t c
@@ -179,13 +179,13 @@ Parameters:
 
 
 cdef class RK2(ExplicitIntegrator):
-    def __init__(self, KernelBase rhs, DTYPE_t beta):
-        """def __init__(self, KernelBase rhs, DTYPE_t beta):
+    def __init__(self, KernelBase rhs, RTYPE_t beta):
+        """def __init__(self, KernelBase rhs, RTYPE_t beta):
 
 Parametric second-order Runge-Kutta (RK2).
 
 Parameters:
-    beta : DTYPE_t
+    beta : RTYPE_t
         Where inside the timestep to take the second evaluation of the RHS.
 
         beta must be in the half-open interval (0, 1].
@@ -213,7 +213,7 @@ Parameters:
         self.wrk_arr = np.empty( (3*n_space_dofs,), dtype=DTYPE, order="C" )
         self.wrk     = &(self.wrk_arr[0])
 
-    cdef int call(self, DTYPE_t* w, DTYPE_t t, DTYPE_t dt) nogil:
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil:
         cdef unsigned int j
         cdef int n_space_dofs = self.rhs.n
         cdef DTYPE_t* wstar   = self.wrk  # updated w, used for computing the next k
@@ -222,13 +222,13 @@ Parameters:
         cdef DTYPE_t* k1 = &(self.wrk[n_space_dofs])
         cdef DTYPE_t* k2 = &(self.wrk[2*n_space_dofs])
 
-        cdef DTYPE_t weight2 = 1.0 / (2.0 * self.beta)
-        cdef DTYPE_t weight1 = 1.0 - weight2
+        cdef RTYPE_t weight2 = 1.0 / (2.0 * self.beta)
+        cdef RTYPE_t weight1 = 1.0 - weight2
         weight1 *= dt
         weight2 *= dt
 
-        cdef DTYPE_t betadt = self.beta*dt
-        cdef DTYPE_t tmid   = t + betadt
+        cdef RTYPE_t betadt = self.beta*dt
+        cdef RTYPE_t tmid   = t + betadt
 
         cdef DTYPE_t s
         cdef DTYPE_t c
@@ -281,7 +281,7 @@ Parameters:
         self.wrk_arr = np.empty( (1*n_space_dofs,), dtype=DTYPE, order="C" )
         self.wrk     = &(self.wrk_arr[0])
 
-    cdef int call(self, DTYPE_t* w, DTYPE_t t, DTYPE_t dt) nogil:
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil:
         cdef int n_space_dofs = self.rhs.n
         cdef DTYPE_t* wp      = self.wrk  # w prime (output from RHS)
 
@@ -335,7 +335,7 @@ Original reference:
         self.wrk_arr = np.empty( (1*n_space_dofs,), dtype=DTYPE, order="C" )
         self.wrk     = &(self.wrk_arr[0])
 
-    cdef int call(self, DTYPE_t* w, DTYPE_t t, DTYPE_t dt) nogil:
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil:
         cdef unsigned int j
         cdef int n_space_dofs = self.rhs.n
         cdef DTYPE_t* wp      = self.wrk  # w prime (output from RHS)

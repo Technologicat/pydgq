@@ -40,8 +40,7 @@ See pydgq.solver.builtin_kernels for some Cython-based example kernels.
 
 from __future__ import division, print_function, absolute_import
 
-# use fast math functions from <math.h>, available via Cython
-#from libc.math cimport sin, cos, log, exp, sqrt
+from pydgq.solver.types cimport DTYPE_t, RTYPE_t
 
 
 ###############
@@ -49,9 +48,9 @@ from __future__ import division, print_function, absolute_import
 ###############
 
 cdef class KernelBase:
-#    cdef double* w    # old state vector (memory owned by caller)
-#    cdef double* out  # new state vector (memory owned by caller)
-#    cdef int n        # n_space_dofs
+#    cdef DTYPE_t* w    # old state vector (memory owned by caller)
+#    cdef DTYPE_t* out  # new state vector (memory owned by caller)
+#    cdef int n         # n_space_dofs
 #    cdef int timestep
 #    cdef int iteration
 
@@ -68,9 +67,9 @@ Parameters:
         Number of DOFs of the ODE system.
 
 Data attributes:
-    w : double*
+    w : DTYPE_t*
         input, old state vector (memory owned by caller)
-    out : double*
+    out : DTYPE_t*
         output, new state vector (memory owned by caller)
     n : int
         number of DOFs (taken from __init__)
@@ -100,7 +99,7 @@ Data attributes:
     #
     # Implemented in derived classes.
     #
-    cdef void call(self, double* w, double* out, double t) nogil:
+    cdef void call(self, DTYPE_t* w, DTYPE_t* out, RTYPE_t t) nogil:
         pass
 
 
@@ -119,7 +118,7 @@ pydgq.solvers.kernel_interface.pyx for details.
 
 Basically, in your cdef class, override the method
 
-    cdef void callback(self, double t) nogil:
+    cdef void callback(self, RTYPE_t t) nogil:
 
 The necessary arrays can be accessed as self.w and self.out.
 Both arrays have self.n elements.
@@ -130,7 +129,7 @@ If callback() is not overridden, this class implements a no-op kernel: w' = 0.
 
     # Implementation of call() for Cython kernels.
     #
-    cdef void call(self, double* w, double* out, double t) nogil:
+    cdef void call(self, DTYPE_t* w, DTYPE_t* out, RTYPE_t t) nogil:
         self.w   = w
         self.out = out
         self.callback(t)
@@ -141,15 +140,15 @@ If callback() is not overridden, this class implements a no-op kernel: w' = 0.
     #
     # Override this method in derived classes to provide your computational kernel.
     #
-    cdef void callback(self, double t) nogil:
+    cdef void callback(self, RTYPE_t t) nogil:
         cdef int j
         for j in range(self.n):
             self.out[j] = 0.0
 
 
 cdef class PythonKernel(KernelBase):
-#    cdef double[::1] w_arr
-#    cdef double[::1] out_arr
+#    cdef DTYPE_t[::1] w_arr
+#    cdef DTYPE_t[::1] out_arr
 
     # we override __init__ only in order to provide a docstring.
     def __init__(self, int n):
@@ -164,21 +163,21 @@ which is a regular Python-level method (in Cython parlance,
 See callback().
 
 **Cython-level** data attributes added by PythonKernel:
-    w_arr : double[::1] (visible from Python as "w")
+    w_arr : DTYPE_t[::1] (visible from Python as "w")
         Python-accessible view of Cython-level self.w
-    out_arr : double[::1] (visible from Python as "out")
+    out_arr : DTYPE_t[::1] (visible from Python as "out")
         Python-accessible view of Cython-level self.out
 """
         KernelBase.__init__(self, n)
 
     # Implementation of call() for Python kernels.
     #
-    cdef void call(self, double* w, double* out, double t) nogil:
+    cdef void call(self, DTYPE_t* w, DTYPE_t* out, RTYPE_t t) nogil:
         self.w   = w
         self.out = out
         with gil:
-            self.w_arr   = <double[:self.n:1]>w
-            self.out_arr = <double[:self.n:1]>out
+            self.w_arr   = <DTYPE_t[:self.n:1]>w
+            self.out_arr = <DTYPE_t[:self.n:1]>out
             self.callback(t)
 
     # This wrapper is needed because cdef data attributes of cdef classes
@@ -205,8 +204,8 @@ except w_arr and out_arr, which are named w and out.
         else:
             raise AttributeError("No such attribute '%s'" % (name))
 
-    def callback(self, double t):
-        """def callback(self, double t):
+    def callback(self, RTYPE_t t):
+        """def callback(self, RTYPE_t t):
 
 Python-based callback (hook for custom code).
 

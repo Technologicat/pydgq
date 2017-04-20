@@ -39,8 +39,8 @@ import numpy as np
 cimport pydgq.solver.fputils as fputils    # nan/inf checks for arrays
 from pydgq.solver.cminmax cimport cuimax  # "C unsigned int max"
 
-from pydgq.solver.types cimport DTYPE_t
-from pydgq.solver.types import DTYPE
+from pydgq.solver.types cimport DTYPE_t, RTYPE_t
+from pydgq.solver.types import DTYPE, RTYPE, DNAN
 
 from pydgq.solver.kernel_interface cimport KernelBase  # RHS f() for w' = f(w,t)
 
@@ -78,7 +78,7 @@ import  pydgq.solver.galerkin as galerkin
 #
 # wrk must have space for n_space_dofs items.
 #
-cdef inline void store( DTYPE_t* w, int n_space_dofs, int timestep, double t, int save_from, DTYPE_t* ww, KernelBase rhs, DTYPE_t* ff, int* pfail, int failure, DTYPE_t* wrk ) nogil:
+cdef inline void store( DTYPE_t* w, int n_space_dofs, int timestep, RTYPE_t t, int save_from, DTYPE_t* ww, KernelBase rhs, DTYPE_t* ff, int* pfail, int failure, DTYPE_t* wrk ) nogil:
     cdef unsigned int n, j
     cdef DTYPE_t* wp = wrk
 
@@ -299,8 +299,8 @@ Returns:
     return (np.asanyarray(startj), np.asanyarray(endj))
 
 
-def make_tt( double dt, int nt, int save_from, int interp=1, integrator="other", out=None ):
-    """def make_tt( double dt, int nt, int save_from, int interp=1, integrator="other", out=None ):
+def make_tt( RTYPE_t dt, int nt, int save_from, int interp=1, integrator="other", out=None ):
+    """def make_tt( RTYPE_t dt, int nt, int save_from, int interp=1, integrator="other", out=None ):
 
 Generate rank-1 np.array of the time values that correspond to the solution values output by ivp().
 
@@ -322,7 +322,7 @@ Parameters:
     For the other parameters, see result_len().
 
 Returns:
-    rank-1 np.array of double:
+    rank-1 np.array of RTYPE:
         The time values.
 """
     if dt == 0.0:
@@ -342,20 +342,20 @@ Returns:
     # TODO: Currently this function has no access to it, because the galerkin.datamanager instance does not (necessarily) exist at this time (or may have different settings, even if it exists).
 
     # "local" time values, i.e. offsets in [0,1] inside one timestep
-    cdef DTYPE_t[::1] tloc
+    cdef RTYPE_t[::1] tloc
     if interp == 1:  # special case: for one point, linspace gives the beginning of the range, but we want the end
-        tloc = np.array( (1.0,) )
+        tloc = np.array( (1.0,), dtype=RTYPE )
     else:
         if integrator == "cG":
-            tloc = np.linspace(0.0, 1.0, interp+1)[1:]  # cG special case: cut away duplicate point at the beginning of the timestep
+            tloc = np.linspace(0.0, 1.0, interp+1, dtype=RTYPE)[1:]  # cG special case: cut away duplicate point at the beginning of the timestep
         else:
-            tloc = np.linspace(0.0, 1.0, interp)  # dG
+            tloc = np.linspace(0.0, 1.0, interp, dtype=RTYPE)  # dG
 
     # global time values
-    cdef DTYPE_t[::1] tt
+    cdef RTYPE_t[::1] tt
     if out is None:
         nvals = result_len( nt, save_from, interp )
-        tt = np.empty( [nvals], dtype=DTYPE, order="C" )
+        tt = np.empty( [nvals], dtype=RTYPE, order="C" )
     else:
         tt = out
 
@@ -366,7 +366,7 @@ Returns:
         offs = 0
 
     # avoid allocating extra memory using a compiled C loop
-    cdef DTYPE_t startt
+    cdef RTYPE_t startt
     with nogil:
         # Loop over the timesteps.
         #
@@ -382,7 +382,7 @@ Returns:
             start = offs  + n*interp
             end   = start +   interp  # actually one-past-end
             for k in range(end - start):
-                tt[start + k] = startt + (<DTYPE_t>(n) + tloc[k])*dt
+                tt[start + k] = startt + (<RTYPE_t>(n) + tloc[k])*dt
 
     return np.asanyarray(tt)
 
@@ -392,11 +392,11 @@ Returns:
 #########################################################################################
 
 # TODO: add convergence tolerance (needs some changes in implicit.pyx and galerkin.pyx (basically wherever "maxit" is used))
-def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0 not None, double dt, int nt, int save_from, int interp,
-         KernelBase rhs, DTYPE_t[:,::1] ww not None, DTYPE_t[:,::1] ff, int[::1] fail, double RK2_beta=1.0,
+def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0 not None, RTYPE_t dt, int nt, int save_from, int interp,
+         KernelBase rhs, DTYPE_t[:,::1] ww not None, DTYPE_t[:,::1] ff, int[::1] fail, RTYPE_t RK2_beta=1.0,
          int maxit=100 ):
-    """def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0 not None, double dt, int nt, int save_from, int interp,
-         KernelBase rhs, DTYPE_t[:,::1] ww not None, DTYPE_t[:,::1] ff, int[::1] fail, double RK2_beta=1.0,
+    """def ivp( str integrator, int allow_denormals, DTYPE_t[::1] w0 not None, RTYPE_t dt, int nt, int save_from, int interp,
+         KernelBase rhs, DTYPE_t[:,::1] ww not None, DTYPE_t[:,::1] ff, int[::1] fail, RTYPE_t RK2_beta=1.0,
          int maxit=100 ):
 
 Solve initial value problem.
@@ -497,7 +497,7 @@ Parameters:
         initial state (w1, w2, ..., wn).
         This also automatically sets n_space_dofs (for the current problem) to len(w0).
 
-    dt : double, != 0
+    dt : RTYPE_t, != 0
         timestep size
 
         Negative values can be used to integrate backward in time.
@@ -635,7 +635,7 @@ Returns:
     # Timestep number and current time
     #
     cdef unsigned int n = 0
-    cdef double t = 0.0
+    cdef RTYPE_t t = 0.0
 
     # Work space for store()
     #
@@ -861,7 +861,7 @@ Returns:
             fill = 0.0  # w small, no more change in w  =>  both w = 0 and w' = 0
             failflag = 0  # successful
         else: # naninf_triggered:
-            fill = np.nan
+            fill = DNAN
             failflag = 1
 
         ww[out_start:,:] = fill

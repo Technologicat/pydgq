@@ -2,9 +2,12 @@
 
 from __future__ import absolute_import
 
-# real
-ctypedef double DTYPE_t
+# real (choose precision here)
+ctypedef double RTYPE_t
 
-# complex
-ctypedef double complex DTYPEZ_t
+# complex (choose precision here)
+ctypedef double complex ZTYPE_t
+
+# problem data (choose real or complex here)
+ctypedef RTYPE_t DTYPE_t
 

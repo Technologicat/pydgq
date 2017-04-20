@@ -46,7 +46,7 @@ from __future__ import division, print_function, absolute_import
 import numpy as np
 
 from pydgq.solver.types cimport DTYPE_t
-from pydgq.solver.types  import DTYPE
+from pydgq.solver.types  import DTYPE, DNAN
 
 
 def discontify( DTYPE_t[::1] data, int[::1] idxs, str fill="nan" ):
@@ -83,7 +83,7 @@ def discontify( DTYPE_t[::1] data, int[::1] idxs, str fill="nan" ):
 
     cdef unsigned int j, k
     cdef unsigned int offs = 0
-    cdef DTYPE_t nan = np.nan
+    cdef DTYPE_t nan = DNAN
     cdef DTYPE_t[::1] out = np.empty( (ndata + nidxs,), dtype=DTYPE, order="C" )
 
     DEF MODE_NAN  = 1

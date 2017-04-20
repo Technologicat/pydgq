@@ -29,8 +29,8 @@ import numpy as np
 import  pylu.dgesv as dgesv    # Cython-based LU decomposition and linear equation system solver, callable from inside nogil blocks -- Python interface (using np.arrays)
 cimport pylu.dgesv as dgesv_c  # -"- -- Cython interface (using raw pointers, explicit sizes)
 
-from pydgq.solver.types cimport DTYPE_t
-from pydgq.solver.types import DTYPE
+from pydgq.solver.types cimport DTYPE_t, RTYPE_t
+from pydgq.solver.types import DTYPE, RTYPE
 from pydgq.solver.kernel_interface cimport KernelBase
 from pydgq.solver.integrator_interface cimport ImplicitIntegrator
 from pydgq.solver.compsum cimport accumulate
@@ -96,15 +96,15 @@ Parameters:
 
         # retrieve global arrays
         #
-        cdef DTYPE_t[:,::1]   LU         = datamanager.LU       # LU decomposed mass matrix (packed format), for one space DOF, shape (n_time_dofs, n_time_dofs)
+        cdef RTYPE_t[:,::1]   LU         = datamanager.LU       # LU decomposed mass matrix (packed format), for one space DOF, shape (n_time_dofs, n_time_dofs)
         cdef int[::1]         p          = datamanager.p        # row permutation information, length n_time_dofs
         cdef int[::1]         mincols    = datamanager.mincols  # band information for L, length n_time_dofs
         cdef int[::1]         maxcols    = datamanager.maxcols  # band information for U, length n_time_dofs
-        cdef DTYPE_t[::1]     qw         = datamanager.integ_w  # quadrature weights (Gauss-Legendre)
-        cdef DTYPE_t[:,::1]   psi        = datamanager.integ_y  # basis function values at the quadrature points, qy[j,i] is N[j]( x[i] )
-        cdef DTYPE_t[:,::1]   psivis     = datamanager.vis_y    # basis function values at the visualization points, qy[j,i] is N[j]( x[i] )
-        cdef DTYPE_t[::1]     tvis       = datamanager.vis_x    # time values at the visualization points (on the reference element [-1,1])
-        cdef DTYPE_t[::1]     tquad      = datamanager.integ_x  # Gauss-Legendre points of the chosen rule, in (-1,1)
+        cdef RTYPE_t[::1]     qw         = datamanager.integ_w  # quadrature weights (Gauss-Legendre)
+        cdef RTYPE_t[:,::1]   psi        = datamanager.integ_y  # basis function values at the quadrature points, qy[j,i] is N[j]( x[i] )
+        cdef RTYPE_t[:,::1]   psivis     = datamanager.vis_y    # basis function values at the visualization points, qy[j,i] is N[j]( x[i] )
+        cdef RTYPE_t[::1]     tvis       = datamanager.vis_x    # time values at the visualization points (on the reference element [-1,1])
+        cdef RTYPE_t[::1]     tquad      = datamanager.integ_x  # Gauss-Legendre points of the chosen rule, in (-1,1)
 
         # get raw pointers to array data
         #
@@ -148,7 +148,7 @@ Parameters:
     # self.u: rank-2 array, size [n_space_dofs, n_time_dofs]: Galerkin coefficients; u[j,i] is the coefficient of psi[i] for solution component u_j(x)
     #
     #                         basis         output         summ. corr. wrk
-    cdef void assemble( self, DTYPE_t* psi, DTYPE_t* uass, DTYPE_t* ucorr, int n_points ) nogil:
+    cdef void assemble( self, RTYPE_t* psi, DTYPE_t* uass, DTYPE_t* ucorr, int n_points ) nogil:
         cdef unsigned int i,j,k
         cdef int n_space_dofs = self.rhs.n
         cdef int n_time_dofs  = self.n_time_dofs
@@ -221,7 +221,7 @@ Parameters:
     # self.qw:     array of quadrature weights (rank-1 or C order); length of funcvals must match length of self.qw
     # self.n_quad: number of items in funcvals and qw
     #
-    cdef DTYPE_t do_quadrature( self, DTYPE_t* funcvals, DTYPE_t dt ) nogil:
+    cdef DTYPE_t do_quadrature( self, DTYPE_t* funcvals, RTYPE_t dt ) nogil:
         cdef unsigned int i
 
 #        # naive summation (not good for problems sensitive to initial conditions, such as vibration problems with low damping)
@@ -291,15 +291,15 @@ Time-discontinuous Galerkin.
     #    cdef DTYPE_t[::1]     ucvis = np.empty( [nx],                              dtype=DTYPE, order="C" )  # correction for compensated summation in assemble() (for visualization)
     #
     #    # global arrays, same for each solver instance (see galerkin.DataManager.load_data(), galerkin.DataManager.prep_solver())
-    #    cdef DTYPE_t[:,::1] LU      = galerkin.datamanager.LU       # LU decomposed mass matrix (packed format), for one space DOF, shape (n_time_dofs, n_time_dofs)
+    #    cdef RTYPE_t[:,::1] LU      = galerkin.datamanager.LU       # LU decomposed mass matrix (packed format), for one space DOF, shape (n_time_dofs, n_time_dofs)
     #    cdef int[::1]       p       = galerkin.datamanager.p        # row permutation information, length n_time_dofs
     #    cdef int[::1]       mincols = galerkin.datamanager.mincols  # band information for L, length n_time_dofs
     #    cdef int[::1]       maxcols = galerkin.datamanager.maxcols  # band information for U, length n_time_dofs
-    #    cdef DTYPE_t[::1]   qw      = galerkin.datamanager.integ_w  # quadrature weights (Gauss-Legendre)
-    #    cdef DTYPE_t[:,::1] psi     = galerkin.datamanager.integ_y  # basis function values at the quadrature points, psi[j,i] is N[j]( x[i] )
-    #    cdef DTYPE_t[:,::1] psivis  = galerkin.datamanager.vis_y    # basis function values at the visualization points, psivis[j,i] is N[j]( x[i] )
+    #    cdef RTYPE_t[::1]   qw      = galerkin.datamanager.integ_w  # quadrature weights (Gauss-Legendre)
+    #    cdef RTYPE_t[:,::1] psi     = galerkin.datamanager.integ_y  # basis function values at the quadrature points, psi[j,i] is N[j]( x[i] )
+    #    cdef RTYPE_t[:,::1] psivis  = galerkin.datamanager.vis_y    # basis function values at the visualization points, psivis[j,i] is N[j]( x[i] )
     #
-    cdef int call(self, DTYPE_t* w, DTYPE_t t, DTYPE_t dt) nogil:
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil:
         cdef DTYPE_t* up = self.wrk  # temporary storage for u'
         cdef unsigned int nequals  # for convergence check
 
@@ -307,7 +307,7 @@ Time-discontinuous Galerkin.
         cdef int n_time_dofs  = self.n_time_dofs
         cdef int n_quad       = self.n_quad
 
-        cdef DTYPE_t tcurr  # t at current quadrature point
+        cdef RTYPE_t tcurr  # t at current quadrature point
 
         # Loop counters.
         #
@@ -394,6 +394,8 @@ Time-discontinuous Galerkin.
                 #
                 # This updates the Galerkin coefficients self.u.
                 #
+                # TODO: need some variant of zgesv if DTYPE is ZTYPE
+                #
                 dgesv_c.solve_decomposed_banded_c( self.LU, self.p, self.mincols, self.maxcols, &self.b[j*n_time_dofs + 0], &self.u[j*n_time_dofs + 0], n_time_dofs )
 
             # Check convergence; break early if converged to within machine precision.
@@ -451,15 +453,15 @@ This is almost the same code as dG, the only difference being in the handling of
     #    cdef DTYPE_t[::1]     ucvis = np.empty( [nx],                              dtype=DTYPE, order="C" )  # correction for compensated summation in assemble() (for visualization)
     #
     #    # global arrays, same for each solver instance (see galerkin.DataManager.load_data(), galerkin.DataManager.prep_solver())
-    #    cdef DTYPE_t[:,::1] LU      = galerkin.datamanager.LU       # LU decomposed mass matrix (packed format), for one space DOF, shape (n_time_dofs, n_time_dofs)
+    #    cdef RTYPE_t[:,::1] LU      = galerkin.datamanager.LU       # LU decomposed mass matrix (packed format), for one space DOF, shape (n_time_dofs, n_time_dofs)
     #    cdef int[::1]       p       = galerkin.datamanager.p        # row permutation information, length n_time_dofs
     #    cdef int[::1]       mincols = galerkin.datamanager.mincols  # band information for L, length n_time_dofs
     #    cdef int[::1]       maxcols = galerkin.datamanager.maxcols  # band information for U, length n_time_dofs
-    #    cdef DTYPE_t[::1]   qw      = galerkin.datamanager.integ_w  # quadrature weights (Gauss-Legendre)
-    #    cdef DTYPE_t[:,::1] psi     = galerkin.datamanager.integ_y  # basis function values at the quadrature points, psi[j,i] is N[j]( x[i] )
-    #    cdef DTYPE_t[:,::1] psivis  = galerkin.datamanager.vis_y    # basis function values at the visualization points, psivis[j,i] is N[j]( x[i] )
+    #    cdef RTYPE_t[::1]   qw      = galerkin.datamanager.integ_w  # quadrature weights (Gauss-Legendre)
+    #    cdef RTYPE_t[:,::1] psi     = galerkin.datamanager.integ_y  # basis function values at the quadrature points, psi[j,i] is N[j]( x[i] )
+    #    cdef RTYPE_t[:,::1] psivis  = galerkin.datamanager.vis_y    # basis function values at the visualization points, psivis[j,i] is N[j]( x[i] )
     #
-    cdef int call(self, DTYPE_t* w, DTYPE_t t, DTYPE_t dt) nogil:
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil:
         cdef DTYPE_t* up = self.wrk  # temporary storage for u'
         cdef unsigned int nequals  # for convergence check
 
@@ -467,7 +469,7 @@ This is almost the same code as dG, the only difference being in the handling of
         cdef int n_time_dofs  = self.n_time_dofs
         cdef int n_quad       = self.n_quad
 
-        cdef DTYPE_t tcurr  # t at current quadrature point
+        cdef RTYPE_t tcurr  # t at current quadrature point
 
         # Loop counters.
         #
@@ -542,6 +544,8 @@ This is almost the same code as dG, the only difference being in the handling of
                 # Solve the cG linear equation system for this space DOF.
                 #
                 # This updates the Galerkin coefficients self.u.
+                #
+                # TODO: need some variant of zgesv if DTYPE is ZTYPE
                 #
                 dgesv_c.solve_decomposed_banded_c( self.LU, self.p, self.mincols, self.maxcols, &self.b[j*n_time_dofs + 0], &self.u[j*n_time_dofs + 0], n_time_dofs )
 
@@ -838,11 +842,11 @@ Parameters:
         #   - DTYPE_t in the cdef vs. DTYPE in the Python call to np.empty()
         #   - C storage order
         #
-#        cdef DTYPE_t[::1]   integ_x = np.empty( [ rule ],              dtype=DTYPE, order="C" )
-#        cdef DTYPE_t[::1]   integ_w = np.empty( [ rule ],              dtype=DTYPE, order="C" )
-#        cdef DTYPE_t[:,::1] integ_y = np.empty( [ n_time_dofs, rule ], dtype=DTYPE, order="C" )
-#        cdef DTYPE_t[::1]   vis_x   = np.empty( [ nx ],                dtype=DTYPE, order="C" )
-#        cdef DTYPE_t[:,::1] vis_y   = np.empty( [ n_time_dofs, nx ],   dtype=DTYPE, order="C" )
+#        cdef RTYPE_t[::1]   integ_x = np.empty( [ rule ],              dtype=DTYPE, order="C" )
+#        cdef RTYPE_t[::1]   integ_w = np.empty( [ rule ],              dtype=DTYPE, order="C" )
+#        cdef RTYPE_t[:,::1] integ_y = np.empty( [ n_time_dofs, rule ], dtype=DTYPE, order="C" )
+#        cdef RTYPE_t[::1]   vis_x   = np.empty( [ nx ],                dtype=DTYPE, order="C" )
+#        cdef RTYPE_t[:,::1] vis_y   = np.empty( [ n_time_dofs, nx ],   dtype=DTYPE, order="C" )
 #
 #        integ_x[:]   = integ["x"][:]
 #        integ_y[:,:] = integ["y"][:,:]
@@ -850,11 +854,11 @@ Parameters:
 #        vis_x[:]     = vis["x"][:]
 #        vis_y[:,:]   = vis["y"][:,:]
 
-        cdef DTYPE_t[::1]   integ_x = integ["x"].copy(order="C")
-        cdef DTYPE_t[::1]   integ_w = integ["w"].copy(order="C")
-        cdef DTYPE_t[:,::1] integ_y = integ["y"].copy(order="C")
-        cdef DTYPE_t[::1]   vis_x   = vis["x"].copy(order="C")
-        cdef DTYPE_t[:,::1] vis_y   = vis["y"].copy(order="C")
+        cdef RTYPE_t[::1]   integ_x = integ["x"].copy(order="C")
+        cdef RTYPE_t[::1]   integ_w = integ["w"].copy(order="C")
+        cdef RTYPE_t[:,::1] integ_y = integ["y"].copy(order="C")
+        cdef RTYPE_t[::1]   vis_x   = vis["x"].copy(order="C")
+        cdef RTYPE_t[:,::1] vis_y   = vis["y"].copy(order="C")
 
         self.integ_x = integ_x
         self.integ_y = integ_y
@@ -893,7 +897,7 @@ much more accurate and much faster.
         q = self.q
         n = q+1
 
-        C = np.zeros( (n,n), dtype=np.float64 )
+        C = np.zeros( (n,n), dtype=RTYPE )
         C[0,0] = -1./2.
         C[0,1] =  1./2.
         C[1,0] = -1./2.

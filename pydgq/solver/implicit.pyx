@@ -16,8 +16,8 @@ from __future__ import division, print_function, absolute_import
 
 import numpy as np
 
-from pydgq.solver.types cimport DTYPE_t
-from pydgq.solver.types import DTYPE
+from pydgq.solver.types cimport DTYPE_t, RTYPE_t
+from pydgq.solver.types import DTYPE, RTYPE
 from pydgq.solver.kernel_interface cimport KernelBase
 from pydgq.solver.integrator_interface cimport ImplicitIntegrator
 
@@ -38,7 +38,7 @@ Parameters:
         self.wrk_arr = np.empty( (4*n_space_dofs,), dtype=DTYPE, order="C" )
         self.wrk     = &(self.wrk_arr[0])
 
-    cdef int call(self, DTYPE_t* w, DTYPE_t t, DTYPE_t dt) nogil:
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil:
         cdef unsigned int j, m=-1, m2, nequals
         cdef int n_space_dofs = self.rhs.n
         cdef int success = 0
@@ -50,7 +50,7 @@ Parameters:
         cdef DTYPE_t* wcur = &(self.wrk[2*n_space_dofs])
         cdef DTYPE_t* wnew = &(self.wrk[3*n_space_dofs])
 
-        cdef DTYPE_t thalf = t + 0.5*dt
+        cdef RTYPE_t thalf = t + 0.5*dt
 
         # Trivial initial guess: w(k+1) = w(k)
         #
@@ -135,7 +135,7 @@ Parameters:
         self.wrk_arr = np.empty( (3*n_space_dofs,), dtype=DTYPE, order="C" )
         self.wrk     = &(self.wrk_arr[0])
 
-    cdef int call(self, DTYPE_t* w, DTYPE_t t, DTYPE_t dt) nogil:
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil:
         cdef unsigned int j, m=-1, m2, nequals
         cdef int n_space_dofs = self.rhs.n
         cdef int success = 0
@@ -146,7 +146,7 @@ Parameters:
         cdef DTYPE_t* wcur = &(self.wrk[n_space_dofs])
         cdef DTYPE_t* wnew = &(self.wrk[2*n_space_dofs])
 
-        cdef DTYPE_t tend = t + dt
+        cdef RTYPE_t tend = t + dt
 
         # Trivial initial guess: w(k+1) = w(k)
         #

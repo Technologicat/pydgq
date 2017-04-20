@@ -2,9 +2,6 @@
 
 ### High priority
 
- - get rid of explicit double use of double:
-   - define RTYPE for stuff that is always real (such as t)
-   - define DTYPE for data (real or complex, any precision)
  - get rid of confusing "x" notation for t in some (many) places
  - ease of use: allow passing None for ww in ivp(); if so, create and return it
  - write some usage examples
