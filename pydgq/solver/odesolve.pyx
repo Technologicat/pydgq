@@ -656,9 +656,10 @@ Returns:
         offs = 0
 
 
-    # Integration loops
+    # Integration loop
     #
-    if integrator in ["SE", "RK4", "RK3", "RK2", "FE"]:  # classical explicit integrators
+    if integrator in ["SE", "RK4", "RK3", "RK2", "FE", "BE", "IMR"]:  # classical integrators
+        # explicit integrators
         if integrator == "SE":  # symplectic Euler
             if n_space_dofs % 2 != 0:
                 raise ValueError("SE: Symplectic Euler (SE) only makes sense for second-order systems transformed to first-order ones, but got odd number of n_space_dofs = %d" % (n_space_dofs))
@@ -669,8 +670,13 @@ Returns:
             algo = explicit.RK3(rhs)  # Kutta's third-order method
         elif integrator == "RK2":
             algo = explicit.RK2(rhs, RK2_beta)  # parametric second-order Runge-Kutta
-        else: # integrator == "FE":
+        elif integrator == "FE":
             algo = explicit.FE(rhs)   # forward Euler
+        # implicit integrators
+        elif integrator == "BE":
+            algo = implicit.BE(rhs, maxit)  # backward Euler
+        else: # integrator == "IMR":
+            algo = implicit.IMR(rhs, maxit)  # implicit midpoint rule
 
         # We release the GIL for the integration loop to let another Python thread execute
         # while this one is running through a lot of timesteps (possibly several million per solver run).
@@ -682,37 +688,9 @@ Returns:
                 rhs.begin_timestep(n)
                 algo.call( w, t, dt )
 
-                # end-of-timestep boilerplate
-                #
-                t = n*dt
-                store( w, n_space_dofs, n, t, save_from, &ww[0,0], rhs, pff, pfail, 0, wrk )
-                if do_denormal_check:
-                    # In practice this check seems good enough for an IVP solver, although it does run the theoretical risk
-                    # of triggering (with a nonzero probability) when the solution just passes through zero.
-                    #
-                    # To be more sure, we could check the l-infinity (max abs) vector norm of the solution,
-                    # and see if it has been decreasing for N timesteps (for some suitable N) before
-                    # declaring the rest of the solution as denormal.
-                    #
-                    denormal_triggered = fputils.all_denormal( w, n_space_dofs )
-                naninf_triggered = fputils.any_naninf( w, n_space_dofs )
-                if denormal_triggered or naninf_triggered:
-                    break
-
-    elif integrator in ["BE", "IMR"]:  # classical implicit integrators
-        if integrator == "BE":  # backward Euler
-            algo = implicit.BE(rhs, maxit)
-        else:
-            algo = implicit.IMR(rhs, maxit)  # implicit midpoint rule
-
-        with nogil:
-            for n in range(1,nt+1):
-                t = (n-1)*dt
-
-                rhs.begin_timestep(n)
-                nits = algo.call( w, t, dt )
-
                 # update the iteration statistics
+                #
+                # (technically, only the implicit algorithms really need this)
                 #
                 if nits == maxit:
                     totalfailed += 1
@@ -730,6 +708,13 @@ Returns:
                 t = n*dt
                 store( w, n_space_dofs, n, t, save_from, &ww[0,0], rhs, pff, pfail, <int>(nits == maxit), wrk )
                 if do_denormal_check:
+                    # In practice this check seems good enough for an IVP solver, although it does run the theoretical risk
+                    # of triggering (with a nonzero probability) when the solution just passes through zero.
+                    #
+                    # To be more sure, we could check the l-infinity (max abs) vector norm of the solution,
+                    # and see if it has been decreasing for N timesteps (for some suitable N) before
+                    # declaring the rest of the solution as denormal.
+                    #
                     denormal_triggered = fputils.all_denormal( w, n_space_dofs )
                 naninf_triggered = fputils.any_naninf( w, n_space_dofs )
                 if denormal_triggered or naninf_triggered:
@@ -741,6 +726,8 @@ Returns:
 #        print( "    min/avg/max iterations taken = %d, %g, %d; total number of non-converged timesteps %d (%g%%)%s" % (int(min_taken_its), float(totalnits)/nt_taken, int(max_taken_its), totalfailed, 100.0*float(totalfailed)/nt_taken, failed_str) )
 
     else:  # integrator in galerkin_integrators:  # Galerkin integrators
+        # TODO: this is now almost the same code as above; only the custom store() logic for Galerkin integrators needs this different branch.
+
         # NOTE: instantiating DG or CG also checks whether galerkin.datamanager exists and is initialized
         #
         if integrator == "dG":  # discontinuous Galerkin (recommended!)

@@ -3,7 +3,6 @@
 ### High priority
 
  - add some mechanism to report metadata to caller (e.g. number of iterations taken at each timestep)?
- - combine explicit and implicit timestepping loops (trivial since the iteration is done on the algorithm side)
  - write README.md
  - write some usage examples
  - write some unit tests
@@ -22,6 +21,9 @@
 ### Maybe later
 
  - add support for convergence tolerance (requires small changes to [`implicit.pyx`](pydgq/solver/implicit.pyx) and [`galerkin.pyx`](pydgq/solver/galerkin.pyx); see the loops that use `maxit`)
+ - finish unifying the integrator interface; let the user pass in an IntegratorBase reference
+   - implication: switchable user-defined integrators, no need to modify odesolve.pyx to add a new algorithm
+   - may need to abstract `pydgq.solver.odesolve.store()` for this. It cannot be simply moved to the integrator side, because the solution arrays are (and should be) known only to odesolve, and store() needs access to them. Maybe add another interface class and export a default implementation?
  - separate the nonlinear iteration algorithm from the individual implicit solvers (should be implemented OnceAndOnlyOnce in `pydgq.solver.integrator_interface.ImplicitIntegrator`)
  - add support for simultaneous processing with different settings 
  - relax the technical limitation on matching `interp` to the last initialized `nx`
