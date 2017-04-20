@@ -255,7 +255,7 @@ Parameters:
 
 Returns:
     Tuple (startj, endj):
-        startj (endj) is a rank-1 np.array containing the start and one-past-end indices for each timestep.
+        startj (respectively endj) is a rank-1 np.array containing the start (resp. one-past-end) indices for each timestep.
 
         The indices for timestep n are range(startj[n], endj[n]).
 
@@ -296,7 +296,7 @@ Returns:
             startj[offs+n] = offs           + n*interp
             endj[offs+n]   = startj[offs+n] +   interp  # actually one-past-end
 
-    return (startj, endj)
+    return (np.asanyarray(startj), np.asanyarray(endj))
 
 
 def make_tt( double dt, int nt, int save_from, int interp=1, out=None ):
@@ -371,7 +371,7 @@ Returns:
             for k in range(end - start):
                 tt[start + k] = startt + (<DTYPE_t>(n) + tloc[k])*dt
 
-    return tt
+    return np.asanyarray(tt)
 
 
 #########################################################################################
