@@ -41,9 +41,13 @@ cdef class Linear1stOrderKernel(CythonKernel):
 cdef class Linear1stOrderKernelWithMassMatrix(Linear1stOrderKernel):
     cdef double* LU
     cdef int* p
+    cdef int* mincols
+    cdef int* maxcols
     cdef double* wrk
     cdef double[:,::1] LU_arr
     cdef int[::1] p_arr
+    cdef int[::1] mincols_arr
+    cdef int[::1] maxcols_arr
     cdef double[::1] wrk_arr
 
     cdef void callback(self, double t) nogil
@@ -95,11 +99,15 @@ cdef class Linear2ndOrderKernelWithMassMatrix(Linear2ndOrderKernel):
     # (since this is both a "linear 2nd-order kernel" as well as a "kernel with mass matrix").
     cdef double* LU
     cdef int* p
+    cdef int* mincols
+    cdef int* maxcols
     cdef double* wrk1  # n elements
     cdef double* wrk2  # m elements
     cdef double* wrk3  # m elements
     cdef double[:,::1] LU_arr
     cdef int[::1] p_arr
+    cdef int[::1] mincols_arr
+    cdef int[::1] maxcols_arr
     cdef double[::1] wrk_arr  # wrk1, wrk2, wrk3 all stored here
 
     cdef void callback(self, double t) nogil

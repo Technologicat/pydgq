@@ -133,19 +133,22 @@ Trivial example to invoke this kernel:
 
         # LU decompose mass matrix
         self.LU_arr, self.p_arr = dgesv.lup_packed(A)
+        self.mincols_arr,self.maxcols_arr = dgesv.find_bands(self.LU_arr, tol=1e-15)
         self.wrk_arr = np.empty( (n,), dtype=np.float64, order="C" )
 
         # get raw pointers for C access
-        self.LU  = &(self.LU_arr[0,0])
-        self.p   = &(self.p_arr[0])
-        self.wrk = &(self.wrk_arr[0])
+        self.LU      = &(self.LU_arr[0,0])
+        self.p       = &(self.p_arr[0])
+        self.mincols = &(self.mincols_arr[0])
+        self.maxcols = &(self.maxcols_arr[0])
+        self.wrk     = &(self.wrk_arr[0])
 
     cdef void callback(self, double t) nogil:  # t unused in this example
         # compute g = M w, save result in self.wrk
         self.compute(self.w, self.wrk)
 
         # solve linear equation system A w' = g  (g stored in self.wrk, result stored in self.out)
-        dgesv_c.solve_decomposed_c( self.LU, self.p, self.wrk, self.out, self.n )
+        dgesv_c.solve_decomposed_banded_c( self.LU, self.p, self.mincols, self.maxcols, self.wrk, self.out, self.n )
 
 
 cdef class Linear2ndOrderKernel(CythonKernel):
@@ -286,14 +289,17 @@ Trivial example to invoke this kernel:
 
         # LU decompose mass matrix
         self.LU_arr, self.p_arr = dgesv.lup_packed(M2)
+        self.mincols_arr,self.maxcols_arr = dgesv.find_bands(self.LU_arr, tol=1e-15)
         self.wrk_arr = np.empty( (2*n,), dtype=np.float64, order="C" )  # to avoid unnecessary memory fragmentation, allocate both work arrays as one block
 
         # get raw pointers for C access
-        self.LU   = &(self.LU_arr[0,0])
-        self.p    = &(self.p_arr[0])
-        self.wrk1 = &(self.wrk_arr[0])         # first n elements of work space
-        self.wrk2 = &(self.wrk_arr[n])         # next m elements of work space
-        self.wrk3 = &(self.wrk_arr[n+self.m])  # last m elements of work space
+        self.LU      = &(self.LU_arr[0,0])
+        self.p       = &(self.p_arr[0])
+        self.mincols = &(self.mincols_arr[0])
+        self.maxcols = &(self.maxcols_arr[0])
+        self.wrk1    = &(self.wrk_arr[0])         # first n elements of work space
+        self.wrk2    = &(self.wrk_arr[n])         # next m elements of work space
+        self.wrk3    = &(self.wrk_arr[n+self.m])  # last m elements of work space
 
     cdef void callback(self, double t) nogil:  # t unused in this example
         # compute RHS (i.e. w'), store result in wrk1
@@ -315,7 +321,7 @@ Trivial example to invoke this kernel:
             self.wrk2[j] = self.wrk1[2*j+1]  # DOFs corresponding to M2 v'
 
         # solve  M2 v' = wrk2  for v', store result in wrk3
-        dgesv_c.solve_decomposed_c( self.LU, self.p, self.wrk2, self.wrk3, self.m )
+        dgesv_c.solve_decomposed_banded_c( self.LU, self.p, self.mincols, self.maxcols, self.wrk2, self.wrk3, self.m )
 
         # write output
         for j in range(self.m):
