@@ -34,8 +34,8 @@ cdef class CythonKernel(KernelBase):
 # Python kernels will acquire the gil for calling callback().
 #
 cdef class PythonKernel(KernelBase):
-    cdef double[::1] w_arr    # Python-accessible view into w
-    cdef double[::1] out_arr  # Python-accessible view into out
+    cdef double[::1] w_arr    # Python-accessible view into w   (provided by __getattr__ as "w")
+    cdef double[::1] out_arr  # Python-accessible view into out (provided by __getattr__ as "out")
 
     cdef void call(self, double* w, double* out, double t) nogil  # interface for solver (implemented here)
     # here callback() is a Python (regular def) function  # hook for user code

@@ -163,11 +163,11 @@ which is a regular Python-level method (in Cython parlance,
 
 See callback().
 
-Data attributes added by PythonKernel:
-    w_arr : double[::1]
-        Python-accessible view of self.w
-    out_arr : double[::1]
-        Python-accessible view of self.out
+**Cython-level** data attributes added by PythonKernel:
+    w_arr : double[::1] (visible from Python as "w")
+        Python-accessible view of Cython-level self.w
+    out_arr : double[::1] (visible from Python as "out")
+        Python-accessible view of Cython-level self.out
 """
         KernelBase.__init__(self, n)
 
@@ -181,6 +181,30 @@ Data attributes added by PythonKernel:
             self.out_arr = <double[:self.n:1]>out
             self.callback(t)
 
+    # This wrapper is needed because cdef data attributes of cdef classes
+    # live in a C struct (which is invisible from the Python level).
+    #
+    def __getattr__(self, name):
+        """def __getattr__(self, name):
+
+Provide Python-level access to Cython data attributes.
+
+The names are the same as the Cython counterparts,
+except w_arr and out_arr, which are named w and out.
+"""
+        if name == "n":
+            return self.n
+        elif name == "w":
+            return self.w_arr
+        elif name == "out":
+            return self.out_arr
+        elif name == "timestep":
+            return self.timestep
+        elif name == "iteration":
+            return self.iteration
+        else:
+            raise AttributeError("No such attribute '%s'" % (name))
+
     def callback(self, double t):
         """def callback(self, double t):
 
@@ -188,8 +212,8 @@ Python-based callback (hook for custom code).
 
 Override this method in derived classes to provide your computational kernel.
 
-Use self.w_arr and self.out_arr to access self.w and self.out;
-these are Python-accessible views to the same memory.
+Use self.w and self.out normally; in PythonKernel, when used from the Python level,
+these are Python-accessible views to the underlying memory.
 
 Both arrays have self.n elements.
 
