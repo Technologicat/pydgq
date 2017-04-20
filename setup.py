@@ -129,6 +129,8 @@ ext_module_types    = ext(      "pydgq.solver.types"                )
 
 ext_module_compsum  = ext_math( "pydgq.solver.compsum"              )
 
+ext_module_discontify = ext(    "pydgq.utils.discontify"            )
+
 ext_module_kernintf = ext_math( "pydgq.solver.kernel_interface"     )
 ext_module_bkernels = ext_math( "pydgq.solver.builtin_kernels"      )
 
@@ -195,6 +197,7 @@ setup(
 
     ext_modules = cythonize( [ ext_module_ptrwrap, ext_module_types,
                                ext_module_compsum,
+                               ext_module_discontify,
                                ext_module_kernintf, ext_module_bkernels,
                                ext_module_intgintf, ext_module_explicit, ext_module_implicit, ext_module_galerkin,
                                ext_module_odesolve,  ],
