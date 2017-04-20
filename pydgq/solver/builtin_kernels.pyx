@@ -85,8 +85,9 @@ Trivial example to invoke this kernel:
         cdef int j, k
         for j in range(self.n):  # row
             # w' = M w
+            wp_out[j] = 0.
             for k in range(self.n):  # column
-                wp_out[j] = self.M[j*self.n + k] * w_in[k]
+                wp_out[j] += self.M[j*self.n + k] * w_in[k]
 
 
 cdef class Linear1stOrderKernelWithMassMatrix(Linear1stOrderKernel):
@@ -227,8 +228,9 @@ Trivial example to invoke this kernel:
             wp_out[2*j] = w_in[2*j + 1]
 
             # v' = M0 u + M1 v
+            wp_out[2*j + 1] = 0.
             for k in range(self.m):  # column
-                wp_out[2*j + 1] = self.M0[j*self.m + k] * w_in[2*j]  +  self.M1[j*self.m + k] * w_in[2*j + 1]
+                wp_out[2*j + 1] += self.M0[j*self.m + k] * w_in[2*j]  +  self.M1[j*self.m + k] * w_in[2*j + 1]
 
 
 # cdef classes are single inheritance only, so we have some duplication here
