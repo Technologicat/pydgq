@@ -330,7 +330,7 @@ def main(q, nx, **kwargs):
         # http://stackoverflow.com/questions/10075661/how-to-save-dictionaries-and-arrays-in-the-same-archive-with-numpy-savez
         with open('pydgq_data.bin', 'wb') as outfile:
             pickle.dump( data, outfile, protocol=pickle.HIGHEST_PROTOCOL )
-        print "Wrote pydgq_data.bin"
+        print( "Wrote pydgq_data.bin" )
 
 # TODO: how to find the data file in an actual installation? (need to save it relative to the package directory)
 # TODO: change to .mat format to make the data file more self-documenting?
