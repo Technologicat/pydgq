@@ -65,7 +65,7 @@ Parameters:
 
         # allocate instance-specific arrays
         #
-        my_storage = datamanager.allocate_storage(id(self))
+        my_storage = datamanager.allocate_storage(solver_id=id(self), n_space_dofs=rhs.n)
 
         # retrieve instance arrays
         #
@@ -129,7 +129,7 @@ Parameters:
 
     def __del__(self):
         global datamanager
-        datamanager.free_storage(id(self))
+        datamanager.free_storage(solver_id=id(self))
 
 
     # Assemble Galerkin series at given points inside the timestep.
