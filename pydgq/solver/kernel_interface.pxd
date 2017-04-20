@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Interface for Cython and Python based computational kernels for evaluating the f() in  w' = f(w).
+# Interface for Cython and Python based computational kernels for evaluating the RHS f() in  w' = f(w).
 
 # cpdef methods cannot be nogil, so we must work around as follows:
 #

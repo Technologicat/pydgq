@@ -2,7 +2,7 @@
 
 ### High priority
 
- - get rid of confusing "x" notation for t in some (many) places
+ - rename "nx" to relate to t, not x (but the name "nt" is already used for number of timesteps to take; "nt_vis"?)
  - write some usage examples
  - write some unit tests
    - linear problem? Known solution... (and good for testing the provided example kernels)

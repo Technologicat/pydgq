@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-"""Support routines for Galerkin integrators."""
 
 from __future__ import absolute_import
 

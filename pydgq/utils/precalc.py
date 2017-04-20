@@ -2,6 +2,9 @@
 """Generate data file (pydgq_data.bin) for pydgq.
 
 The generation is very slow; MPI parallelization is supported to boost performance.
+
+Run this module as the main program (with or without mpiexec) to perform the precalculation.
+Command-line options are available; pass the standard --help flag to see them.
 """
 
 from __future__ import division, print_function, absolute_import

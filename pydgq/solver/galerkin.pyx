@@ -97,13 +97,15 @@ Parameters:
 
         # retrieve global arrays
         #
+        # NOTE: our "t" = "x" in precalc.py; it is a general support module for Lobatto basis functions, not specific to its ODE solver use case here.
+        #
         cdef RTYPE_t[:,::1]   LU         = datamanager.LU       # LU decomposed mass matrix (packed format), for one space DOF, shape (n_time_dofs, n_time_dofs)
         cdef int[::1]         p          = datamanager.p        # row permutation information, length n_time_dofs
         cdef int[::1]         mincols    = datamanager.mincols  # band information for L, length n_time_dofs
         cdef int[::1]         maxcols    = datamanager.maxcols  # band information for U, length n_time_dofs
         cdef RTYPE_t[::1]     qw         = datamanager.integ_w  # quadrature weights (Gauss-Legendre)
-        cdef RTYPE_t[:,::1]   psi        = datamanager.integ_y  # basis function values at the quadrature points, qy[j,i] is N[j]( x[i] )
-        cdef RTYPE_t[:,::1]   psivis     = datamanager.vis_y    # basis function values at the visualization points, qy[j,i] is N[j]( x[i] )
+        cdef RTYPE_t[:,::1]   psi        = datamanager.integ_y  # basis function values at the quadrature points, qy[j,i] is N[j]( tquad[i] )
+        cdef RTYPE_t[:,::1]   psivis     = datamanager.vis_y    # basis function values at the visualization points, qy[j,i] is N[j]( tvis[i] )
         cdef RTYPE_t[::1]     tvis       = datamanager.vis_x    # time values at the visualization points (on the reference element [-1,1])
         cdef RTYPE_t[::1]     tquad      = datamanager.integ_x  # Gauss-Legendre points of the chosen rule, in (-1,1)
 
@@ -140,13 +142,13 @@ Parameters:
     #
     # Space DOFs are independent, each has its own Galerkin series. This assembles them all in one go.
     #
-    # psi:    rank-2 array, size [n_time_dofs, n_points]:     values of basis functions, evaluated at each of the points x[i] (at which the series is to be assembled); psi[j,i] is psi[j]( x[i] )
-    # uass:   rank-2 array, size [n_points, n_space_dofs]:    output, values of u; uass[j,i] is u_i( x[j] )
+    # psi:    rank-2 array, size [n_time_dofs, n_points]:     values of basis functions, evaluated at each of the points t[i] (at which the series is to be assembled); psi[j,i] is psi[j]( t[i] )
+    # uass:   rank-2 array, size [n_points, n_space_dofs]:    output, values of u; uass[j,i] is u_i( t[j] )
     # ucorr:  rank-1 array, size [n_points]:                  work area for correction terms in compensated summation
     #
     # Additionally, this automatically uses self.u:
     #
-    # self.u: rank-2 array, size [n_space_dofs, n_time_dofs]: Galerkin coefficients; u[j,i] is the coefficient of psi[i] for solution component u_j(x)
+    # self.u: rank-2 array, size [n_space_dofs, n_time_dofs]: Galerkin coefficients; u[j,i] is the coefficient of psi[i] for solution component u_j(t)
     #
     #                         basis         output         summ. corr. wrk
     cdef void assemble( self, RTYPE_t* psi, DTYPE_t* uass, DTYPE_t* ucorr, int n_points ) nogil:
@@ -192,7 +194,7 @@ Parameters:
 
     # Assemble Galerkin series at the end of the timestep.
     #
-    # uass:   rank-1 array, size [n_space_dofs]:    output, values of u; uass[i] is u_i( x )
+    # uass:   rank-1 array, size [n_space_dofs]:    output, values of u; uass[i] is u_i( t )
     #
     # Compared to the general-purpose assemble():
     #   - Only N[1] (the linear basis function associated with the endpoint) is nonzero at the endpoint.
@@ -247,15 +249,15 @@ Parameters:
         #
         # The reference interval is [-1,1], so its length is 2; the target length is dt; thus we must scale by dt/2.
         #
-        # Alternatively, formally speaking, the affine mapping of xi: [-1,1] --> x: [a,b] is given by
+        # Alternatively, formally speaking, the affine mapping of tau: [-1,1] --> t: [a,b] is given by
         #
-        #    x = a + (b - a) ( xi - (-1) ) / ( 1 - (-1) )
-        #      = a + (b - a) ( xi + 1 ) / 2
-        #      = a + (1/2) (b - a) ( xi + 1 )
+        #    t = a + (b - a) ( tau - (-1) ) / ( 1 - (-1) )
+        #      = a + (b - a) ( tau + 1 ) / 2
+        #      = a + (1/2) (b - a) ( tau + 1 )
         #
-        # Hence by differentiating both sides with respect to xi,
+        # Hence by differentiating both sides with respect to tau,
         #
-        #    dx/dxi = (b - a) / 2
+        #    dt/dtau = (b - a) / 2
         #
         # Noting that in our application, (b - a) = dt, we obtain the result.
         #
@@ -297,8 +299,8 @@ Time-discontinuous Galerkin.
     #    cdef int[::1]       mincols = galerkin.datamanager.mincols  # band information for L, length n_time_dofs
     #    cdef int[::1]       maxcols = galerkin.datamanager.maxcols  # band information for U, length n_time_dofs
     #    cdef RTYPE_t[::1]   qw      = galerkin.datamanager.integ_w  # quadrature weights (Gauss-Legendre)
-    #    cdef RTYPE_t[:,::1] psi     = galerkin.datamanager.integ_y  # basis function values at the quadrature points, psi[j,i] is N[j]( x[i] )
-    #    cdef RTYPE_t[:,::1] psivis  = galerkin.datamanager.vis_y    # basis function values at the visualization points, psivis[j,i] is N[j]( x[i] )
+    #    cdef RTYPE_t[:,::1] psi     = galerkin.datamanager.integ_y  # basis function values at the quadrature points, psi[j,i] is N[j]( tquad[i] )
+    #    cdef RTYPE_t[:,::1] psivis  = galerkin.datamanager.vis_y    # basis function values at the visualization points, psivis[j,i] is N[j]( tvis[i] )
     #
     cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil:
         cdef DTYPE_t* up = self.wrk  # temporary storage for u'
@@ -459,8 +461,8 @@ This is almost the same code as dG, the only difference being in the handling of
     #    cdef int[::1]       mincols = galerkin.datamanager.mincols  # band information for L, length n_time_dofs
     #    cdef int[::1]       maxcols = galerkin.datamanager.maxcols  # band information for U, length n_time_dofs
     #    cdef RTYPE_t[::1]   qw      = galerkin.datamanager.integ_w  # quadrature weights (Gauss-Legendre)
-    #    cdef RTYPE_t[:,::1] psi     = galerkin.datamanager.integ_y  # basis function values at the quadrature points, psi[j,i] is N[j]( x[i] )
-    #    cdef RTYPE_t[:,::1] psivis  = galerkin.datamanager.vis_y    # basis function values at the visualization points, psivis[j,i] is N[j]( x[i] )
+    #    cdef RTYPE_t[:,::1] psi     = galerkin.datamanager.integ_y  # basis function values at the quadrature points, psi[j,i] is N[j]( tquad[i] )
+    #    cdef RTYPE_t[:,::1] psivis  = galerkin.datamanager.vis_y    # basis function values at the visualization points, psivis[j,i] is N[j]( tvis[i] )
     #
     cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil:
         cdef DTYPE_t* up = self.wrk  # temporary storage for u'
@@ -702,6 +704,8 @@ Parameters:
             self.__storage = {}  # problem instance specific data will be stored here (key = solver id)
             self.available = True
         except Exception as e:
+            # NOTE: our "t" = "x" in precalc.py; it is a general support module for Lobatto basis functions, not specific to its ODE solver use case here.
+
             # precomputed data for Gauss-Legendre integration (used for processing the load vector in the solver)
             self.integ_x     = None   # GL points
             self.integ_y     = None   # values of basis functions at GL points
@@ -709,7 +713,7 @@ Parameters:
             self.rule        = None   # order of the chosen GL rule (integer)
 
             # precomputed data for timestep visualization
-            self.vis_x       = None   # visualization points
+            self.vis_x       = None   # visualization points (time values on reference element [-1,1])
             self.vis_y       = None   # values of basis functions at visualization points
             self.nx          = None   # number of visualization points within each timestep
 
@@ -773,7 +777,7 @@ Parameters:
         #
         if q > maxq:
             raise ValueError("Data file '%s' contains data up to degree maxq=%d, but the requested degree was higher, q=%d. Use a lower q or re-run pydqg.solver.precalc for higher maxq." % (filename, maxq, q))
-        needx = nx+1 if self.method == "cG" else nx  # "visualization" points are used for evaluating the result inside the timestep (see parameter "interp" of odesolve.result_len(), odesolve.make_tt() and odesolve.ivp()).
+        needx = nx+1 if self.method == "cG" else nx  # "visualization" points are used for evaluating the result inside the timestep (see parameter "interp" of odesolve.result_len() and odesolve.ivp()).
         if needx > maxnx:
             raise ValueError("Data file '%s' contains data up to visualization maxnx=%d, but the needed number of points is higher, %d. Use a lower nx or re-run pydqg.solver.precalc for higher maxnx." % (filename, maxnx, needx))
         if rule is not None and rule > maxrule:
@@ -830,32 +834,9 @@ Parameters:
             integ["y"] = integ["y"][ :(q+1), : ]
             vis["y"]   = vis["y"][   :(q+1), : ]
 
-        # Explicitly set C ordering and the correct datatype.
+        # NOTE: our "t" = "x" in precalc.py; it is a general support module for Lobatto basis functions, not specific to its ODE solver use case here.
         #
-        # This eliminates strided indexing in the generated C code. See
-        #     http://uni-graz.at/~haasegu/Lectures/GPU_CUDA/Lit/seljebotn_cython.pdf
-        #     http://docs.scipy.org/doc/numpy/reference/arrays.nditer.html
-        #
-        # This is usually used like:
-        #   cdef DTYPE_t[:,::1] ww = np.empty( [nt, n_space_dofs], dtype=DTYPE, order="C" )
-        #
-        # Note:
-        #   - DTYPE_t in the cdef vs. DTYPE in the Python call to np.empty()
-        #   - C storage order
-        #
-#        cdef RTYPE_t[::1]   integ_x = np.empty( [ rule ],              dtype=DTYPE, order="C" )
-#        cdef RTYPE_t[::1]   integ_w = np.empty( [ rule ],              dtype=DTYPE, order="C" )
-#        cdef RTYPE_t[:,::1] integ_y = np.empty( [ n_time_dofs, rule ], dtype=DTYPE, order="C" )
-#        cdef RTYPE_t[::1]   vis_x   = np.empty( [ nx ],                dtype=DTYPE, order="C" )
-#        cdef RTYPE_t[:,::1] vis_y   = np.empty( [ n_time_dofs, nx ],   dtype=DTYPE, order="C" )
-#
-#        integ_x[:]   = integ["x"][:]
-#        integ_y[:,:] = integ["y"][:,:]
-#        integ_w[:]   = integ["w"][:]
-#        vis_x[:]     = vis["x"][:]
-#        vis_y[:,:]   = vis["y"][:,:]
-
-        cdef RTYPE_t[::1]   integ_x = integ["x"].copy(order="C")
+        cdef RTYPE_t[::1]   integ_x = integ["x"].copy(order="C")  # ...and hope for the correct dtype (our RTYPE) in the data file
         cdef RTYPE_t[::1]   integ_w = integ["w"].copy(order="C")
         cdef RTYPE_t[:,::1] integ_y = integ["y"].copy(order="C")
         cdef RTYPE_t[::1]   vis_x   = vis["x"].copy(order="C")
@@ -876,12 +857,12 @@ Parameters:
         # Gauss-Legendre integration (will be used for processing the load vector):
         #  - self.integ_x: Gauss-Legendre points of the chosen rule, in (-1,1)
         #  - self.integ_w: corresponding Gauss-Legendre weights
-        #  - self.integ_y: values of basis functions at the Gauss-Legendre points; y[j,i] is N[j]( x[i] )
+        #  - self.integ_y: values of basis functions at the Gauss-Legendre points; integ_y[j,i] is N[j]( tquad[i] )
         #  - self.rule:    order of the chosen Gauss-Legendre rule (for information only)
         #
         # Visualization:
         #  - self.vis_x:   x values for visualization (time value on reference element [-1,1])
-        #  - self.vis_y:   values of basis functions at the visualization points; y[j,i] is N[j]( x[i] )
+        #  - self.vis_y:   values of basis functions at the visualization points; vis_y[j,i] is N[j]( tvis[i] )
 
     def __build_C(self):
         """Build the dG(q) mass matrix C.

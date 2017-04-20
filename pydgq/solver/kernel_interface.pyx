@@ -10,7 +10,7 @@
 # cython: boundscheck = False
 # cython: cdivision   = True
 #
-"""Interface for evaluating the f() in  w' = f(w, t).
+"""Interface for evaluating the RHS f() in  w' = f(w, t).
 
 These base classes connect the IVP solver with the user-provided custom code
 for computing the RHS. Cython and Python interfaces are available.
