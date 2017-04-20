@@ -777,9 +777,9 @@ Parameters:
         #
         if q > maxq:
             raise ValueError("Data file '%s' contains data up to degree maxq=%d, but the requested degree was higher, q=%d. Use a lower q or re-run pydqg.utils.precalc for higher maxq." % (filename, maxq, q))
-        needx = nt_vis+1 if self.method == "cG" else nt_vis  # "visualization" points are used for evaluating the result inside the timestep (see parameter "interp" of odesolve.result_len() and odesolve.ivp()).
-        if needx > maxnt_vis:
-            raise ValueError("Data file '%s' contains data up to visualization maxnt_vis=%d, but the needed number of points is higher, %d. Use a lower nt_vis or re-run pydqg.utils.precalc for higher maxnx (same thing as our maxnt_vis)." % (filename, maxnt_vis, needx))
+        need_nt_vis = nt_vis+1 if self.method == "cG" else nt_vis  # "visualization" points are used for evaluating the result inside the timestep (see parameter "interp" of odesolve.result_len() and odesolve.ivp()).
+        if need_nt_vis > maxnt_vis:
+            raise ValueError("Data file '%s' contains data up to visualization maxnt_vis=%d, but the needed number of points is higher, %d. Use a lower nt_vis or re-run pydqg.utils.precalc for higher maxnx (same thing as our maxnt_vis)." % (filename, maxnt_vis, need_nt_vis))
         if rule is not None and rule > maxrule:
             raise ValueError("Data file '%s' contains data for integration rules up to order %d, but the requested order was higher, rule=%d. Use a lower rule." % (filename, maxrule, rule))
 
