@@ -146,7 +146,7 @@ def test(integrator, nt_vis, rel_tol=1e-2, vis=False):
 
 
 if __name__ == '__main__':
-    print("** Testing integrators with 1st-order linear kernel **")
+    print("** Testing integrators with 2nd-order linear kernel **")
 
     stuff_to_test = ( ("SE",  1e-1,  False),  # 2nd-order problem, also "SE" is applicable
                       ("IMR", 1e-3,  False),
