@@ -66,13 +66,13 @@ cdef class MyKernel(CythonKernel):
     def reference_solution(self, RTYPE_t[::1] tt):
         cdef int nt = tt.shape[0]
         cdef DTYPE_t[:,::1] ww = np.empty( (nt,self.n), dtype=DTYPE, order="C" )
-        cdef RTYPE_t[::1] zero = np.array( (0.,), dtype=RTYPE, order="C" )  # input to sol() (below) must be an array
+        cdef RTYPE_t[::1] zero = np.array( (0.,), dtype=RTYPE, order="C" )  # the tt input to __sol() must be an array
  
         cdef DTYPE_t[::1] tmp
         cdef RTYPE_t phi0_j
         cdef int j, k
         for j in range(self.n):
-            phi0_j  = (<RTYPE_t>(j+1) / self.n) * 2. * M_PI
+            phi0_j = (<RTYPE_t>(j+1) / self.n) * 2. * M_PI
             tmp = self.__sol(tt,phi0_j) - self.__sol(zero,phi0_j)  # shift to account for the initial condition (all solution components start at zero)
             for k in range(nt):
                 ww[k,j] = tmp[k]
