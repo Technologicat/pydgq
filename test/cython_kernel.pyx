@@ -27,6 +27,8 @@ cdef extern from "math.h":
 #
 # See python_kernel_test.py for a pure-Python version of this.
 #
+# Note that Cython requires us to put the cdef class declarations into cython_kernel.pxd.
+#
 # The custom kernel only needs to override callback(); even __init__ is not strictly needed,
 # unless adding some custom parameters (like here).
 #
@@ -44,7 +46,7 @@ cdef class MyKernel(CythonKernel):
         cdef RTYPE_t phi0_j
         cdef int j
         for j in range(self.n):
-            phi0_j = (float(j+1) / self.n) * 2. * M_PI
+            phi0_j = (<RTYPE_t>(j+1) / self.n) * 2. * M_PI
             self.out[j] = cos(phi0_j + self.omega*t)
 
     # known analytical solution, for testing the integrators
@@ -70,7 +72,7 @@ cdef class MyKernel(CythonKernel):
         cdef RTYPE_t phi0_j
         cdef int j, k
         for j in range(self.n):
-            phi0_j  = (float(j+1) / self.n) * 2. * M_PI
+            phi0_j  = (<RTYPE_t>(j+1) / self.n) * 2. * M_PI
             tmp = self.__sol(tt,phi0_j) - self.__sol(zero,phi0_j)  # shift to account for the initial condition (all solution components start at zero)
             for k in range(nt):
                 ww[k,j] = tmp[k]
