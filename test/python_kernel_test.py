@@ -43,6 +43,8 @@ save_from = 0  # see pydgq.solver.odesolve.ivp()
 
 # A simple cosine kernel with phase-shifted components.
 #
+# See cython_kernel.pyx for a Cython-accelerated version of this.
+#
 # The custom kernel only needs to override callback(); even __init__ is not strictly needed,
 # unless adding some custom parameters (like here).
 #

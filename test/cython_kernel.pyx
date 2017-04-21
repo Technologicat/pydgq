@@ -25,6 +25,8 @@ cdef extern from "math.h":
 
 # A simple cosine kernel with phase-shifted components.
 #
+# See python_kernel_test.py for a pure-Python version of this.
+#
 # The custom kernel only needs to override callback(); even __init__ is not strictly needed,
 # unless adding some custom parameters (like here).
 #
@@ -46,6 +48,8 @@ cdef class MyKernel(CythonKernel):
             self.out[j] = cos(phi0_j + self.omega*t)
 
     # known analytical solution, for testing the integrators
+    #
+    # (only needed by the testing script; usual custom kernels do not have this part)
 
     # one component
     def __sol(self, RTYPE_t[::1] tt, RTYPE_t phi0):
