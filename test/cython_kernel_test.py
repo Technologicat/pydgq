@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Tests/usage examples for a custom Python-based kernel.
+# Tests/usage examples for a custom Cython-based kernel.
 
 from __future__ import division, print_function
 
@@ -10,10 +10,11 @@ import matplotlib.pyplot as plt
 
 from pydgq.solver.types import DTYPE
 from pydgq.solver.galerkin import init
-from pydgq.solver.kernel_interface import PythonKernel
 import pydgq.solver.odesolve
 from pydgq.utils.discontify import discontify  # for plotting dG results
 
+# import our extension module that contains the custom kernel
+#
 try:
     from cython_kernel import MyKernel
 except ImportError:
