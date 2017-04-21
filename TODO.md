@@ -2,10 +2,7 @@
 
 ### High priority
 
- - publish on GitHub
- - tag v0.1.0
- - release v0.1.0 on GitHub
- - release v0.1.0 on PyPI
+ - (blank for now)
 
 ### Maybe later
 
