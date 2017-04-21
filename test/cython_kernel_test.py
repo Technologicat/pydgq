@@ -111,7 +111,7 @@ def test(integrator, nt_vis, rel_tol=1e-2, vis=False):
 
 
 if __name__ == '__main__':
-    print("** Testing integrators with custom kernel **")
+    print("** Testing integrators with custom Cython kernel **")
 
     # "SE" is not applicable, since we are testing a 1st-order problem
     stuff_to_test = ( ("IMR", 1e-3,  False),
