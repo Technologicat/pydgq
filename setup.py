@@ -113,9 +113,11 @@ def ext_math(extName):
 
 # http://stackoverflow.com/questions/13628979/setuptools-how-to-make-package-contain-extra-data-folder-and-all-folders-inside
 datadirs  = ("doc", "test")
+dataexts  = (".py", ".pyx", ".pxd")
 datafiles = []
 for datadir in datadirs:
-    datafiles.extend( [(root, [os.path.join(root, f) for f in files if f.endswith(".py")]) for root, dirs, files in os.walk(datadir)] )
+    for ext in dataexts:
+        datafiles.extend( [(root, [os.path.join(root, f) for f in files if f.endswith(ext)]) for root, dirs, files in os.walk(datadir)] )
 
 datafiles.append( ('.', ["README.md", "LICENSE.md", "TODO.md"]) )
 datafiles.append( ('doc', ["doc/pydgq_user_manual.lyx", "doc/pydgq_user_manual.pdf"]) )
