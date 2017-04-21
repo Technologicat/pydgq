@@ -65,7 +65,7 @@ The design of pydgq is based on two main class hierarchies, consisting of Cython
 
 The `ivp()` function of [`pydgq.solver.odesolve`](pydgq/solver/odesolve.pyx) understands the `IntegratorBase` and `KernelBase` interfaces, and acts as the driver routine.
 
-Data types are defined in `pydgq.solver.types`: [Python (import)](pydgq/solver/types.pyx), [Cython (cimport)](pydgq/solver/types.pxd). The Python-accessible names point to the appropriate NumPy symbols. `RTYPE` is real, `ZTYPE` is complex, and `DTYPE` is an alias representing the problem data type. The corresponding Cython-accessible datatypes have the `_t` suffix (`RTYPE_t`, `ZTYPE_t`, `DTYPE_t`).
+Aliases to primitive data types (to allow precision switching at compile time) are defined in `pydgq.solver.types`: [Python (import)](pydgq/solver/types.pyx), [Cython (cimport)](pydgq/solver/types.pxd). The Python-accessible names point to the appropriate NumPy symbols. `RTYPE` is real, `ZTYPE` is complex, and `DTYPE` is an alias representing the problem data type. The corresponding Cython-accessible datatypes have the `_t` suffix (`RTYPE_t`, `ZTYPE_t`, `DTYPE_t`).
 
 Currently, `DTYPE` is real, but it is kept conceptually separate from `RTYPE` so that complex-valued problems can be later supported, if necessary (this requires some changes in the code, especially any calls to `dgesv`).
 
