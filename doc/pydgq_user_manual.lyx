@@ -1,7 +1,9 @@
-#LyX 2.1 created this file. For more info see http://www.lyx.org/
-\lyxformat 474
+#LyX 2.2 created this file. For more info see http://www.lyx.org/
+\lyxformat 508
 \begin_document
 \begin_header
+\save_transient_properties true
+\origin unavailable
 \textclass article
 \use_default_options true
 \maintain_unincluded_children false
@@ -9,16 +11,16 @@
 \language_package default
 \inputencoding auto
 \fontencoding global
-\font_roman palatino
-\font_sans default
-\font_typewriter default
-\font_math auto
+\font_roman "palatino" "default"
+\font_sans "default" "default"
+\font_typewriter "default" "default"
+\font_math "auto" "auto"
 \font_default_family default
 \use_non_tex_fonts false
 \font_sc false
 \font_osf false
-\font_sf_scale 100
-\font_tt_scale 100
+\font_sf_scale 100 100
+\font_tt_scale 100 100
 \graphics default
 \default_output_format default
 \output_sync 0
@@ -83,8 +85,7 @@
 \begin_body
 
 \begin_layout Title
-Summary and discussion on some commonly used numerical integration methods
- for ODEs
+pydgq v0.1.0 user manual
 \end_layout
 
 \begin_layout Author
@@ -93,7 +94,16 @@ Juha Jeronen
 
 \begin_layout Standard
 \align center
-TECHNICAL NOTE
+juha.jeronen@jyu.fi
+\end_layout
+
+\begin_layout Standard
+\align center
+Department of Mathematical Information Technology
+\begin_inset Newline newline
+\end_inset
+
+University of Jyväskylä
 \end_layout
 
 \begin_layout Section
@@ -101,12 +111,18 @@ Introduction
 \end_layout
 
 \begin_layout Standard
-The main purpose of this document is to provide documentation for the time
- integration methods available in the 
-\family sans
-tworods
-\family default
- solver, gathering all useful material into one convenient place.
+The role of this user manual is to explain the algorithms available in 
+\emph on
+pydgq
+\emph default
+, which is a Cython-accelerated library for solving ODE systems in Python.
+ Computational kernels for right-hand sides (RHSs) can be written in both
+ Python and Cython, whichever is more appropriate for a specific use case.
+ For code examples, see the 
+\emph on
+test/
+\emph default
+ subdirectory in the source code distribution.
 \end_layout
 
 \begin_layout Standard
@@ -128,7 +144,7 @@ reference "eq:IVP"
 
 \end_inset
 
---
+–
 \begin_inset CommandInset ref
 LatexCommand eqref
 reference "eq:IC"
@@ -147,7 +163,7 @@ reference "eq:IC"
 Extension to ODE systems
 \begin_inset CommandInset label
 LatexCommand label
-name "sub:Extension-to-ODE"
+name "subsec:Extension-to-ODE"
 
 \end_inset
 
@@ -162,7 +178,7 @@ reference "eq:IVP"
 
 \end_inset
 
---
+–
 \begin_inset CommandInset ref
 LatexCommand eqref
 reference "eq:IC"
@@ -273,7 +289,7 @@ reference "eq:IVPsys"
 
 \end_inset
 
---
+–
 \begin_inset CommandInset ref
 LatexCommand eqref
 reference "eq:ICsys"
@@ -288,7 +304,7 @@ reference "eq:IVP"
 
 \end_inset
 
---
+–
 \begin_inset CommandInset ref
 LatexCommand eqref
 reference "eq:IC"
@@ -492,12 +508,12 @@ Explicit methods supported by the solver are as follows.
 \end_layout
 
 \begin_layout Subsection
-Explicit Runge--Kutta methods
+Explicit Runge–Kutta methods
 \end_layout
 
 \begin_layout Standard
 Perhaps one of the best-known families of classical time integrators are
- the Runge--Kutta (RK) methods.
+ the Runge–Kutta (RK) methods.
 \begin_inset Foot
 status open
 
@@ -595,7 +611,7 @@ We will list the methods in a form directly suitable for ODE systems with
 \end_inset
 
  a unit matrix.
- If this is not the case, observe that --- by the form of the problem, equation
+ If this is not the case, observe that — by the form of the problem, equation
  
 \begin_inset CommandInset ref
 LatexCommand eqref
@@ -603,7 +619,7 @@ reference "eq:IVP"
 
 \end_inset
 
- --- the 
+ — the 
 \begin_inset Formula $\mathbf{k}_{j}=\mathbf{f}(\dots)$
 \end_inset
 
@@ -741,7 +757,7 @@ RK4
 \end_layout
 
 \begin_layout Standard
-The classical fourth-order Runge--Kutta (RK4), which is the most popular
+The classical fourth-order Runge–Kutta (RK4), which is the most popular
  of the RK methods, is
 \begin_inset Formula 
 \begin{align}
@@ -786,6 +802,13 @@ There is an alternative, less often used fourth-order explicit RK method,
 
 \end_layout
 
+\begin_layout Standard
+\begin_inset Newpage pagebreak
+\end_inset
+
+
+\end_layout
+
 \begin_layout Subsection
 Symplectic Euler (a.k.a.
  semi-implicit Euler)
@@ -796,10 +819,17 @@ This is a symplectic
 \begin_inset Formula $O(\Delta t)$
 \end_inset
 
- method introduced in 
-\begin_inset CommandInset citation
-LatexCommand citet
-key "Niiranen1999"
+ method due to Niiranen
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+Niiranen, Jouko: Fast and accurate symmetric Euler algorithm for electromechanic
+al simulations.
+ Proceedings of the Electrimacs'99, Sept.
+ 14-16, 1999 Lisboa, Portugal, Vol.
+ 1, pages 71 - 78.
+\end_layout
 
 \end_inset
 
@@ -1083,7 +1113,7 @@ The easiest choice for the initial guess for
  See section 
 \begin_inset CommandInset ref
 LatexCommand ref
-reference "sub:The-theoretical-origin"
+reference "subsec:The-theoretical-origin"
 
 \end_inset
 
@@ -1337,7 +1367,7 @@ reference "eq:BE-wnp1"
  section 
 \begin_inset CommandInset ref
 LatexCommand ref
-reference "sub:The-theoretical-origin"
+reference "subsec:The-theoretical-origin"
 
 \end_inset
 
@@ -1470,10 +1500,10 @@ The same algorithmic notes apply as to IMR.
 \end_layout
 
 \begin_layout Subsection
-General theory: implicit methods and the Banach fixed point theorem
+Implicit methods and the Banach fixed point theorem
 \begin_inset CommandInset label
 LatexCommand label
-name "sub:The-theoretical-origin"
+name "subsec:The-theoretical-origin"
 
 \end_inset
 
@@ -1609,7 +1639,7 @@ Note that Lipschitz continuity is a fairly stringent requirement, and it
 \end_layout
 
 \begin_layout Standard
-This topic is closely related to the Picard--Lindelöf theorem
+This topic is closely related to the Picard–Lindelöf theorem
 \begin_inset Foot
 status open
 
@@ -1629,13 +1659,13 @@ target "https://en.wikipedia.org/wiki/Picard%E2%80%93Lindel%C3%B6f_theorem"
 
 , which is concerned with the existence and uniqueness of solutions to the
  first-order initial value problem.
- Indeed, the Banach fixed point theorem is invoked in the proof of the Picard--L
-indelöf theorem.
+ Indeed, the Banach fixed point theorem is invoked in the proof of the Picard–Li
+ndelöf theorem.
 \end_layout
 
 \begin_layout Standard
 The iterative IMR procedure presented above is also essentially a discrete
- application of the Picard--Lindelöf idea of recasting the first-order initial
+ application of the Picard–Lindelöf idea of recasting the first-order initial
  value problem 
 \begin_inset CommandInset ref
 LatexCommand eqref
@@ -1643,7 +1673,7 @@ reference "eq:IVP"
 
 \end_inset
 
---
+–
 \begin_inset CommandInset ref
 LatexCommand eqref
 reference "eq:IC"
@@ -1682,7 +1712,7 @@ reference "eq:wnp1-general-integral-form"
 
 \end_inset
 
- is the integral that is considered in the Picard--Lindelöf theorem.
+ is the integral that is considered in the Picard–Lindelöf theorem.
  Note that the initial value 
 \begin_inset Formula $\mathbf{u}_{n}$
 \end_inset
@@ -1897,7 +1927,7 @@ reference "eq:wnp1-general-approx"
 
 where the superscript in parentheses indexes the iterate sequence.
  Considering the class of methods which approximate the integral as a quadrature
- --- indeed, such as IMR and BE --- we further approximate
+ — indeed, such as IMR and BE — we further approximate
 \begin_inset Formula 
 \begin{equation}
 \mathbf{u}_{n+1}^{(i+1)}\approx\mathbf{u}_{n}+\Delta t\overset{N}{\underset{k=1}{\sum}}q_{k}\,\mathbf{f}(\,\widetilde{\mathbf{u}}^{(i)}(\tau_{k}),\,\tau_{k}\,)\;,\quad\tau_{k}\equiv t_{n}+p_{k}\Delta t\;,\label{eq:IMRBE}
@@ -2185,7 +2215,7 @@ reference "eq:IMR-final-with-relaxation"
 status open
 
 \begin_layout Plain Layout
-At this point, we must mention that based on the Picard--Lindelöf theorem
+At this point, we must mention that based on the Picard–Lindelöf theorem
  and Ostrowski estimates, a very promising implicit method of reliable integrati
 on for the first-order initial value problem has been recently developed
  by [ref Matculevich et al.].
@@ -2224,8 +2254,8 @@ Curiously, we see that both the classical iterative solution procedure for
 \end_inset
 
  for arbitrary nonlinear problems, and the new method by [ref Matculevich
- et al.], can be considered to have a common theoretical origin in the Picard--Li
-ndelöf problem recasting approach, although classical methods such as IMR
+ et al.], can be considered to have a common theoretical origin in the Picard–Lin
+delöf problem recasting approach, although classical methods such as IMR
  are rarely developed in such a form.
 \end_layout
 
@@ -2238,7 +2268,7 @@ ndelöf problem recasting approach, although classical methods such as IMR
 IMR is often presented as a tool specifically for linear problems, trading
  away generality for power.
  Interestingly, this also leads to developing the method into a completely
- different direction --- and even giving it a different theoretical origin,
+ different direction — and even giving it a different theoretical origin,
  in finite differences.
  (Although 
 \begin_inset CommandInset ref
@@ -2254,14 +2284,14 @@ reference "eq:wnp1-general-integral-form"
 
 \end_inset
 
- --- or indeed the whole derivation of 
+ — or indeed the whole derivation of 
 \begin_inset CommandInset ref
 LatexCommand eqref
 reference "eq:IMR-final"
 
 \end_inset
 
- --- makes no use of finite differences!)
+ — makes no use of finite differences!)
 \end_layout
 
 \begin_layout Standard
@@ -2270,7 +2300,7 @@ Specialization to linear problems enables additional formal manipulations
  and von Neumann stability analysis (which gives the classical upper limit
  on timestep size).
  These two versions of IMR do not have much in common, beside the core idea
- of seeking an implicit approximation at the midpoint --- which is formally
+ of seeking an implicit approximation at the midpoint — which is formally
  encoded into equations 
 \begin_inset CommandInset ref
 LatexCommand eqref
@@ -2278,7 +2308,7 @@ reference "eq:IMR-k"
 
 \end_inset
 
---
+–
 \begin_inset CommandInset ref
 LatexCommand eqref
 reference "eq:IMR-iter-desired"
@@ -2354,7 +2384,7 @@ reference "eq:est1"
 
 \end_inset
 
---
+–
 \begin_inset CommandInset ref
 LatexCommand eqref
 reference "eq:est3"
@@ -2538,7 +2568,7 @@ target "http://www.scholarpedia.org/article/Basin_of_attraction"
 The implied comparison with dynamical systems (which typically have several
  basins of attraction) may however be a bit misleading, so the following
  must be emphasized.
- The Picard--Lindelöf theorem states that the solution of the first-order
+ The Picard–Lindelöf theorem states that the solution of the first-order
  initial value problem 
 \begin_inset Formula $\partial u/\partial t=f(\,u(t),\,t\,)$
 \end_inset
@@ -2816,7 +2846,7 @@ But consider the union of the
 
 \end_inset
 
- By the Picard--Lindelöf theorem, if the timestep is 
+ By the Picard–Lindelöf theorem, if the timestep is 
 \begin_inset Quotes eld
 \end_inset
 
@@ -2889,8 +2919,15 @@ Finally, what about global existence and uniqueness of the solution on
 \begin_inset Formula $\varepsilon$
 \end_inset
 
- in the Picard--Lindelöf theorem sometimes turns out to be small, this does
+ in the Picard–Lindelöf theorem sometimes turns out to be small, this does
  not pose a problem for the global existence and uniqueness of the solution.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Newpage pagebreak
+\end_inset
+
+
 \end_layout
 
 \begin_layout Section
@@ -2906,7 +2943,7 @@ reference "eq:IVP"
 
 \end_inset
 
---
+–
 \begin_inset CommandInset ref
 LatexCommand eqref
 reference "eq:IC"
@@ -2982,7 +3019,7 @@ reference "eq:weak"
 status open
 
 \begin_layout Plain Layout
- (Discontinuous Petrov--Galerkin methods, where the test functions are chosen
+ (Discontinuous Petrov–Galerkin methods, where the test functions are chosen
  to be different from the basis functions, also exist.)
 \end_layout
 
@@ -3036,7 +3073,7 @@ In order to develop the argument further, some background is first needed.
  We will continue with the problem itself in section 
 \begin_inset CommandInset ref
 LatexCommand ref
-reference "sub:DG-Developing-the-weak"
+reference "subsec:DG-Developing-the-weak"
 
 \end_inset
 
@@ -3116,7 +3153,7 @@ reference "eq:v"
 
 \end_inset
 
---
+–
 \begin_inset CommandInset ref
 LatexCommand eqref
 reference "eq:dvdt"
@@ -3258,7 +3295,7 @@ the jump
 \begin_inset Formula $[v](t_{0})$
 \end_inset
 
- --- i.e.
+ — i.e.
  the result, when the jump operator is applied to a given function at a
  given point.
 \end_layout
@@ -4478,7 +4515,7 @@ reference "eq:IVP"
 
 \end_inset
 
---
+–
 \begin_inset CommandInset ref
 LatexCommand eqref
 reference "eq:IC"
@@ -4557,7 +4594,7 @@ This completes the background.
 Developing the weak form
 \begin_inset CommandInset label
 LatexCommand label
-name "sub:DG-Developing-the-weak"
+name "subsec:DG-Developing-the-weak"
 
 \end_inset
 
@@ -4797,7 +4834,7 @@ reference "eq:IVP"
 
 \end_inset
 
---
+–
 \begin_inset CommandInset ref
 LatexCommand eqref
 reference "eq:IC"
@@ -5000,11 +5037,11 @@ reference "eq:uhatdiff"
 \begin_inset Formula $\widehat{u}$
 \end_inset
 
- --- or indeed 
+ — or indeed 
 \begin_inset Formula $u$
 \end_inset
 
- itself --- changes across the timestep.
+ itself — changes across the timestep.
  (This can be made rigorous using 
 \begin_inset CommandInset ref
 LatexCommand eqref
@@ -5025,7 +5062,7 @@ Note also that on
 \begin_inset Formula $\widehat{u}$
 \end_inset
 
- is defined --- by 
+ is defined — by 
 \begin_inset CommandInset ref
 LatexCommand eqref
 reference "eq:contpart"
@@ -5040,7 +5077,7 @@ reference "eq:contpart"
 \begin_inset Formula $H$
 \end_inset
 
-) --- precisely to ignore the upcoming discontinuity at 
+) — precisely to ignore the upcoming discontinuity at 
 \begin_inset Formula $t_{k+1}$
 \end_inset
 
@@ -5439,13 +5476,13 @@ i.e.
 \begin_layout Standard
 Differing from continuous Galerkin methods (such as the finite element method),
  because now there is no requirement of continuity across the timestep boundarie
-s, we may actually take the local basis functions --- of course appropriately
+s, we may actually take the local basis functions — of course appropriately
  positioned and scaled on the 
 \begin_inset Formula $t$
 \end_inset
 
- axis separately for each element, as the time integration proceeds ---
- as the global basis functions.
+ axis separately for each element, as the time integration proceeds — as
+ the global basis functions.
  (In practice, we will of course scale each timestep onto a reference element
  on 
 \begin_inset Formula $[0,1]$
@@ -5462,7 +5499,7 @@ reference "eq:galerkin"
 
 \end_inset
 
---
+–
 \begin_inset CommandInset ref
 LatexCommand eqref
 reference "eq:testfunc"
@@ -5631,7 +5668,7 @@ reference "eq:IVP"
 
 \end_inset
 
---
+–
 \begin_inset CommandInset ref
 LatexCommand eqref
 reference "eq:IC"
@@ -5658,7 +5695,7 @@ reference "eq:lineqsys"
 
 \end_inset
 
---
+–
 \begin_inset CommandInset ref
 LatexCommand eqref
 reference "eq:bj-DG"
@@ -5758,7 +5795,7 @@ reference "eq:Ajn-DG"
 
 \end_inset
 
---
+–
 \begin_inset CommandInset ref
 LatexCommand eqref
 reference "eq:bj-DG"
@@ -5781,7 +5818,7 @@ Extension to ODE systems
 The general treatment from section 
 \begin_inset CommandInset ref
 LatexCommand ref
-reference "sub:Extension-to-ODE"
+reference "subsec:Extension-to-ODE"
 
 \end_inset
 
@@ -5978,9 +6015,9 @@ Note that each evaluation of
 \begin_inset Formula $\mathbf{g}$
 \end_inset
 
- --- i.e.
- each quadrature point for the integral on the right-hand side --- will
- require the solution of a (possibly large) linear equation system.
+ — i.e.
+ each quadrature point for the integral on the right-hand side — will require
+ the solution of a (possibly large) linear equation system.
  Furthermore, because 
 \begin_inset Formula $\mathbf{u}(t)$
 \end_inset
@@ -6029,7 +6066,7 @@ reference "eq:lineqsys"
 
 \end_inset
 
---
+–
 \begin_inset CommandInset ref
 LatexCommand eqref
 reference "eq:bj-DG"
@@ -6086,6 +6123,13 @@ As the basis functions
 
 \begin_layout Subsubsection
 dG(0)
+\end_layout
+
+\begin_layout Standard
+
+\emph on
+(dG(0) is not supported by the solver; this section is only included for
+ information.)
 \end_layout
 
 \begin_layout Standard
@@ -6282,7 +6326,12 @@ One convenient choice for arbitrary
 \emph on
 hierarchical basis functions
 \emph default
-, derived from the 
+ (a.k.a.
+ 
+\emph on
+Lobatto basis functions
+\emph default
+), derived from the 
 \emph on
 Legendre polynomials
 \emph default
@@ -7096,7 +7145,7 @@ In either case, the problem is that the coefficients of the Legendre polynomials
 \begin_inset Formula $P_{n}$
 \end_inset
 
- are oscillatory --- making 
+ are oscillatory — making 
 \begin_inset Formula $\psi_{j}$
 \end_inset
 
@@ -7355,7 +7404,7 @@ where
 \end_layout
 
 \begin_layout Plain Layout
-Using the Petrov--Galerkin approach of choosing the basis and test function
+Using the Petrov–Galerkin approach of choosing the basis and test function
  sets differently, 
 \begin_inset Formula $L^{2}$
 \end_inset
@@ -8227,8 +8276,8 @@ cPG
 \end_inset
 
  i.e.
- continuous Petrov--Galerkin methods (not to be confused with PCG, the precondit
-ioned conjugate gradient method).
+ continuous Petrov–Galerkin methods (not to be confused with PCG, the preconditi
+oned conjugate gradient method).
 \end_layout
 
 \begin_layout Standard
@@ -8267,7 +8316,7 @@ reference "eq:IVP"
 
 \end_inset
 
---
+–
 \begin_inset CommandInset ref
 LatexCommand eqref
 reference "eq:IC"
@@ -8341,7 +8390,7 @@ reference "eq:weak-one-timestep-prep"
 
 \end_inset
 
-Then, in the usual Petrov--Galerkin manner, we represent 
+Then, in the usual Petrov–Galerkin manner, we represent 
 \begin_inset Formula $u$
 \end_inset
 
@@ -8469,6 +8518,13 @@ cP(0)G(1)
 \end_layout
 
 \begin_layout Standard
+
+\emph on
+(cP(0)G(1) is not supported by the solver; this section is only included
+ for information.)
+\end_layout
+
+\begin_layout Standard
 Choosing to test 
 \begin_inset CommandInset ref
 LatexCommand eqref
@@ -8524,7 +8580,7 @@ reference "eq:wnp1-general-integral-form"
 , which (as was noted in section 
 \begin_inset CommandInset ref
 LatexCommand ref
-reference "sub:The-theoretical-origin"
+reference "subsec:The-theoretical-origin"
 
 \end_inset
 
@@ -8537,7 +8593,7 @@ reference "sub:The-theoretical-origin"
 \end_layout
 
 \begin_layout Standard
-In the Petrov--Galerkin context, the model is 
+In the Petrov–Galerkin context, the model is 
 \begin_inset CommandInset ref
 LatexCommand eqref
 reference "eq:galerkin-1"
@@ -8572,7 +8628,7 @@ where
 \end_inset
 
 ) method, i.e.
- continuous Petrov--Galerkin with (piecewise) constant test and piecewise
+ continuous Petrov–Galerkin with (piecewise) constant test and piecewise
  linear basis.
  For this basis, 
 \begin_inset Formula $u_{1}=u_{0}$
@@ -8694,7 +8750,7 @@ u(0)=u_{0}\;.
 
 \end_inset
 
-Inserting a (Petrov--)Galerkin representation again leads to equations of
+Inserting a (Petrov–)Galerkin representation again leads to equations of
  the form
 \begin_inset Formula 
 \begin{equation}
@@ -8884,7 +8940,7 @@ reference "eq:IVP"
 
 \end_inset
 
---
+–
 \begin_inset CommandInset ref
 LatexCommand eqref
 reference "eq:IC"
