@@ -148,7 +148,7 @@ def test(integrator, nt_vis):
     ax.set_xlabel(r"$x$")
     ax.set_ylabel(r"$y$")
     ax.set_zlabel(r"$z$")
-    plt.suptitle(r"Trajectory: $\rho = %g$, $\sigma = %g$, $\beta = %g$, $x_0 = %g$, $y_0 = %g$, $z_0 = %g$" % (rho, sigma, beta, w0[0], w0[1], w0[2]))
+    plt.suptitle(r"Lorenz system: $\rho = %g$, $\sigma = %g$, $\beta = %g$, $x_0 = %g$, $y_0 = %g$, $z_0 = %g$" % (rho, sigma, beta, w0[0], w0[1], w0[2]))
 
 if __name__ == '__main__':
     print("** Solving the Lorenz system **")
