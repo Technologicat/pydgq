@@ -378,14 +378,14 @@ This script supports MPI for parallelization.""", formatter_class=argparse.RawDe
 
             group_behavior.add_argument( '-q', '--degree',
                                          dest='q',
-                                         default=20,
+                                         default=10,
                                          type=int,
                                          metavar='n',
                                          help='Sets the highest degree (the "q" in "dG(q)") to precompute. Must be >= 1. (Very high degrees, such as 50, are supported by this software, but usually dG(q) gives the best results for q=1 or q=2.) Default %(default)s.' )
 
             group_behavior.add_argument( '-nx', '--points',
                                          dest='nx',
-                                         default=1001,
+                                         default=101,
                                          type=int,
                                          metavar='n',
                                          help='For visualization use: sets how many evenly spaced points (on the reference element [-1,1]) each basis function will be evaluated at. Must be >= 1. Default %(default)s.' )
