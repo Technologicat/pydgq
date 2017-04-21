@@ -115,13 +115,13 @@ def ext_math(extName):
 datadirs  = ("doc", "test")
 dataexts  = (".py", ".pyx", ".pxd")
 datafiles = []
+getext = lambda filename: os.path.splitext(filename)[1]
 for datadir in datadirs:
-    for ext in dataexts:
-        datafiles.extend( [(root, [os.path.join(root, f) for f in files if f.endswith(ext)]) for root, dirs, files in os.walk(datadir)] )
+    datafiles.extend( [(root, [os.path.join(root, f) for f in files if getext(f) in dataexts])
+                       for root, dirs, files in os.walk(datadir)] )
 
 datafiles.append( ('.', ["README.md", "LICENSE.md", "TODO.md"]) )
 datafiles.append( ('doc', ["doc/pydgq_user_manual.lyx", "doc/pydgq_user_manual.pdf"]) )
-
 
 #########################################################
 # Modules
@@ -212,7 +212,7 @@ setup(
 
     # Install also Cython headers so that other Cython modules can cimport ours
     # FIXME: force sdist, but sdist only, to keep the .pyx files (this puts them also in the bdist)
-    package_data={'pydgq':        ['*.pxd', '*.pyx'],  # note: paths relative to each package
+    package_data={'pydgq':        ['*.pxd', '*.pyx', '*.bin'],  # note: paths relative to each package
                   'pydgq.solver': ['*.pxd', '*.pyx'],
                   'pydgq.utils':  ['*.pxd', '*.pyx']},
 
