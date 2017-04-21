@@ -17,7 +17,7 @@ from pydgq.utils.discontify import discontify  # for plotting dG results
 try:
     from cython_kernel import MyKernel
 except ImportError:
-    print "ERROR: cython_kernel.pyx must be compiled first; run  'python -m setup build_ext --inplace'  to do this"
+    print( "ERROR: cython_kernel.pyx must be compiled first; run  'python -m setup build_ext --inplace'  to do this" )
     raise
 
 #####################
