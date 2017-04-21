@@ -62,12 +62,12 @@ class MyKernel(PythonKernel):
     # known analytical solution, for testing the integrators
     #
     def reference_solution(self, tt):
-        tt = np.atleast_1d(tt)
-        ww = np.empty( (tt.shape[0],self.n), dtype=DTYPE, order="C" )
+        tt  = np.atleast_1d(tt)
+        ww  = np.empty( (tt.shape[0],self.n), dtype=DTYPE, order="C" )
+        sol = lambda t,phi0 : 1./self.omega * np.sin(phi0 + self.omega*t)
         for j in range(self.n):
             phi0_j  = (float(j+1) / self.n) * 2. * np.pi
-            sol     = lambda t : 1./self.omega * np.sin(phi0_j + self.omega*t)
-            ww[:,j] = sol(tt) - sol(0.)  # shift to account for the initial condition (all solution components start at zero)
+            ww[:,j] = sol(tt,phi0_j) - sol(0.,phi0_j)  # shift to account for the initial condition (all solution components start at zero)
         return ww
 
 
