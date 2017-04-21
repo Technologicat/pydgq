@@ -43,18 +43,17 @@ save_from = 0  # see pydgq.solver.odesolve.ivp()
 # from sympy import Function, dsolve, Eq, Derivative, sin, cos, symbols
 # from sympy.abc import t
 # w = Function('w')
-# dsolve(Derivative(f(t), t) - f(t), f(t))
+# dsolve(Derivative(w(t), t) - w(t), w(t))   # w' = w
 #
-# ==> w(t) = C1 exp(t)
+# ==>  w(t) == C1 exp(t)
 #
 # where C1 = w(0) accounts for the initial condition.
 #
-def reference_solution(tt, n):  # n = number of DOFs
+def reference_solution(tt, n, w0):  # n = number of DOFs
     tt = np.atleast_1d(tt)
     ww = np.empty( (tt.shape[0],n), dtype=DTYPE, order="C" )
     for j in range(n):
-        w0 = float(j+1)
-        ww[:,j] = w0 * np.exp(tt)
+        ww[:,j] = w0[j] * np.exp(tt)
     return ww
 
 
@@ -89,7 +88,7 @@ def test(integrator, nt_vis, rel_tol=1e-2, vis=False):
                                        maxit=100 )
 
     # check result
-    ww_ref = reference_solution(tt, n)
+    ww_ref = reference_solution(tt, n, w0)
     relerr_linfty = np.linalg.norm(ww - ww_ref, ord=np.inf) / np.linalg.norm(ww_ref, ord=np.inf)
     if (relerr_linfty < rel_tol).all():
         passed = 1
