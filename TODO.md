@@ -2,8 +2,6 @@
 
 ### High priority
 
- - use pkg_resources to make the installation find pydgq_data.bin
-   - include the file (generated using new default settings for precalc) in the package
  - update user manual:
    - change the title
    - add a short introductory paragraph about what the software is for
