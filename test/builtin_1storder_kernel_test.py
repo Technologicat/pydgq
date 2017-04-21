@@ -151,10 +151,10 @@ if __name__ == '__main__':
         n_passed += test(integrator, nt_vis, rel_tol)
     print("** %d/%d tests passed **" % (n_passed, len(stuff_to_test)))
 
-    # draw something
-    #
-    nt_vis = nt_vis_galerkin
-    init(q=q, method="dG", nt_vis=nt_vis, rule=None)
-    test(integrator="dG", nt_vis=nt_vis, vis=True)
-    plt.show()
+#    # DEBUG: draw something
+#    #
+#    nt_vis = nt_vis_galerkin
+#    init(q=q, method="dG", nt_vis=nt_vis, rule=None)
+#    test(integrator="dG", nt_vis=nt_vis, vis=True)
+#    plt.show()
 
