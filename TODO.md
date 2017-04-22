@@ -6,6 +6,8 @@
 
 ### Maybe later
 
+ - add the implicit algorithm from Matculevich, Neittaanmäki and Repin (2013). Guaranteed Error Bounds for a Class of Picard-Lindelöf Iteration Methods. S. Repin et al. (eds.), Numerical Methods for Differential Equations, Optimization, and Technological Problems, Computational Methods in Applied Sciences 27, Springer. [doi:10.1007/978-94-007-5288-7_10](http://dx.doi.org/10.1007/978-94-007-5288-7_10).
+   - this would allow integrating an ODE system up to a specified tolerance, without knowledge of the exact solution. (The price is that the RHS must be Lipschitz, and an estimate for the Lipschitz constant is needed. Could be either specified by the user, or probed for by the solver.)
  - clean up `doc/legtest*.py`
  - add some mechanism to report metadata to caller (e.g. number of iterations taken at each timestep)?
  - add support for convergence tolerance (requires small changes to [`implicit.pyx`](pydgq/solver/implicit.pyx) and [`galerkin.pyx`](pydgq/solver/galerkin.pyx); see anything that uses `maxit`)
