@@ -41,15 +41,18 @@ Implemented only for rank-1 np.arrays of dtypes double (np.float64) and double c
     cdef ZTYPE_t[::1] inz, outz
 
     if isinstance(data, np.ndarray):
+        if data.ndim != 1:
+            raise ValueError("This function supports only rank-1 arrays, got an array of rank %d" % (data.ndim))
+
         if data.dtype == ZTYPE:
             inz  = data
             outz = np.empty_like(data)
-            cs1dz( &inz[0], &outz[0], np.size(data) )  # modifies outz in-place
+            cs1dz( &inz[0], &outz[0], data.shape[0] )  # modifies outz in-place
             return np.asanyarray(outz)
         elif data.dtype == RTYPE:
             inr  = data
             outr = np.empty_like(data)
-            cs1dr( &inr[0], &outr[0], np.size(data) )  # modifies outr in-place
+            cs1dr( &inr[0], &outr[0], data.shape[0] )  # modifies outr in-place
             return np.asanyarray(outr)
         else:
             raise TypeError("Unsupported dtype '%s' for cumsum1d_compensated() with np.ndarray; valid: %s, %s" % (data.dtype, ZTYPE, RTYPE))
