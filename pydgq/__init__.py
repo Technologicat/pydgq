@@ -18,7 +18,7 @@ into the local namespace.
 
 from __future__ import absolute_import  # https://www.python.org/dev/peps/pep-0328/
 
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 
 from .solver.odesolve import *
 
