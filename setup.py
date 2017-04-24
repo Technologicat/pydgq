@@ -127,7 +127,6 @@ datafiles.append( ('doc', ["doc/pydgq_user_manual.lyx", "doc/pydgq_user_manual.p
 # Modules
 #########################################################
 
-ext_module_ptrwrap  = ext(      "pydgq.utils.ptrwrap"               )
 ext_module_types    = ext(      "pydgq.solver.types"                )
 
 ext_module_compsum  = ext_math( "pydgq.solver.compsum"              )
@@ -198,7 +197,7 @@ setup(
     # same keywords as used as topics on GitHub
     keywords = ["numerical integration ordinary-differential-equations ode ivp ode-solver solver galerkin discontinuous-galerkin cython numpy"],
 
-    ext_modules = cythonize( [ ext_module_ptrwrap, ext_module_types,
+    ext_modules = cythonize( [ ext_module_types,
                                ext_module_compsum,
                                ext_module_discontify,
                                ext_module_kernintf, ext_module_bkernels,
