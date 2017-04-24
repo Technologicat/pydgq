@@ -39,14 +39,14 @@ except ImportError:
 # Definitions
 #########################################################
 
-extra_compile_args_math_optimized    = ['-fopenmp', '-march=native', '-O2', '-msse', '-msse2', '-mfma', '-mfpmath=sse']
-extra_compile_args_math_debug        = ['-fopenmp', '-march=native', '-O0', '-g']
+extra_compile_args_math_optimized    = ['-march=native', '-O2', '-msse', '-msse2', '-mfma', '-mfpmath=sse']
+extra_compile_args_math_debug        = ['-march=native', '-O0', '-g']
 
 extra_compile_args_nonmath_optimized = ['-O2']
 extra_compile_args_nonmath_debug     = ['-O0', '-g']
 
-extra_link_args_optimized    = ['-fopenmp']
-extra_link_args_debug        = ['-fopenmp']
+extra_link_args_optimized    = []
+extra_link_args_debug        = []
 
 
 if build_type == 'optimized':
@@ -127,21 +127,21 @@ datafiles.append( ('doc', ["doc/pydgq_user_manual.lyx", "doc/pydgq_user_manual.p
 # Modules
 #########################################################
 
-ext_module_types    = ext(      "pydgq.solver.types"                )
+ext_module_types      = ext(      "pydgq.solver.types"                )
 
-ext_module_compsum  = ext_math( "pydgq.solver.compsum"              )
+ext_module_compsum    = ext_math( "pydgq.solver.compsum"              )
 
-ext_module_discontify = ext(    "pydgq.utils.discontify"            )
+ext_module_discontify = ext_math( "pydgq.utils.discontify"            )
 
-ext_module_kernintf = ext_math( "pydgq.solver.kernel_interface"     )
-ext_module_bkernels = ext_math( "pydgq.solver.builtin_kernels"      )
+ext_module_kernintf   = ext_math( "pydgq.solver.kernel_interface"     )
+ext_module_bkernels   = ext_math( "pydgq.solver.builtin_kernels"      )
 
-ext_module_intgintf = ext_math( "pydgq.solver.integrator_interface" )
-ext_module_explicit = ext(      "pydgq.solver.explicit"             )
-ext_module_implicit = ext(      "pydgq.solver.implicit"             )
-ext_module_galerkin = ext(      "pydgq.solver.galerkin"             )
+ext_module_intgintf   = ext_math( "pydgq.solver.integrator_interface" )
+ext_module_explicit   = ext_math( "pydgq.solver.explicit"             )
+ext_module_implicit   = ext_math( "pydgq.solver.implicit"             )
+ext_module_galerkin   = ext_math( "pydgq.solver.galerkin"             )
 
-ext_module_odesolve = ext_math( "pydgq.solver.odesolve"             )
+ext_module_odesolve   = ext_math( "pydgq.solver.odesolve"             )
 
 #########################################################
 
@@ -191,7 +191,11 @@ setup(
                   ],
 
     setup_requires = ["cython", "numpy"],
-    install_requires = ["numpy", "mpi4py", "pylu"],  # mpi4py for precalc only
+    # pydgq.utils.precalc can optionally use mpi4py, but it is not mandatory.
+    # Also, thre no need to run precalc in common use cases, since we include
+    # the data file pydgq_data.bin (computed using default options) in the package.
+    # Thus, we just leave out mpi4py.
+    install_requires = ["numpy", "pylu"],
     provides = ["pydgq"],
 
     # same keywords as used as topics on GitHub

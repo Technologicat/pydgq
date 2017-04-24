@@ -5,6 +5,8 @@
  - general tidiness:
    - added installation instructions to [README.md](README.md)
    - removed unused module `pydgq.utils.ptrwrap`
+   - removed unused dependencies (oops)
+   - use correct compile flags for all modules
    - updated [TODO.md](TODO.md) to reflect the current status of the project
 
 
