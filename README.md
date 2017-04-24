@@ -31,6 +31,39 @@ The problem is solved by instantiating this custom kernel, and passing the insta
 Code examples are provided the [`test`](test/) subdirectory. For compiling the Cython example, the test subdirectory contains its own [`setup.py`](test/setup.py) that is only used for this purpose.
 
 
+## Installation
+
+### From PyPI
+
+Install as user:
+
+```bash
+pip install pydgq --user
+```
+
+Install as admin:
+
+```bash
+sudo pip install pydgq
+```
+
+### From GitHub
+
+As user:
+
+```bash
+git clone https://github.com/Technologicat/pydgq.git
+cd pydgq
+python setup.py install --user
+```
+
+As admin, change the last command to
+
+```bash
+sudo python setup.py install
+```
+
+
 ## Software architecture
 
 The design of pydgq is based on two main class hierarchies, consisting of Cython extension types (cdef classes):
