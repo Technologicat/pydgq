@@ -22,7 +22,11 @@ Do not instantiate DataManager directly; instead, call the init() function expor
 from __future__ import division, print_function, absolute_import
 
 import sys
-import cPickle as pickle
+
+try:
+    import cPickle as pickle  # Python 2.7
+except ImportError:
+    import pickle  # Python 3.x
 
 import pkg_resources  # for accessing installed data file (pydgq_data.bin)
 

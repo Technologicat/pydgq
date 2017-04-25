@@ -6,7 +6,7 @@ Usage:
     python -m setup build_ext --inplace
 """
 
-from __future__ import absolute_import
+from __future__ import division, print_function, absolute_import
 
 #########################################################
 # Config
@@ -58,13 +58,13 @@ if build_type == 'optimized':
     my_extra_compile_args_nonmath = extra_compile_args_nonmath_optimized
     my_extra_link_args            = extra_link_args_optimized
     debug = False
-    print "build configuration selected: optimized"
+    print( "build configuration selected: optimized" )
 else: # build_type == 'debug':
     my_extra_compile_args_math    = extra_compile_args_math_debug
     my_extra_compile_args_nonmath = extra_compile_args_nonmath_debug
     my_extra_link_args            = extra_link_args_debug
     debug = True
-    print "build configuration selected: debug"
+    print( "build configuration selected: debug" )
 
 
 #########################################################

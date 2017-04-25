@@ -10,11 +10,20 @@ Command-line options are available; pass the standard --help flag to see them.
 from __future__ import division, print_function, absolute_import
 
 import time
-import cPickle as pickle  # data saving
+
+try:
+    import cPickle as pickle  # Python 2.7
+except ImportError:
+    import pickle  # Python 3.x
+
 import functools  # reduce (Python 3 compatibility)
 
 import numpy as np
-import sympy.mpmath
+
+try:
+    import mpmath  # Python 3.x
+except ImportError:
+    import sympy.mpmath as mpmath  # Python 2.7
 
 from pydgq.solver.types import RTYPE  # the precalc data is always real-valued regardless of DTYPE
 import pydgq.utils.mpi_shim as mpi_shim
@@ -64,7 +73,7 @@ class Precalc:
     """Precalculate hierarchical (Lobatto) basis functions up to the given degree q (>= 1) at the given points (rank-1 np.array of length >= 1) on the reference element [-1,1]."""
 
     # Legendre polynomials, high precision from sympy.mpmath to avoid cancellation in hierarchical basis functions
-    _P = sympy.mpmath.legendre  # lambda j, x: ...
+    _P = mpmath.legendre  # lambda j, x: ...
 
     def __init__(self, q, xx, cache=None):
         """q = maximum degree, xx = vector of points, cache = Cache instance or None
@@ -99,7 +108,8 @@ class Precalc:
 
         # bubble functions (see user manual)
         for j in range(2,q+1):
-            N.append(  (  lambda j: lambda x : ( self._P(j, x) - self._P(j-2, x) ) / np.sqrt( 2. * (2.*j - 1.) )  )(j)  )  # use factory to bind j at define time
+            # HACK: Python 3 compatibility: we must float(j), because some part of the toolchain here wants to convert all arguments to mpf, which does not work for int.
+            N.append(  (  lambda j: lambda x : ( self._P(j, x) - self._P(j-2, x) ) / np.sqrt( 2. * (2.*j - 1.) )  )(float(j))  )  # use factory to bind j at define time
 
         self.N = N
 
