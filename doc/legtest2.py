@@ -12,7 +12,7 @@ import time
 
 import numpy as np
 import scipy.integrate
-import pylab as pl
+import matplotlib.pyplot as plt
 
 import pylu.dgesv as dgesv
 
@@ -132,38 +132,38 @@ def main():
 
     print( stuff.C )
     print( np.linalg.matrix_rank(stuff.C) )  # should be full rank
-    pl.figure(2)
-    pl.spy(stuff.C)
-    pl.plot( [0,stuff.q-1], [0,stuff.q-1], 'r--' )
-#    pl.imshow(M, interpolation="nearest", cmap="Oranges")
-#    pl.colorbar()
-    pl.title(r"$\mathbf{M}$")
+    plt.figure(2)
+    plt.spy(stuff.C)
+    plt.plot( [0,stuff.q-1], [0,stuff.q-1], 'r--' )
+#    plt.imshow(M, interpolation="nearest", cmap="Oranges")
+#    plt.colorbar()
+    plt.title(r"$\mathbf{M}$")
 
 
 ##    L,U,p = dgesv.lup(stuff.C)
 ##    print( np.transpose(np.nonzero(L)) )
 ##    print( np.transpose(np.nonzero(U)) )
 ##    print( p )
-##    pl.figure(3)
-##    pl.subplot(1,2, 1)
-##    pl.spy(L)
-##    pl.plot( [0,stuff.q-1], [0,stuff.q-1], 'r--' )
-###    pl.imshow(L, interpolation="nearest", cmap="Oranges")
-###    pl.colorbar(orientation="horizontal")
-##    pl.title(r"$\mathbf{L}$")
-##    pl.subplot(1,2, 2)
-##    pl.spy(U)
-##    pl.plot( [0,stuff.q-1], [0,stuff.q-1], 'r--' )
-###    pl.imshow(U, interpolation="nearest", cmap="Oranges")
-###    pl.colorbar(orientation="horizontal")
-##    pl.title(r"$\mathbf{U}$")
+##    plt.figure(3)
+##    plt.subplot(1,2, 1)
+##    plt.spy(L)
+##    plt.plot( [0,stuff.q-1], [0,stuff.q-1], 'r--' )
+###    plt.imshow(L, interpolation="nearest", cmap="Oranges")
+###    plt.colorbar(orientation="horizontal")
+##    plt.title(r"$\mathbf{L}$")
+##    plt.subplot(1,2, 2)
+##    plt.spy(U)
+##    plt.plot( [0,stuff.q-1], [0,stuff.q-1], 'r--' )
+###    plt.imshow(U, interpolation="nearest", cmap="Oranges")
+###    plt.colorbar(orientation="horizontal")
+##    plt.title(r"$\mathbf{U}$")
 
 
     LU,p = dgesv.lup_packed(stuff.C)
-    pl.figure(4)
-    pl.spy(LU)
-    pl.plot( [0,stuff.q-1], [0,stuff.q-1], 'r--' )
-    pl.title(r"$\mathbf{LU}$ (packed format)")
+    plt.figure(4)
+    plt.spy(LU)
+    plt.plot( [0,stuff.q-1], [0,stuff.q-1], 'r--' )
+    plt.title(r"$\mathbf{LU}$ (packed format)")
 
     mincols,maxcols = dgesv.find_bands(LU, 1e-15)
     print( mincols, maxcols )
@@ -216,17 +216,17 @@ def main():
     # Visualize
     #
     xx = np.linspace(-1., 1., 100001)  # the good thing about the fast approach... smooth curves!
-    pl.figure(1)
-    pl.clf()
+    plt.figure(1)
+    plt.clf()
     for func in stuff.N:
-        pl.plot( xx, func(xx) )
+        plt.plot( xx, func(xx) )
 
-    pl.axis('tight')
-    a = pl.axis()
-    pl.axis( [ a[0], a[1], a[2]*1.05, a[3]*1.05 ] )
+    plt.axis('tight')
+    a = plt.axis()
+    plt.axis( [ a[0], a[1], a[2]*1.05, a[3]*1.05 ] )
 
-    pl.grid(b=True, which='both')
-    pl.title('Hierarchical basis functions')
+    plt.grid(b=True, which='both')
+    plt.title('Hierarchical basis functions')
 
 
     # Try some operations on the original Legendre polynomials
@@ -319,7 +319,7 @@ class MyTimer:
 
 if __name__ == '__main__':
     main()
-    pl.show()
+    plt.show()
 
 #    # Running the benchmark loop at the Python end makes the banded version look slower (for our matrix M, the C code is actually ~3x faster than the generic non-banded version),
 #    # because a large majority of the execution time is taken up by data conversion from Python to C and back (and Python asserts, if enabled).

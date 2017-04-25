@@ -7,7 +7,7 @@
 from __future__ import division, print_function, absolute_import
 
 import numpy as np
-import pylab as pl
+import matplotlib.pyplot as plt
 
 
 def get_legendre_polynomials(max_degree):
@@ -63,17 +63,17 @@ def main():
     P = get_legendre_polynomials(d)
     xx = np.linspace(0., 1., 501)
 
-    pl.figure(1)
-    pl.clf()
+    plt.figure(1)
+    plt.clf()
     for p in P:
-        pl.plot( xx, p(xx) )
+        plt.plot( xx, p(xx) )
 
-    pl.axis('tight')
-    a = pl.axis()
-    pl.axis( [ a[0], a[1], a[2]*1.05, a[3]*1.05 ] )
+    plt.axis('tight')
+    a = plt.axis()
+    plt.axis( [ a[0], a[1], a[2]*1.05, a[3]*1.05 ] )
 
-    pl.grid(b=True, which='both')
-    pl.title('Legendre polynomials')
+    plt.grid(b=True, which='both')
+    plt.title('Legendre polynomials')
 
 
     # Try some operations
@@ -125,5 +125,5 @@ def main():
 
 if __name__ == '__main__':
     main()
-    pl.show()
+    plt.show()
 
