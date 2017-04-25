@@ -30,7 +30,7 @@ import pydgq.utils.mpi_shim as mpi_shim
 import pydgq.utils.listutils as listutils
 
 # version of precalc.py (this is NOT the version of the pydgq package)
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 
 
 ############################################################################################################
