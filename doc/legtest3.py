@@ -11,14 +11,19 @@ from __future__ import division, print_function, absolute_import
 import time
 
 import numpy as np
-import sympy.mpmath
+
+try:
+    import mpmath  # Python 3.x
+except ImportError:
+    import sympy.mpmath as mpmath  # Python 2.7
+
 import pylab as pl
 
-import dgesv
+import pylu.dgesv as dgesv
 
 
 class RandomPileOfTestStuff:
-    # Create a NumPy wrapper for high-precision Legendre polynomials from sympy.mpmath.
+    # Create a NumPy wrapper for high-precision Legendre polynomials from mpmath.
     #
     # Note that vectorize() is just a convenience wrapper; the implementation is
     # essentially a Python for loop, so it won't increase performance over manually
@@ -36,7 +41,7 @@ class RandomPileOfTestStuff:
     #   https://docs.python.org/2/tutorial/classes.html#class-definition-syntax
     # )
     #
-    _P = np.vectorize( sympy.mpmath.legendre )
+    _P = np.vectorize( mpmath.legendre )
 
     def __init__(self, q=15):
         assert( q >= 1 )
@@ -80,9 +85,10 @@ class RandomPileOfTestStuff:
         N = []
         N.append( lambda x: (1./2.) * (1. - x) )
         N.append( lambda x: (1./2.) * (1. + x) )
-        # explicit solution, using SymPy mpmath's high-precision routines (slow, but works fine at least to q=300)
+        # explicit solution, using mpmath's high-precision routines (slow, but works fine at least to q=300)
         for j in range(2,q+1):
-            N.append(  (  lambda j: lambda x : ( self._P(j, x) - self._P(j-2, x) ) / np.sqrt( 2. * (2.*j - 1.) )  )(j)  )
+            # HACK: Python 3 compatibility: we must float(j), because some part of the toolchain here wants to convert all arguments to mpf, which does not work for int.
+            N.append(  (  lambda j: lambda x : ( self._P(j, x) - self._P(j-2, x) ) / np.sqrt( 2. * (2.*j - 1.) )  )(float(j))  )
 
         self.N = N
 

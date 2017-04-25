@@ -14,7 +14,7 @@ import numpy as np
 import scipy.integrate
 import pylab as pl
 
-import dgesv
+import pylu.dgesv as dgesv
 
 
 class RandomPileOfTestStuff:
