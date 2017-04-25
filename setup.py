@@ -36,6 +36,33 @@ except ImportError:
 
 
 #########################################################
+# HACK: Attempt to package the correct data file on POSIX
+#########################################################
+
+redirect_name = os.path.join("pydgq", "pydgq_data.bin")
+file_27_name  = os.path.join("pydgq", "pydgq_data_27.bin")
+file_34_name  = os.path.join("pydgq", "pydgq_data_34.bin")
+
+# remove existing symlink or file if any
+#
+try:
+    os.remove( redirect_name )
+except FileNotFoundError:
+    pass
+
+# symlink correct file depending on Python version
+#
+# (FIXME/TODO: for now, we assume that setup.py is running under the same Python version the packaged library will run under)
+#
+if sys.version_info < (3,0):
+    print("Packaging %s as %s" % (file_27_name, redirect_name))
+    os.symlink( file_27_name, redirect_name )
+else:
+    print("Packaging %s as %s" % (file_34_name, redirect_name))
+    os.symlink( file_34_name, redirect_name )
+
+
+#########################################################
 # Definitions
 #########################################################
 
@@ -228,4 +255,12 @@ setup(
     # Usage examples; not in a package
     data_files = datafiles
 )
+
+
+# remove symlink created earlier
+#
+try:
+    os.remove( redirect_name )
+except FileNotFoundError:
+    pass
 
