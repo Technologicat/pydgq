@@ -4,6 +4,24 @@
 
 from __future__ import division, print_function, absolute_import
 
+import os
+
+# remove file, ignore error if it did not exist
+#
+# portable version for Python 2.7 and 3.x
+#
+def myremove(filename):
+    try:
+        exc = FileNotFoundError  # this does not exist in Python 2.7
+    except:
+        exc = OSError
+
+    try:
+        os.remove( redirect_name )
+    except exc:
+        pass
+
+
 #########################################################
 # Config
 #########################################################
@@ -24,8 +42,6 @@ import sys
 if sys.version_info < (2,7):
     sys.exit('Sorry, Python < 2.7 is not supported')
 
-import os
-
 from setuptools import setup
 from setuptools.extension import Extension
 
@@ -45,10 +61,7 @@ file_34_name  = os.path.join("pydgq", "pydgq_data_34.bin")
 
 # remove existing symlink or file if any
 #
-try:
-    os.remove( redirect_name )
-except FileNotFoundError:
-    pass
+myremove( redirect_name )
 
 # symlink correct file depending on Python version
 #
@@ -259,8 +272,5 @@ setup(
 
 # remove symlink created earlier
 #
-try:
-    os.remove( redirect_name )
-except FileNotFoundError:
-    pass
+myremove( redirect_name )
 
