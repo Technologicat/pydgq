@@ -1,5 +1,8 @@
 ## Changelog
 
+### [v0.1.2]
+ - support both Python 3.4 and 2.7
+
 ### [v0.1.1]
  - setup.py is now Python 3 compatible
  - general tidiness:
