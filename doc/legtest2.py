@@ -6,7 +6,7 @@
 #
 # JJ 2016-02-16
 
-from __future__ import division
+from __future__ import division, print_function, absolute_import
 
 import time
 
@@ -128,10 +128,10 @@ def main():
     #
 #    deg = int(np.ceil( (2*d + 1)/2. ))
 #    q,w = np.polynomial.legendre.leggauss( deg )
-#    print deg,(2*deg-1),q,w
+#    print( deg,(2*deg-1),q,w )
 
-    print stuff.C
-    print np.linalg.matrix_rank(stuff.C)  # should be full rank
+    print( stuff.C )
+    print( np.linalg.matrix_rank(stuff.C) )  # should be full rank
     pl.figure(2)
     pl.spy(stuff.C)
     pl.plot( [0,stuff.q-1], [0,stuff.q-1], 'r--' )
@@ -141,9 +141,9 @@ def main():
 
 
 ##    L,U,p = dgesv.lup(stuff.C)
-##    print np.transpose(np.nonzero(L))
-##    print np.transpose(np.nonzero(U))
-##    print p
+##    print( np.transpose(np.nonzero(L)) )
+##    print( np.transpose(np.nonzero(U)) )
+##    print( p )
 ##    pl.figure(3)
 ##    pl.subplot(1,2, 1)
 ##    pl.spy(L)
@@ -166,7 +166,7 @@ def main():
     pl.title(r"$\mathbf{LU}$ (packed format)")
 
     mincols,maxcols = dgesv.find_bands(LU, 1e-15)
-    print mincols, maxcols
+    print( mincols, maxcols )
 
 
 ##    # old Python-based mincols, maxcols finding code
@@ -188,8 +188,8 @@ def main():
 ##            rowprev = Lnz[0][i]
 ##        i += 1
 ##    mincols = np.array( mincols, dtype=np.intc, order="C" )
-##    print L
-##    print mincols
+##    print( L )
+##    print( mincols )
 
 ##    # Find the largest column index with nonzero data on each row in U.
 ##    #
@@ -209,8 +209,8 @@ def main():
 ##        i -= 1
 ##    maxcols.reverse()
 ##    maxcols = np.array( maxcols, dtype=np.intc, order="C" )
-##    print U
-##    print maxcols
+##    print( U )
+##    print( maxcols )
 
 
     # Visualize
@@ -233,11 +233,11 @@ def main():
     #
     # As long as we keep the Polynomial objects, we can multiply them the intuitive way, producing a new Polynomial:
     #
-    print stuff.P[2]*stuff.P[3]  # => poly([ 0.    0.75  0.   -3.5   0.    3.75])
+    print( stuff.P[2]*stuff.P[3] )  # => poly([ 0.    0.75  0.   -3.5   0.    3.75])
 
     # We can also differentiate them, which is useful for constructing the mass matrix:
     #
-    print stuff.P[2].deriv(1)*stuff.P[3]  # => poly([  0.   0.  -9.   0.  15.])
+    print( stuff.P[2].deriv(1)*stuff.P[3] )  # => poly([  0.   0.  -9.   0.  15.])
 
     # Also integration is supported.
     #
@@ -245,8 +245,8 @@ def main():
     # The value of x is chosen when calling the resulting object.
     #
     # Legendre polynomials are L2-orthogonal on [-1,1]:
-    print ( (stuff.P[2]*stuff.P[2]).integ(lbnd=-1, k=0) )(1.0)  # 2/(2 n + 1);  here n = 2, so this = 2/5 = 0.4
-    print ( (stuff.P[2]*stuff.P[3]).integ(lbnd=-1, k=0) )(1.0)  # zero
+    print( ( (stuff.P[2]*stuff.P[2]).integ(lbnd=-1, k=0) )(1.0) )  # 2/(2 n + 1);  here n = 2, so this = 2/5 = 0.4
+    print( ( (stuff.P[2]*stuff.P[3]).integ(lbnd=-1, k=0) )(1.0) )  # zero
 
     # The integral of  dPn/dx * Pm  over the interval is zero if:
     #
@@ -270,10 +270,10 @@ def main():
     # See
     #  https://en.wikipedia.org/wiki/Legendre_polynomials#Additional_properties_of_Legendre_polynomials
     #
-    print ( (stuff.P[3].deriv(1)*stuff.P[3]).integ(lbnd=-1, k=0) )(1.0)  # zero, n + m even
-    print ( (stuff.P[3].deriv(1)*stuff.P[1]).integ(lbnd=-1, k=0) )(1.0)  # zero, n + m even
-    print ( (stuff.P[2].deriv(1)*stuff.P[3]).integ(lbnd=-1, k=0) )(1.0)  # zero, n < m
-    print ( (stuff.P[3].deriv(1)*stuff.P[2]).integ(lbnd=-1, k=0) )(1.0)  # nonzero (derivative of p3 contains p2, p0)
+    print( ( (stuff.P[3].deriv(1)*stuff.P[3]).integ(lbnd=-1, k=0) )(1.0) )  # zero, n + m even
+    print( ( (stuff.P[3].deriv(1)*stuff.P[1]).integ(lbnd=-1, k=0) )(1.0) )  # zero, n + m even
+    print( ( (stuff.P[2].deriv(1)*stuff.P[3]).integ(lbnd=-1, k=0) )(1.0) )  # zero, n < m
+    print( ( (stuff.P[3].deriv(1)*stuff.P[2]).integ(lbnd=-1, k=0) )(1.0) )  # nonzero (derivative of p3 contains p2, p0)
 
 
 # naive solve (repeat the LU decomposition process each time)
@@ -314,7 +314,7 @@ class MyTimer:
     def __exit__(self, type, value, traceback):
         dt = time.time() - self.t0
         l  = ("%s: " % self.label) if len(self.label) else "time taken: "
-        print "%s%gs" % (l, dt)
+        print( "%s%gs" % (l, dt) )
 
 
 if __name__ == '__main__':
@@ -335,7 +335,7 @@ if __name__ == '__main__':
 #        b = np.random.uniform(0.0, 1.0, size=(n,))
 #        x = np.empty( [n], dtype=np.float64, order="C" )
 
-#        print "Timings for %d runs" % reps
+#        print( "Timings for %d runs" % reps )
 #        with MyTimer("%dx%d naive" % (n,n)) as mt:
 #            method1(reps, stuff.C, b, x)
 #        with MyTimer("%dx%d decompose-once" % (n,n)) as mt:

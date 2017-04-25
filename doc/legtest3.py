@@ -6,7 +6,7 @@
 #
 # JJ 2016-02-16
 
-from __future__ import division
+from __future__ import division, print_function, absolute_import
 
 import time
 
@@ -202,7 +202,7 @@ def main():
     #
 #    deg = d+1
 #    q,w = np.polynomial.legendre.leggauss( deg )
-#    print deg,(2*deg-1),q,w
+#    print( deg,(2*deg-1),q,w )
 
     # matrix, name, figure number to plot, bugcheck (max(abs(bugcheck)) should evaluate to 0 for mat[2:,2:])
     data = ( (stuff.K, "K", 2, lambda v: v - np.transpose(v)),
@@ -210,7 +210,7 @@ def main():
              (stuff.M, "M", 4, lambda v: v - np.transpose(v)) )
 
     for mat,name,figno,bugcheck in data:
-        print mat
+        print( mat )
         pl.figure(figno)
 
         pl.subplot(1,2, 1)
@@ -241,9 +241,9 @@ def main():
 
 
 ##    L,U,p = dgesv.lup(stuff.M)
-##    print np.transpose(np.nonzero(L))
-##    print np.transpose(np.nonzero(U))
-##    print p
+##    print( np.transpose(np.nonzero(L)) )
+##    print( np.transpose(np.nonzero(U)) )
+##    print( p )
 ##    pl.figure(3)
 ##    pl.subplot(1,2, 1)
 ##    pl.spy(L)
@@ -266,7 +266,7 @@ def main():
 ##    pl.title(r"$\mathbf{LU}$ (packed format)")
 
 ##    mincols,maxcols = dgesv.find_bands(LU, 1e-15)
-##    print mincols, maxcols
+##    print( mincols, maxcols )
 
 
 ##    # old Python-based mincols, maxcols finding code
@@ -288,8 +288,8 @@ def main():
 ##            rowprev = Lnz[0][i]
 ##        i += 1
 ##    mincols = np.array( mincols, dtype=np.intc, order="C" )
-##    print L
-##    print mincols
+##    print( L )
+##    print( mincols )
 
 ##    # Find the largest column index with nonzero data on each row in U.
 ##    #
@@ -309,8 +309,8 @@ def main():
 ##        i -= 1
 ##    maxcols.reverse()
 ##    maxcols = np.array( maxcols, dtype=np.intc, order="C" )
-##    print U
-##    print maxcols
+##    print( U )
+##    print( maxcols )
 
 
     # Visualize
@@ -371,7 +371,7 @@ class MyTimer:
         dt  = time.time() - self.t0
         l   = ("%s: " % self.label) if len(self.label) else "time taken: "
         avg = (", avg. %gs per run" % (dt/self.n)) if self.n is not None else ""
-        print "%s%gs%s" % (l, dt, avg)
+        print( "%s%gs%s" % (l, dt, avg) )
 
 
 if __name__ == '__main__':
@@ -402,13 +402,13 @@ if __name__ == '__main__':
 #        b = np.random.uniform(0.0, 1.0, size=(n,))
 #        x = np.empty( [n], dtype=np.float64, order="C" )
 
-#        print "Timings for %d runs" % reps
+#        print( "Timings for %d runs" % reps )
 ##        with MyTimer("%dx%d naive" % (n,n), reps) as mt:
-##            print mt.label
+##            print( mt.label )
 ##            method1(reps, A, b, x)
 #        with MyTimer("%dx%d decompose-once" % (n,n), reps) as mt:
 #            method2(reps, A, b, x)
 #        with MyTimer("%dx%d decompose-once-banded" % (n,n), reps) as mt:
 #            method3(reps, A, b, x)
-#        print "Residual from last run %g" % np.max(np.abs( np.dot(A,x) - b ))
+#        print( "Residual from last run %g" % np.max(np.abs( np.dot(A,x) - b )) )
 

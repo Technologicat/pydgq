@@ -4,7 +4,7 @@
 #
 # JJ 2016-02-16
 
-from __future__ import division
+from __future__ import division, print_function, absolute_import
 
 import numpy as np
 import pylab as pl
@@ -58,7 +58,7 @@ def main():
     #
 #    deg = int(np.ceil( (2*d + 1)/2. ))
 #    q,w = np.polynomial.legendre.leggauss( deg )
-#    print deg,(2*deg-1),q,w
+#    print( deg,(2*deg-1),q,w )
 
     P = get_legendre_polynomials(d)
     xx = np.linspace(0., 1., 501)
@@ -80,11 +80,11 @@ def main():
 
     # As long as we keep the Polynomial objects, we can multiply them the intuitive way, producing a new Polynomial:
     #
-    print P[2]*P[3]  # => poly([ 0.    0.75  0.   -3.5   0.    3.75])
+    print( P[2]*P[3] )  # => poly([ 0.    0.75  0.   -3.5   0.    3.75])
 
     # We can also differentiate them, which is useful for constructing the mass matrix:
     #
-    print P[2].deriv(1)*P[3]  # => poly([  0.   0.  -9.   0.  15.])
+    print( P[2].deriv(1)*P[3] )  # => poly([  0.   0.  -9.   0.  15.])
 
     # Also integration is supported.
     #
@@ -92,8 +92,8 @@ def main():
     # The value of x is chosen when calling the resulting object.
     #
     # Legendre polynomials are L2-orthogonal on [-1,1]; the scaled ones are orthogonal on [0,1]:
-    print ( (P[2]*P[2]).integ(lbnd=0, k=0) )(1.0)  # 1/(2 n + 1);  here n = 2, so this = 1/5 = 0.2
-    print ( (P[2]*P[3]).integ(lbnd=0, k=0) )(1.0)  # zero
+    print( ( (P[2]*P[2]).integ(lbnd=0, k=0) )(1.0) )  # 1/(2 n + 1);  here n = 2, so this = 1/5 = 0.2
+    print( ( (P[2]*P[3]).integ(lbnd=0, k=0) )(1.0) )  # zero
 
     # The integral of  dPn/dx * Pm  over the interval is zero if:
     #
@@ -117,10 +117,10 @@ def main():
     # See
     #  https://en.wikipedia.org/wiki/Legendre_polynomials#Additional_properties_of_Legendre_polynomials
     #
-    print ( (P[3].deriv(1)*P[3]).integ(lbnd=0, k=0) )(1.0)  # zero, n + m even
-    print ( (P[3].deriv(1)*P[1]).integ(lbnd=0, k=0) )(1.0)  # zero, n + m even
-    print ( (P[2].deriv(1)*P[3]).integ(lbnd=0, k=0) )(1.0)  # zero, n < m
-    print ( (P[3].deriv(1)*P[2]).integ(lbnd=0, k=0) )(1.0)  # nonzero (derivative of p3 contains p2, p0)
+    print( ( (P[3].deriv(1)*P[3]).integ(lbnd=0, k=0) )(1.0) )  # zero, n + m even
+    print( ( (P[3].deriv(1)*P[1]).integ(lbnd=0, k=0) )(1.0) )  # zero, n + m even
+    print( ( (P[2].deriv(1)*P[3]).integ(lbnd=0, k=0) )(1.0) )  # zero, n < m
+    print( ( (P[3].deriv(1)*P[2]).integ(lbnd=0, k=0) )(1.0) )  # nonzero (derivative of p3 contains p2, p0)
 
 
 if __name__ == '__main__':
