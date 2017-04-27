@@ -118,20 +118,24 @@ The numerical evaluation of the Lobatto basis functions is numerically highly se
 
 The precalculation can be run again by running the module as the main program, e.g. `python -m pydgq.utils.precalc`. The module has some command-line options; use the standard `--help` option to see them.
 
-The precalc module stores the values of the basis functions (at quadrature points and at visualization points, both on the reference element `[-1,1]`) into a binary data file called `pydgq_data.bin`, by pickling the computed `np.ndarray` objects. A data file with default settings, that works at least with the `x86_64` architecture, is built into the package as `pydgq/pydgq_data.bin`.
+The precalc module stores the values of the basis functions (at quadrature points and at visualization points, both on the reference element `[-1,1]`) into a binary data file called `pydgq_data.bin`, by pickling the computed `np.ndarray` objects.
 
-The setuptools-based `setup.py` expects to find, in the source tree, the data file to be rolled into the package as `pydgq/pydgq_data.bin`. The data file provided with the sources has been generated using the default settings of `pydgq.utils.precalc` (`q = 10`, `nx = 101`).
+A data file with default precalc settings, that works at least with the `x86_64` architecture, is installed by `setup.py` as `pydgq/pydgq_data.bin` (for the code to access via `pkg_resources`).
+
+At `install` time, `setup.py` expects to find, in the source tree, the data file to be installed as `pydgq/pydgq_data_VV.bin`, where `VV` is either `27` or `34`, depending on whether `setup.py` is running under Python 2.7 or Python 3. It will create a symlink `pydgq/pydgq_data.bin` pointing the correct version of the file, install the package, and then delete the symlink. When generating an sdist, the distribution will contain both of the actual data files, and no symlink.
+
+The data files provided with the sources have been generated using the default settings of `pydgq.utils.precalc` (`q = 10`, `nx = 101`).
 
 When running the solver, to use Galerkin methods, [`pydgq.solver.galerkin.init()`](pydgq/solver/galerkin.pyx) must be called before calling [`pydgq.solver.odesolve.ivp()`](pydgq/solver/odesolve.pyx).
 
 
 ## Data file location
 
-During `init()`, the solver attempts to load `pydgq_data.bin` from these locations, in this order:
+During `pydgq.solver.galerkin.init()`, the solver attempts to load `pydgq_data.bin` from these locations, in this order:
 
  1. `./pydgq_data.bin` (local override),
  2. `~/.config/pydgq/pydgq_data.bin` (user override),
- 3. `pydgq` package, via `pkg_resources` (likely installed in `/usr/local/lib/python2.7/dist-packages/pydgq...` or similar).
+ 3. `pydgq` package, via `pkg_resources` (likely installed in `/usr/local/lib/python3.4/dist-packages/pydgq...` or similar).
 
 If all three steps fail, `IOError` is raised.
 
