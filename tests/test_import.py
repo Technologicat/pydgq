@@ -4,7 +4,9 @@
 
 def test_import():
     import pydgq
-    assert pydgq.__version__ == "1.0.0"
+    from pathlib import Path
+    expected = (Path(__file__).resolve().parent.parent / "pydgq" / "VERSION").read_text().strip()
+    assert pydgq.__version__ == expected
 
 
 def test_submodule_imports():
