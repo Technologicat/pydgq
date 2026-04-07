@@ -16,9 +16,7 @@ When this module is imported, it imports all symbols from pydgq.solver.odesolve
 into the local namespace.
 """
 
-
 from pathlib import Path as _Path
 __version__ = (_Path(__file__).parent / "VERSION").read_text().strip()
 
-from .solver.odesolve import *
-
+from .solver.odesolve import *  # noqa: F401,F403 -- re-export public API
