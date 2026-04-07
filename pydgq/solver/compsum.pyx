@@ -15,7 +15,6 @@
 This Python interface exposes compensated cumulative summation of rank-1 arrays.
 """
 
-from __future__ import division, print_function, absolute_import
 
 from pydgq.solver.types cimport RTYPE_t, ZTYPE_t
 from pydgq.solver.types import RTYPE, ZTYPE

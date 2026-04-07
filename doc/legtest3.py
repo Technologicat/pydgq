@@ -6,16 +6,12 @@
 #
 # JJ 2016-02-16
 
-from __future__ import division, print_function, absolute_import
 
 import time
 
 import numpy as np
 
-try:
-    import mpmath  # Python 3.x
-except ImportError:
-    import sympy.mpmath as mpmath  # Python 2.7
+import mpmath
 
 import matplotlib.pyplot as plt
 

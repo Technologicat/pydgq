@@ -40,7 +40,6 @@ else:
    assert data is None
 """
 
-from __future__ import division, print_function, absolute_import
 
 import numpy as np  # used in gather_varlength_array()
 

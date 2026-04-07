@@ -4,7 +4,6 @@
 #
 # JJ 2016-02-16
 
-from __future__ import division, print_function, absolute_import
 
 import numpy as np
 import matplotlib.pyplot as plt

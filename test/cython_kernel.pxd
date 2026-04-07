@@ -10,7 +10,6 @@
 # cython: boundscheck = False
 # cython: cdivision   = True
 #
-from __future__ import division, print_function, absolute_import
 
 from pydgq.solver.kernel_interface cimport CythonKernel
 from pydgq.solver.types cimport RTYPE_t

@@ -12,7 +12,6 @@
 #
 """Classical implicit integrators to update w by one timestep."""
 
-from __future__ import division, print_function, absolute_import
 
 import numpy as np
 

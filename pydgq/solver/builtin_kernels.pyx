@@ -22,7 +22,6 @@ All matrices in this module are assumed to have C memory layout.
 See the code and comments in pydgq/solver/builtin_kernels.pyx for details.
 """
 
-from __future__ import division, print_function, absolute_import
 
 import numpy as np
 

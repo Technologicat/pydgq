@@ -2,7 +2,6 @@
 #
 # Tests/usage examples for kernels built-in to the solver.
 
-from __future__ import division, print_function
 
 import numpy as np
 

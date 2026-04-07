@@ -2,7 +2,6 @@
 #
 """Setuptools-based setup script for pydgq."""
 
-from __future__ import division, print_function, absolute_import
 
 import os
 

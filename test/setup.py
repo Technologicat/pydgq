@@ -6,7 +6,6 @@ Usage:
     python -m setup build_ext --inplace
 """
 
-from __future__ import division, print_function, absolute_import
 
 #########################################################
 # Config

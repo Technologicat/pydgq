@@ -6,7 +6,7 @@ The main point of interest in this library is dG(q), i.e. the
 time-discontinuous Galerkin method using a Lobatto basis
 (a.k.a. hierarchical polynomial basis). See ivp().
 
-For preparing the data file used by the integrator (pydgq_data.bin),
+For preparing the data file used by the integrator (pydgq_data.npz),
 run the module pydgq.utils.precalc as the main program.
 
 Note also that since the precalc module is not needed once the data file
@@ -16,9 +16,9 @@ When this module is imported, it imports all symbols from pydgq.solver.odesolve
 into the local namespace.
 """
 
-from __future__ import absolute_import  # https://www.python.org/dev/peps/pep-0328/
 
-__version__ = '0.1.2'
+from pathlib import Path as _Path
+__version__ = (_Path(__file__).parent / "VERSION").read_text().strip()
 
 from .solver.odesolve import *
 

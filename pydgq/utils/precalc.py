@@ -7,23 +7,16 @@ Run this module as the main program (with or without mpiexec) to perform the pre
 Command-line options are available; pass the standard --help flag to see them.
 """
 
-from __future__ import division, print_function, absolute_import
 
 import time
 
-try:
-    import cPickle as pickle  # Python 2.7
-except ImportError:
-    import pickle  # Python 3.x
+import pickle
 
-import functools  # reduce (Python 3 compatibility)
+import functools
 
 import numpy as np
 
-try:
-    import mpmath  # Python 3.x
-except ImportError:
-    import sympy.mpmath as mpmath  # Python 2.7
+import mpmath
 
 from pydgq.solver.types import RTYPE  # the precalc data is always real-valued regardless of DTYPE
 import pydgq.utils.mpi_shim as mpi_shim
@@ -72,7 +65,7 @@ class Cache:
 class Precalc:
     """Precalculate hierarchical (Lobatto) basis functions up to the given degree q (>= 1) at the given points (rank-1 np.array of length >= 1) on the reference element [-1,1]."""
 
-    # Legendre polynomials, high precision from sympy.mpmath to avoid cancellation in hierarchical basis functions
+    # Legendre polynomials, high precision from mpmath to avoid cancellation in hierarchical basis functions
     _P = mpmath.legendre  # lambda j, x: ...
 
     def __init__(self, q, xx, cache=None):

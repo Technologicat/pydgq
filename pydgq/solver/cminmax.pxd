@@ -2,7 +2,6 @@
 #
 # fast inline min/max functions for C code in Cython.
 
-from __future__ import absolute_import
 
 from pydgq.solver.types cimport RTYPE_t
 

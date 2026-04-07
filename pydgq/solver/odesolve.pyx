@@ -24,7 +24,6 @@ The main point of interest in this module is the function ivp(). Some auxiliary 
 provided.
 """
 
-from __future__ import division, print_function, absolute_import
 
 #from libc.stdlib cimport malloc, free
 

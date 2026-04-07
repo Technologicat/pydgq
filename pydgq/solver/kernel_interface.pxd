@@ -8,7 +8,6 @@
 #   CythonKernel --> implement call(), provide hook for Cython cdef callback(...) nogil
 #   PythonKernel --> implement call(), provide hook for Python def callback(...), which our call() invokes in a "with gil" block
 
-from __future__ import absolute_import
 
 from pydgq.solver.types cimport DTYPE_t, RTYPE_t
 

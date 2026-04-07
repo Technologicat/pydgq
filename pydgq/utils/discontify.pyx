@@ -41,7 +41,6 @@ def discontify( data, idxs, fill="nan" ):  # data, idxs: rank-1 np.arrays
 but (even if the preparation was done only once) this Cython version works much faster when idxs contains a lot of elements.
 """
 
-from __future__ import division, print_function, absolute_import
 
 import numpy as np
 

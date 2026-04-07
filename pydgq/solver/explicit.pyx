@@ -16,7 +16,6 @@ These routines use compensated summation to obtain maximal accuracy,
 at the cost of 4x math in the final summation step.
 """
 
-from __future__ import division, print_function, absolute_import
 
 import numpy as np
 

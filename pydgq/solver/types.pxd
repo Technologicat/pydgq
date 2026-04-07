@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
 
 # real (choose precision here)
 ctypedef double RTYPE_t

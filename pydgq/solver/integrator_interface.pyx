@@ -21,7 +21,6 @@ at the Cython level.
 See the source code in pydgq.solvers.integrator_interface.pyx for details.
 """
 
-from __future__ import absolute_import
 
 from pydgq.solver.types cimport DTYPE_t, RTYPE_t
 from pydgq.solver.kernel_interface cimport KernelBase

@@ -19,14 +19,10 @@ Do not instantiate DataManager directly; instead, call the init() function expor
 """
 # TODO: might be cleaner if the user could instantiate DataManager directly (would trivially allow multiple instances with different settings)
 
-from __future__ import division, print_function, absolute_import
 
 import sys
 
-try:
-    import cPickle as pickle  # Python 2.7
-except ImportError:
-    import pickle  # Python 3.x
+import pickle
 
 import pkg_resources  # for accessing installed data file (pydgq_data.bin)
 

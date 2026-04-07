@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """List-handling utilities."""
 
-from __future__ import division, print_function, absolute_import
 
 
 def load_balance_list(L, n):

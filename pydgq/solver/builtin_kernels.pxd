@@ -9,7 +9,6 @@
 #
 # All matrices in this module are assumed to have C memory layout.
 
-from __future__ import division, print_function, absolute_import
 
 from pydgq.solver.types cimport DTYPE_t, RTYPE_t
 from pydgq.solver.kernel_interface cimport CythonKernel

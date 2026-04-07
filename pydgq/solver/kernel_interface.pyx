@@ -38,7 +38,6 @@ of new ODE systems, and for large problems where the Python function call overhe
 See pydgq.solver.builtin_kernels for some Cython-based example kernels.
 """
 
-from __future__ import division, print_function, absolute_import
 
 from pydgq.solver.types cimport DTYPE_t, RTYPE_t
 
