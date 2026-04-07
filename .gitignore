@@ -1,4 +1,10 @@
 *~
 *.pyc
 *.c
-build
+*.so
+build/
+dist/
+*.egg-info/
+.venv/
+__pycache__/
+pdm.lock

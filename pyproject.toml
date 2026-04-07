@@ -1,0 +1,75 @@
+[build-system]
+requires = ["meson-python>=0.17", "Cython>=3.0", "numpy>=1.25", "pylu>=1.0"]
+build-backend = "mesonpy"
+
+[project]
+name = "pydgq"
+dynamic = ["version"]
+description = "ODE system solver using dG(q), time-discontinuous Galerkin with Lobatto basis"
+readme = "README.md"
+license = "BSD-2-Clause"
+requires-python = ">=3.11"
+authors = [
+    {name = "Juha Jeronen", email = "juha.jeronen@jamk.fi"},
+]
+keywords = [
+    "numerical-integration", "ordinary-differential-equations",
+    "ode", "ivp", "ode-solver", "solver",
+    "galerkin", "discontinuous-galerkin",
+    "cython", "numpy",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Cython",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "numpy>=1.25",
+    "pylu>=1.0",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8.0"]
+
+[project.urls]
+Homepage = "https://github.com/Technologicat/pydgq"
+Repository = "https://github.com/Technologicat/pydgq"
+Issues = "https://github.com/Technologicat/pydgq/issues"
+Changelog = "https://github.com/Technologicat/pydgq/blob/master/CHANGELOG.md"
+
+[tool.cython-lint]
+max-line-length = 200
+ignore = ["E115", "E201", "E202", "E221", "E231", "E302", "W293", "W391"]
+
+[tool.cibuildwheel]
+build = "cp311-* cp312-* cp313-* cp314-*"
+test-command = "pytest {project}/tests -v"
+test-requires = ["pytest", "numpy", "pylu"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "Cython>=3.0",
+    "cython-lint",
+    "pip",
+    "sympy",
+    "mpmath",
+    "matplotlib",
+    "flake8",
+    "autopep8",
+    "importmagic",
+    "epc",
+    "jedi>=0.19.2",
+]
