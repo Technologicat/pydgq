@@ -14,4 +14,4 @@ py.install_sources(
 
 subdir('solver')
 subdir('utils')
-# subdir('examples')  # TODO: add after test migration (step 6)
+subdir('examples')
