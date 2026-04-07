@@ -24,6 +24,9 @@ m_dep = cc.find_library('m', required: false)
 # Set Cython language level globally (avoid missing a file)
 add_project_arguments('-X', 'language_level=3', language: 'cython')
 
+# Windows: math.h requires _USE_MATH_DEFINES for M_PI (harmless no-op elsewhere)
+add_project_arguments('-D_USE_MATH_DEFINES', language: 'c')
+
 # Source root on include path for cimport resolution across subpackages
 pydgq_inc = include_directories('.')
 
