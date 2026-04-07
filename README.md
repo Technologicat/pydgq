@@ -1,12 +1,21 @@
 # pydgq
 
+![top language](https://img.shields.io/github/languages/top/Technologicat/pydgq)
+![supported Python versions](https://img.shields.io/pypi/pyversions/pydgq)
+![supported implementations](https://img.shields.io/pypi/implementation/pydgq)
+![CI status](https://img.shields.io/github/actions/workflow/status/Technologicat/pydgq/ci.yml?branch=master)
+
+![version on PyPI](https://img.shields.io/pypi/v/pydgq)
+![PyPI package format](https://img.shields.io/pypi/format/pydgq)
+![dependency status](https://img.shields.io/librariesio/github/Technologicat/pydgq)
+
+![license](https://img.shields.io/pypi/l/pydgq)
+![open issues](https://img.shields.io/github/issues/Technologicat/pydgq)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](http://makeapullrequest.com/)
+
 Solve ordinary differential equation (ODE) systems using the time-discontinuous Galerkin method, with Cython acceleration.
 
-![CI status](https://img.shields.io/github/actions/workflow/status/Technologicat/pydgq/ci.yml?branch=master)
-![supported Python versions](https://img.shields.io/pypi/pyversions/pydgq)
-![version on PyPI](https://img.shields.io/pypi/v/pydgq)
-![license](https://img.shields.io/pypi/l/pydgq)
-[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](http://makeapullrequest.com/)
+We use [semantic versioning](https://semver.org/). For my stance on AI contributions, see the [collaboration guidelines](https://github.com/Technologicat/substrate-independent/blob/main/collaboration.md).
 
 ![Lorenz attractor, dG(2)](example.png)
 
@@ -155,11 +164,6 @@ If all three steps fail, an error is raised.
 **Examples:** [Matplotlib](http://www.matplotlib.org) (visualization scripts in [`examples/`](examples/))
 
 
-## Versioning
-
-This project uses [Semantic Versioning](https://semver.org/). The public API consists of the Python-level symbols in `pydgq.solver.odesolve`, `pydgq.solver.kernel_interface`, `pydgq.solver.builtin_kernels`, and the Cython `cimport` interface provided by the `.pxd` files.
-
-
 ## License
 
 [BSD](LICENSE.md). Copyright 2016-2026 Juha Jeronen and University of Jyväskylä / JAMK University of Applied Sciences.
@@ -170,6 +174,3 @@ This project uses [Semantic Versioning](https://semver.org/). The public API con
 This work was financially supported by the Jenny and Antti Wihuri Foundation.
 
 
-#### AI contributions
-
-Parts of the v1.0.0 modernization were written with [Claude Code](https://claude.ai/code) (Anthropic). The numerical algorithms and the original library design are human-authored.
