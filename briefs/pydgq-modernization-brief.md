@@ -346,7 +346,16 @@ Move the Lorenz example and other visualization scripts to `examples/` as well (
 - **README.md:** Rewrite installation section (pip install, no more setup.py). Add badges (CI, PyPI, license). Add performance build tip (`CFLAGS=-march=native`). Add semver policy. Add AI contributions link to substrate-independent.
 - **CHANGELOG.md:** Add v1.0.0 entry.
 - **LICENSE.md:** Update year range and affiliation to JAMK.
-- **CLAUDE.md:** Create, following the pattern from PyLU (`~/Documents/koodit/pylu/CLAUDE.md`).
+- **CLAUDE.md:** Create, following the structure of PyLU's (`~/Documents/koodit/pylu/CLAUDE.md`). Should include:
+  - **What is pydgq** — one-paragraph description, dependency philosophy
+  - **Build and Development** — PDM + meson-python workflow, editable install caveat, VERSION file as single source of truth
+  - **Running Tests** — `pdm run pytest tests/ -v`, summary of what's covered
+  - **Architecture** — the cdef class hierarchies (IntegratorBase, KernelBase), the `.pxd`/`.pyx` split pattern, the precalculated data file, the type alias system (RTYPE/DTYPE/ZTYPE). Explain that implementations in `.pxd` as `cdef inline` is intentional (same as PyLU).
+  - **Critical constraint: .pxd installation** — all `.pxd` files must be installed for downstream `cimport`. Verification command.
+  - **Linting** — cython-lint for `.pyx`/`.pxd`, flake8 for `.py` only. Known false positives.
+  - **Code Conventions** — line width, docstring format, dependency policy
+  - **Key Rules** — do not refactor numerical algorithms, do not change the type alias system, do not convert raw pointer APIs to memoryviews, do not hardcode arch-specific compiler flags
+  - **User manual** — note that `doc/` contains `pydgq_user_manual.pdf` with LyX source (`.lyx`)
 - **Data file documentation:** Update the README section on precalculation to reflect `.npz` format and `importlib.resources` loading.
 
 ---
