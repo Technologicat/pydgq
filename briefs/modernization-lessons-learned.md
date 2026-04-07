@@ -103,6 +103,10 @@ meson-python's editable loader needs `meson` and `ninja` on `PATH` for on-import
 export PATH="$(pwd)/.venv/bin:$PATH"
 ```
 
+### Dev version format
+
+Post-release dev versions must use PEP 440 format: `1.0.1.dev0`, not `1.0.1-dev`. The hyphen form breaks meson's version parser and fails CI. Easy to forget since the hyphen form looks more natural.
+
 ## 6. Brief + Audit Pattern
 
 Writing a detailed modernization brief before starting, then doing a thorough source audit as step 1, paid off significantly. The brief serves as a contract for what will and won't change, and the audit catches structural issues (class hierarchies, cimport dependencies, build order) before they become surprises mid-migration.
