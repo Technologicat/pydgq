@@ -4,8 +4,8 @@
 
 # cpdef methods cannot be nogil, so we must work around as follows:
 #
-# KernelBase --> cdef void call(...) nogil, abstract method for interface (NOTE: this class **does not** define callback())
-#   CythonKernel --> implement call(), provide hook for Cython cdef callback(...) nogil
+# KernelBase --> cdef void call(...) noexcept nogil, abstract method for interface (NOTE: this class **does not** define callback())
+#   CythonKernel --> implement call(), provide hook for Cython cdef callback(...) noexcept nogil
 #   PythonKernel --> implement call(), provide hook for Python def callback(...), which our call() invokes in a "with gil" block
 
 
