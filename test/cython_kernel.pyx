@@ -41,7 +41,7 @@ cdef class MyKernel(CythonKernel):
 
     # implementation of callback()
     #
-    cdef void callback(self, RTYPE_t t) nogil:
+    cdef void callback(self, RTYPE_t t) noexcept nogil:
         cdef RTYPE_t phi0_j
         cdef int j
         for j in range(self.n):

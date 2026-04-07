@@ -89,16 +89,16 @@ Data attributes:
     # timestep  : 0-based, 0 = initial condition, 1 = first timestep, 2 = second timestep, ...
     # iteration : 0-based. Special value -1 = evaluation of final result from this timestep. (Used if saving also w' in the results arrays.)
     #
-    cdef void begin_timestep(self, int timestep) nogil:
+    cdef void begin_timestep(self, int timestep) noexcept nogil:
         self.timestep  = timestep
-    cdef void begin_iteration(self, int iteration) nogil:
+    cdef void begin_iteration(self, int iteration) noexcept nogil:
         self.iteration = iteration
 
     # The call interface. The solver calls this when it wants to evaluate w'.
     #
     # Implemented in derived classes.
     #
-    cdef void call(self, DTYPE_t* w, DTYPE_t* out, RTYPE_t t) nogil:
+    cdef void call(self, DTYPE_t* w, DTYPE_t* out, RTYPE_t t) noexcept nogil:
         pass
 
 
@@ -128,7 +128,7 @@ If callback() is not overridden, this class implements a no-op kernel: w' = 0.
 
     # Implementation of call() for Cython kernels.
     #
-    cdef void call(self, DTYPE_t* w, DTYPE_t* out, RTYPE_t t) nogil:
+    cdef void call(self, DTYPE_t* w, DTYPE_t* out, RTYPE_t t) noexcept nogil:
         self.w   = w
         self.out = out
         self.callback(t)
@@ -139,7 +139,7 @@ If callback() is not overridden, this class implements a no-op kernel: w' = 0.
     #
     # Override this method in derived classes to provide your computational kernel.
     #
-    cdef void callback(self, RTYPE_t t) nogil:
+    cdef void callback(self, RTYPE_t t) noexcept nogil:
         cdef int j
         for j in range(self.n):
             self.out[j] = 0.0
@@ -171,7 +171,7 @@ See callback().
 
     # Implementation of call() for Python kernels.
     #
-    cdef void call(self, DTYPE_t* w, DTYPE_t* out, RTYPE_t t) nogil:
+    cdef void call(self, DTYPE_t* w, DTYPE_t* out, RTYPE_t t) noexcept nogil:
         self.w   = w
         self.out = out
         with gil:

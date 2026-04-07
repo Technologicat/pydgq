@@ -67,7 +67,7 @@ Implemented only for rank-1 np.arrays of dtypes double (np.float64) and double c
 # out  : out, cumulative sum (length n-1)
 # n    : length of input data
 #
-cdef void cs1dr( RTYPE_t* data, RTYPE_t* out, unsigned int n ) nogil:
+cdef void cs1dr( RTYPE_t* data, RTYPE_t* out, unsigned int n ) noexcept nogil:
     cdef RTYPE_t s = data[0]
     cdef RTYPE_t c = 0.0
     cdef unsigned int j
@@ -80,7 +80,7 @@ cdef void cs1dr( RTYPE_t* data, RTYPE_t* out, unsigned int n ) nogil:
 # out  : out, cumulative sum (length n-1)
 # n    : length of input data
 #
-cdef void cs1dz( ZTYPE_t* data, ZTYPE_t* out, unsigned int n ) nogil:
+cdef void cs1dz( ZTYPE_t* data, ZTYPE_t* out, unsigned int n ) noexcept nogil:
     cdef ZTYPE_t s = data[0]
     cdef ZTYPE_t c = 0.0
     cdef unsigned int j

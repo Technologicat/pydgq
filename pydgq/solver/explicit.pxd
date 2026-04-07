@@ -7,22 +7,22 @@ from pydgq.solver.integrator_interface cimport ExplicitIntegrator
 
 # Fourth-order Runge-Kutta
 cdef class RK4(ExplicitIntegrator):
-    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) noexcept nogil
 
 # Kutta's third-order method
 cdef class RK3(ExplicitIntegrator):
-    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) noexcept nogil
 
 # Parametric second-order Runge-Kutta
 cdef class RK2(ExplicitIntegrator):
     cdef RTYPE_t beta  # saved from __init__ (def method, not declared here)
-    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) noexcept nogil
 
 # Forward Euler (not recommended!)
 cdef class FE(ExplicitIntegrator):
-    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) noexcept nogil
 
 # Symplectic Euler (for 2nd-order problems reduced to a twice larger 1st-order system)
 cdef class SE(ExplicitIntegrator):
-    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) noexcept nogil
 

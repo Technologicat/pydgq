@@ -153,7 +153,7 @@ Parameters:
     # self.u: rank-2 array, size [n_space_dofs, n_time_dofs]: Galerkin coefficients; u[j,i] is the coefficient of psi[i] for solution component u_j(t)
     #
     #                         basis         output         summ. corr. wrk
-    cdef void assemble( self, RTYPE_t* psi, DTYPE_t* uass, DTYPE_t* ucorr, int n_points ) nogil:
+    cdef void assemble( self, RTYPE_t* psi, DTYPE_t* uass, DTYPE_t* ucorr, int n_points ) noexcept nogil:
         cdef unsigned int i,j,k
         cdef int n_space_dofs = self.rhs.n
         cdef int n_time_dofs  = self.n_time_dofs
@@ -205,7 +205,7 @@ Parameters:
     #   - There are always at least 2 basis functions (the linear ones), so we don't need to check whether this basis function exists.
     #   - Here n_points is always 1.
     #
-    cdef void final_value( self, DTYPE_t* uass ) nogil:
+    cdef void final_value( self, DTYPE_t* uass ) noexcept nogil:
         cdef unsigned int k
         cdef int n_space_dofs = self.rhs.n
         cdef int n_time_dofs  = self.n_time_dofs
@@ -226,7 +226,7 @@ Parameters:
     # self.qw:     array of quadrature weights (rank-1 or C order); length of funcvals must match length of self.qw
     # self.n_quad: number of items in funcvals and qw
     #
-    cdef DTYPE_t do_quadrature( self, DTYPE_t* funcvals, RTYPE_t dt ) nogil:
+    cdef DTYPE_t do_quadrature( self, DTYPE_t* funcvals, RTYPE_t dt ) noexcept nogil:
         cdef unsigned int i
 
 #        # naive summation (not good for problems sensitive to initial conditions, such as vibration problems with low damping)
@@ -304,7 +304,7 @@ Time-discontinuous Galerkin.
     #    cdef RTYPE_t[:,::1] psi     = galerkin.datamanager.integ_y  # basis function values at the quadrature points, psi[j,i] is N[j]( tquad[i] )
     #    cdef RTYPE_t[:,::1] psivis  = galerkin.datamanager.vis_y    # basis function values at the visualization points, psivis[j,i] is N[j]( tvis[i] )
     #
-    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil:
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) noexcept nogil:
         cdef DTYPE_t* up = self.wrk  # temporary storage for u'
         cdef unsigned int nequals  # for convergence check
 
@@ -466,7 +466,7 @@ This is almost the same code as dG, the only difference being in the handling of
     #    cdef RTYPE_t[:,::1] psi     = galerkin.datamanager.integ_y  # basis function values at the quadrature points, psi[j,i] is N[j]( tquad[i] )
     #    cdef RTYPE_t[:,::1] psivis  = galerkin.datamanager.vis_y    # basis function values at the visualization points, psivis[j,i] is N[j]( tvis[i] )
     #
-    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil:
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) noexcept nogil:
         cdef DTYPE_t* up = self.wrk  # temporary storage for u'
         cdef unsigned int nequals  # for convergence check
 

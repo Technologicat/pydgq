@@ -37,7 +37,7 @@ Parameters:
         self.wrk_arr = np.empty( (4*n_space_dofs,), dtype=DTYPE, order="C" )
         self.wrk     = &(self.wrk_arr[0])
 
-    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil:
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) noexcept nogil:
         cdef unsigned int j, m=-1, m2, nequals
         cdef int n_space_dofs = self.rhs.n
         cdef int success = 0
@@ -134,7 +134,7 @@ Parameters:
         self.wrk_arr = np.empty( (3*n_space_dofs,), dtype=DTYPE, order="C" )
         self.wrk     = &(self.wrk_arr[0])
 
-    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil:
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) noexcept nogil:
         cdef unsigned int j, m=-1, m2, nequals
         cdef int n_space_dofs = self.rhs.n
         cdef int success = 0

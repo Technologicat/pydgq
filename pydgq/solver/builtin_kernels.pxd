@@ -28,8 +28,8 @@ cdef class Linear1stOrderKernel(CythonKernel):
     cdef DTYPE_t* M
     cdef DTYPE_t[:,::1] M_arr
 
-    cdef void callback(self, RTYPE_t t) nogil
-    cdef void compute(self, DTYPE_t* w_in, DTYPE_t* wp_out) nogil
+    cdef void callback(self, RTYPE_t t) noexcept nogil
+    cdef void compute(self, DTYPE_t* w_in, DTYPE_t* wp_out) noexcept nogil
 
 
 # A w' = M w
@@ -50,7 +50,7 @@ cdef class Linear1stOrderKernelWithMassMatrix(Linear1stOrderKernel):
     cdef int[::1] maxcols_arr
     cdef DTYPE_t[::1] wrk_arr
 
-    cdef void callback(self, RTYPE_t t) nogil
+    cdef void callback(self, RTYPE_t t) noexcept nogil
 
 
 # u'' = M0 u + M1 u'
@@ -74,8 +74,8 @@ cdef class Linear2ndOrderKernel(CythonKernel):
     cdef DTYPE_t[:,::1] M0_arr
     cdef DTYPE_t[:,::1] M1_arr
 
-    cdef void callback(self, RTYPE_t t) nogil
-    cdef void compute(self, DTYPE_t* w_in, DTYPE_t* wp_out) nogil
+    cdef void callback(self, RTYPE_t t) noexcept nogil
+    cdef void compute(self, DTYPE_t* w_in, DTYPE_t* wp_out) noexcept nogil
 
 
 # M2 u'' = M0 u + M1 u'
@@ -110,5 +110,5 @@ cdef class Linear2ndOrderKernelWithMassMatrix(Linear2ndOrderKernel):
     cdef int[::1] maxcols_arr
     cdef DTYPE_t[::1] wrk_arr  # wrk1, wrk2, wrk3 all stored here
 
-    cdef void callback(self, RTYPE_t t) nogil
+    cdef void callback(self, RTYPE_t t) noexcept nogil
 

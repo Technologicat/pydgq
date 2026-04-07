@@ -78,7 +78,7 @@ import  pydgq.solver.galerkin as galerkin
 # - t is the time value at the point where the solution is being stored.
 # - wrk must have space for n_space_dofs items.
 #
-cdef inline void store( DTYPE_t* w, int n_space_dofs, int timestep, RTYPE_t t, int save_from, DTYPE_t* ww, RTYPE_t* tt, KernelBase rhs, DTYPE_t* ff, int* pfail, int failure, DTYPE_t* wrk ) nogil:
+cdef inline void store( DTYPE_t* w, int n_space_dofs, int timestep, RTYPE_t t, int save_from, DTYPE_t* ww, RTYPE_t* tt, KernelBase rhs, DTYPE_t* ff, int* pfail, int failure, DTYPE_t* wrk ) noexcept nogil:
     cdef unsigned int n, j
     cdef DTYPE_t* wp = wrk
 

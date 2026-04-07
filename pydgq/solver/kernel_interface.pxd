@@ -20,17 +20,17 @@ cdef class KernelBase:
 
     # interface for solver
     #
-    cdef void begin_timestep(self, int timestep) nogil
-    cdef void begin_iteration(self, int iteration) nogil
-    cdef void call(self, DTYPE_t* w, DTYPE_t* out, RTYPE_t t) nogil  # interface for solver (abstract method)
+    cdef void begin_timestep(self, int timestep) noexcept nogil
+    cdef void begin_iteration(self, int iteration) noexcept nogil
+    cdef void call(self, DTYPE_t* w, DTYPE_t* out, RTYPE_t t) noexcept nogil  # interface for solver (abstract method)
 
 # Base class for kernels implemented in Cython.
 #
 # Cython kernels will run in nogil mode.
 #
 cdef class CythonKernel(KernelBase):
-    cdef void call(self, DTYPE_t* w, DTYPE_t* out, RTYPE_t t) nogil  # interface for solver (implemented here)
-    cdef void callback(self, RTYPE_t t) nogil  # hook for user code
+    cdef void call(self, DTYPE_t* w, DTYPE_t* out, RTYPE_t t) noexcept nogil  # interface for solver (implemented here)
+    cdef void callback(self, RTYPE_t t) noexcept nogil  # hook for user code
 
 # Base class for kernels implemented in pure Python.
 #
@@ -40,6 +40,6 @@ cdef class PythonKernel(KernelBase):
     cdef DTYPE_t[::1] w_arr    # Python-accessible view into w   (provided by __getattr__ as "w")
     cdef DTYPE_t[::1] out_arr  # Python-accessible view into out (provided by __getattr__ as "out")
 
-    cdef void call(self, DTYPE_t* w, DTYPE_t* out, RTYPE_t t) nogil  # interface for solver (implemented here)
+    cdef void call(self, DTYPE_t* w, DTYPE_t* out, RTYPE_t t) noexcept nogil  # interface for solver (implemented here)
     # here callback() is a Python (regular def) function  # hook for user code
 

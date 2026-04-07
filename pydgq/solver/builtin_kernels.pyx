@@ -75,7 +75,7 @@ Trivial example to invoke this kernel:
         self.M_arr = M  # keepalive (FIXME: do we need to .copy() to be sure?)
         self.M = &(self.M_arr[0,0])  # get raw pointer
 
-    cdef void callback(self, RTYPE_t t) nogil:  # t unused in this example
+    cdef void callback(self, RTYPE_t t) noexcept nogil:  # t unused in this example
         self.compute(self.w, self.out)
 
     # Derived classes need this, outputting to a temporary output array,
@@ -84,7 +84,7 @@ Trivial example to invoke this kernel:
     # In most problem-specific kernels, we wouldn't need this, and could instead
     # perform the computation in callback(), saving one function call per RHS evaluation.
     #
-    cdef void compute(self, DTYPE_t* w_in, DTYPE_t* wp_out) nogil:
+    cdef void compute(self, DTYPE_t* w_in, DTYPE_t* wp_out) noexcept nogil:
         cdef int j, k
         for j in range(self.n):  # row
             # w' = M w
@@ -150,7 +150,7 @@ Trivial example to invoke this kernel:
         self.maxcols = &(self.maxcols_arr[0])
         self.wrk     = &(self.wrk_arr[0])
 
-    cdef void callback(self, RTYPE_t t) nogil:  # t unused in this example
+    cdef void callback(self, RTYPE_t t) noexcept nogil:  # t unused in this example
         # compute g = M w, save result in self.wrk
         self.compute(self.w, self.wrk)
 
@@ -226,7 +226,7 @@ Trivial example to invoke this kernel:
         self.M0 = &(self.M0_arr[0,0])
         self.M1 = &(self.M1_arr[0,0])
 
-    cdef void callback(self, RTYPE_t t) nogil:  # t unused in this example
+    cdef void callback(self, RTYPE_t t) noexcept nogil:  # t unused in this example
         self.compute(self.w, self.out)
 
     # Derived classes need this, outputting to a temporary output array,
@@ -235,7 +235,7 @@ Trivial example to invoke this kernel:
     # In most problem-specific kernels, we wouldn't need this, and could instead
     # perform the computation in callback(), saving one function call per RHS evaluation.
     #
-    cdef void compute(self, DTYPE_t* w_in, DTYPE_t* wp_out) nogil:
+    cdef void compute(self, DTYPE_t* w_in, DTYPE_t* wp_out) noexcept nogil:
         cdef int j, k
         for j in range(self.m):  # row
             # u' = v
@@ -316,7 +316,7 @@ Trivial example to invoke this kernel:
         self.wrk2    = &(self.wrk_arr[n])         # next m elements of work space
         self.wrk3    = &(self.wrk_arr[n+self.m])  # last m elements of work space
 
-    cdef void callback(self, RTYPE_t t) nogil:  # t unused in this example
+    cdef void callback(self, RTYPE_t t) noexcept nogil:  # t unused in this example
         # compute RHS (i.e. w'), store result in wrk1
         #
         # Note that the RHS is exactly the same as in Linear2ndOrderKernel,

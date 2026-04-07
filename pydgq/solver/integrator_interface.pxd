@@ -25,7 +25,7 @@ cdef class IntegratorBase:
     #
     # return value: number of implicit solve iterations taken for this timestep (explicit integrators must always return 1)
     #
-    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) noexcept nogil
 
 # Base class for explicit integrators.
 #

@@ -59,7 +59,7 @@ from pydgq.solver.types cimport RTYPE_t, ZTYPE_t
 #     #  - s is the result of the sum
 #     #  - c contains the final correction term (that is too small to be representable in s)
 #
-cdef inline void accumulate( RTYPE_t* s, RTYPE_t* c, RTYPE_t operand ) nogil:
+cdef inline void accumulate( RTYPE_t* s, RTYPE_t* c, RTYPE_t operand ) noexcept nogil:
     # In compensated summation (Kahan summation),
     #
     #   s += x
@@ -81,7 +81,7 @@ cdef inline void accumulate( RTYPE_t* s, RTYPE_t* c, RTYPE_t operand ) nogil:
 
 # Version for complex numbers.
 #
-cdef inline void accumulatez( ZTYPE_t* s, ZTYPE_t* c, ZTYPE_t operand ) nogil:
+cdef inline void accumulatez( ZTYPE_t* s, ZTYPE_t* c, ZTYPE_t operand ) noexcept nogil:
     cdef ZTYPE_t y = operand - c[0]
     cdef ZTYPE_t t = s[0] + y
     c[0] = (t - s[0]) - y
@@ -92,6 +92,6 @@ cdef inline void accumulatez( ZTYPE_t* s, ZTYPE_t* c, ZTYPE_t operand ) nogil:
 #
 # See compsum.pyx for an explanation of the parameters.
 #
-cdef void cs1dr( RTYPE_t* data, RTYPE_t* out, unsigned int n ) nogil
-cdef void cs1dz( ZTYPE_t* data, ZTYPE_t* out, unsigned int n ) nogil
+cdef void cs1dr( RTYPE_t* data, RTYPE_t* out, unsigned int n ) noexcept nogil
+cdef void cs1dz( ZTYPE_t* data, ZTYPE_t* out, unsigned int n ) noexcept nogil
 

@@ -42,7 +42,7 @@ Parameters:
         self.wrk_arr = np.empty( (5*n_space_dofs,), dtype=DTYPE, order="C" )
         self.wrk     = &(self.wrk_arr[0])
 
-    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil:
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) noexcept nogil:
         cdef unsigned int j
         cdef int n_space_dofs = self.rhs.n
         cdef DTYPE_t* wstar   = self.wrk  # updated w, used for computing the next k
@@ -120,7 +120,7 @@ Parameters:
         self.wrk_arr = np.empty( (4*n_space_dofs,), dtype=DTYPE, order="C" )
         self.wrk     = &(self.wrk_arr[0])
 
-    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil:
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) noexcept nogil:
         cdef unsigned int j
         cdef int n_space_dofs = self.rhs.n
         cdef DTYPE_t* wstar   = self.wrk  # updated w, used for computing the next k
@@ -212,7 +212,7 @@ Parameters:
         self.wrk_arr = np.empty( (3*n_space_dofs,), dtype=DTYPE, order="C" )
         self.wrk     = &(self.wrk_arr[0])
 
-    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil:
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) noexcept nogil:
         cdef unsigned int j
         cdef int n_space_dofs = self.rhs.n
         cdef DTYPE_t* wstar   = self.wrk  # updated w, used for computing the next k
@@ -280,7 +280,7 @@ Parameters:
         self.wrk_arr = np.empty( (1*n_space_dofs,), dtype=DTYPE, order="C" )
         self.wrk     = &(self.wrk_arr[0])
 
-    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil:
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) noexcept nogil:
         cdef int n_space_dofs = self.rhs.n
         cdef DTYPE_t* wp      = self.wrk  # w prime (output from RHS)
 
@@ -334,7 +334,7 @@ Original reference:
         self.wrk_arr = np.empty( (1*n_space_dofs,), dtype=DTYPE, order="C" )
         self.wrk     = &(self.wrk_arr[0])
 
-    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil:
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) noexcept nogil:
         cdef unsigned int j
         cdef int n_space_dofs = self.rhs.n
         cdef DTYPE_t* wp      = self.wrk  # w prime (output from RHS)

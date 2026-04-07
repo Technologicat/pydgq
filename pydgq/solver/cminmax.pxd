@@ -7,22 +7,22 @@ from pydgq.solver.types cimport RTYPE_t
 
 # real
 #
-cdef inline RTYPE_t cfmin(RTYPE_t a, RTYPE_t b) nogil:
+cdef inline RTYPE_t cfmin(RTYPE_t a, RTYPE_t b) noexcept nogil:
     return a if a < b else b
-cdef inline RTYPE_t cfmax(RTYPE_t a, RTYPE_t b) nogil:
+cdef inline RTYPE_t cfmax(RTYPE_t a, RTYPE_t b) noexcept nogil:
     return a if a > b else b
 
 # int
 #
-cdef inline int cimin(int a, int b) nogil:
+cdef inline int cimin(int a, int b) noexcept nogil:
     return a if a < b else b
-cdef inline int cimax(int a, int b) nogil:
+cdef inline int cimax(int a, int b) noexcept nogil:
     return a if a > b else b
 
 # unsigned int
 #
-cdef inline unsigned int cuimin(unsigned int a, unsigned int b) nogil:
+cdef inline unsigned int cuimin(unsigned int a, unsigned int b) noexcept nogil:
     return a if a < b else b
-cdef inline unsigned int cuimax(unsigned int a, unsigned int b) nogil:
+cdef inline unsigned int cuimax(unsigned int a, unsigned int b) noexcept nogil:
     return a if a > b else b
 

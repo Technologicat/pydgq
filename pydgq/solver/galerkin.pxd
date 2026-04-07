@@ -64,21 +64,21 @@ cdef class GalerkinIntegrator(ImplicitIntegrator):
     # helper methods:
 
     # assemble Galerkin series of u at given points
-    cdef void assemble( self, RTYPE_t* psi, DTYPE_t* uass, DTYPE_t* ucorr, int n_points ) nogil
+    cdef void assemble( self, RTYPE_t* psi, DTYPE_t* uass, DTYPE_t* ucorr, int n_points ) noexcept nogil
 
     # get the value of u at the end of this timestep
-    cdef void final_value( self, DTYPE_t* uass ) nogil
+    cdef void final_value( self, DTYPE_t* uass ) noexcept nogil
 
     # integrate a function (provided as values at the quadrature points) over the timestep
-    cdef DTYPE_t do_quadrature( self, DTYPE_t* funcvals, RTYPE_t dt ) nogil
+    cdef DTYPE_t do_quadrature( self, DTYPE_t* funcvals, RTYPE_t dt ) noexcept nogil
 
 # discontinuous Galerkin
 #
 cdef class DG(GalerkinIntegrator):
-    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) noexcept nogil
 
 # continuous Galerkin
 #
 cdef class CG(GalerkinIntegrator):
-    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) noexcept nogil
 

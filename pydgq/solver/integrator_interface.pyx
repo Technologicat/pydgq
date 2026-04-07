@@ -93,7 +93,7 @@ and the return value is:
         self.wrk_arr = None
         self.wrk = <DTYPE_t*>0
 
-    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil:
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) noexcept nogil:
         return 0  # default implementation: no-op, no iterations taken
 
 

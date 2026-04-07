@@ -19,5 +19,5 @@ cdef class MyKernel(CythonKernel):
     cdef RTYPE_t omega
 
     # tell Cython that we would like to override callback() with our implementation
-    cdef void callback(self, RTYPE_t t) nogil
+    cdef void callback(self, RTYPE_t t) noexcept nogil
 

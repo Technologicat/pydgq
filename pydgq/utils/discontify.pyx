@@ -47,6 +47,10 @@ import numpy as np
 from pydgq.solver.types cimport DTYPE_t
 from pydgq.solver.types  import DTYPE, DNAN
 
+cdef enum:
+    MODE_NAN  = 1
+    MODE_PREV = 2
+
 
 def discontify( DTYPE_t[::1] data, int[::1] idxs, str fill="nan" ):
     """Make a rank-1 np.array discontinuous by inserting fill values.
@@ -85,8 +89,6 @@ def discontify( DTYPE_t[::1] data, int[::1] idxs, str fill="nan" ):
     cdef DTYPE_t nan = DNAN
     cdef DTYPE_t[::1] out = np.empty( (ndata + nidxs,), dtype=DTYPE, order="C" )
 
-    DEF MODE_NAN  = 1
-    DEF MODE_PREV = 2
     cdef int fill_mode
     if fill == "nan":
         fill_mode = MODE_NAN

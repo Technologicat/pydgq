@@ -30,7 +30,7 @@ cdef extern from "math.h":
 #
 # n : number of components in w
 #
-cdef inline int all_denormal( DTYPE_t* w, int n ) nogil:
+cdef inline int all_denormal( DTYPE_t* w, int n ) noexcept nogil:
     cdef unsigned int n_denormal = 0
     cdef unsigned int j
     for j in range(n):
@@ -46,7 +46,7 @@ cdef inline int all_denormal( DTYPE_t* w, int n ) nogil:
 #
 # n : number of components in w
 #
-cdef inline int any_naninf( DTYPE_t* w, int n ) nogil:
+cdef inline int any_naninf( DTYPE_t* w, int n ) noexcept nogil:
     cdef unsigned int j
     cdef int c
     for j in range(n):
