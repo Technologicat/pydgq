@@ -88,7 +88,7 @@ The user is expected to provide a custom kernel, which computes the RHS `f(u, t)
 
 The problem is solved by instantiating this custom kernel, and passing the instance to the `ivp()` function of the [`pydgq.solver.odesolve`](pydgq/solver/odesolve.pyx) module (along with solver options).
 
-Example kernels are provided in [`pydgq.examples`](pydgq/examples/). For a Cython example with detailed comments, see [`example_kernel.pyx`](pydgq/examples/example_kernel.pyx). Visualization scripts (Lorenz attractor, etc.) are in the [`examples`](examples/) directory.
+A Cython example kernel is provided in [`pydgq.examples.example_kernel`](pydgq/examples/example_kernel.pyx). A standalone visualization script (Lorenz attractor) is in [`examples/`](examples/).
 
 
 ## Software architecture
@@ -169,7 +169,7 @@ If all three steps fail, an error is raised.
 
 **Precalculation only:** [mpmath](https://mpmath.org/) (extended-precision arithmetic for Lobatto basis evaluation)
 
-**Examples:** [Matplotlib](http://www.matplotlib.org) (visualization scripts in [`examples/`](examples/))
+**Examples:** [Matplotlib](http://www.matplotlib.org) (for the Lorenz visualization script in [`examples/`](examples/))
 
 
 ## License
