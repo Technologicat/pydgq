@@ -48,7 +48,7 @@ def load_balance_list(L, n):
 
     """
     if n < 1:
-        raise ValueError("n must be >= 1; got %d" % (n))
+        raise ValueError(f"n must be >= 1; got {n}")
 
     # If we're splitting L to one part, this is a no-op.
     # But wrap it - the caller is expecting a list of lists.

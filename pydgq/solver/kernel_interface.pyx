@@ -201,7 +201,7 @@ except w_arr and out_arr, which are named w and out.
         elif name == "iteration":
             return self.iteration
         else:
-            raise AttributeError("No such attribute '%s'" % (name))
+            raise AttributeError(f"No such attribute '{name}'")
 
     def callback(self, RTYPE_t t):
         """def callback(self, RTYPE_t t):

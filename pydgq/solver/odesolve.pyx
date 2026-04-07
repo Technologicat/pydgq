@@ -131,11 +131,11 @@ Returns:
         the number of timesteps that will be saved.
 """
     if nt < 1:
-        raise ValueError( "nt must be >= 1, got %d" % (nt) )
+        raise ValueError( f"nt must be >= 1, got {nt}" )
     if save_from < 0:
-        raise ValueError( "save_from must be >= 0, got %d" % (save_from) )
+        raise ValueError( f"save_from must be >= 0, got {save_from}" )
     if save_from > nt:
-        raise ValueError( "save_from must be <= nt, otherwise nothing to do; got save_from = %d, nt = %d" % (save_from, nt) )
+        raise ValueError( f"save_from must be <= nt, otherwise nothing to do; got save_from = {save_from}, nt = {nt}" )
 
     n = nt - (max(1, save_from) - 1)  # this many actual timesteps will be saved
     if save_from == 0:
@@ -225,13 +225,13 @@ Returns:
         that are needed by ivp(), when called with the given parameter values.
 """
     if nt < 1:
-        raise ValueError( "nt must be >= 1, got %d" % (nt) )
+        raise ValueError( f"nt must be >= 1, got {nt}" )
     if save_from < 0:
-        raise ValueError( "save_from must be >= 0, got %d" % (save_from) )
+        raise ValueError( f"save_from must be >= 0, got {save_from}" )
     if save_from > nt:
-        raise ValueError( "save_from must be <= nt, otherwise nothing to do; got save_from = %d, nt = %d" % (save_from, nt) )
+        raise ValueError( f"save_from must be <= nt, otherwise nothing to do; got save_from = {save_from}, nt = {nt}" )
     if interp < 1:
-        raise ValueError( "interp must be >= 1, got %d" % (interp) )
+        raise ValueError( f"interp must be >= 1, got {interp}" )
 
     if save_from == 0:
         # 1 = the initial condition
@@ -263,13 +263,13 @@ Returns:
         If save_from == 0, the initial condition (always exactly one point) counts as "timestep 0"; otherwise "timestep 0" is the first saved timestep.
 """
     if nt < 1:
-        raise ValueError( "nt must be >= 1, got %d" % (nt) )
+        raise ValueError( f"nt must be >= 1, got {nt}" )
     if save_from < 0:
-        raise ValueError( "save_from must be >= 0, got %d" % (save_from) )
+        raise ValueError( f"save_from must be >= 0, got {save_from}" )
     if save_from > nt:
-        raise ValueError( "save_from must be <= nt, otherwise nothing to do; got save_from = %d, nt = %d" % (save_from, nt) )
+        raise ValueError( f"save_from must be <= nt, otherwise nothing to do; got save_from = {save_from}, nt = {nt}" )
     if interp < 1:
-        raise ValueError( "interp must be >= 1, got %d" % (interp) )
+        raise ValueError( f"interp must be >= 1, got {interp}" )
 
     cdef unsigned int n, offs
     cdef unsigned int n_saved_timesteps = nt - (cuimax(1, save_from) - 1)
@@ -477,37 +477,37 @@ Return value:
     galerkin_integrators = ["dG", "cG"]  # integrators, of those already listed in known_integrators, which are based on Galerkin methods.
 
     if integrator not in known_integrators:
-        raise ValueError("Unknown integrator '%s'; valid: %s" % ( integrator, ", ".join(known_integrators) ))
+        raise ValueError(f"Unknown integrator '{integrator}'; valid: {', '.join(known_integrators)}")
 
     if integrator not in galerkin_integrators and interp != 1:
-        raise ValueError("For non-Galerkin integrators (such as the chosen integrator='%s'), interp must be 1, but interp=%d was given." % (integrator, interp))
+        raise ValueError(f"For non-Galerkin integrators (such as the chosen integrator='{integrator}'), interp must be 1, but interp={interp} was given.")
 
     if dt == 0.0:
         raise ValueError( "dt cannot be zero" )
     if nt < 1:
-        raise ValueError( "nt must be >= 1, got %d" % (nt) )
+        raise ValueError( f"nt must be >= 1, got {nt}" )
     if save_from < 0:
-        raise ValueError( "save_from must be >= 0, got %d" % (save_from) )
+        raise ValueError( f"save_from must be >= 0, got {save_from}" )
     if save_from > nt:
-        raise ValueError( "save_from must be <= nt, otherwise nothing to do; got save_from = %d, nt = %d" % (save_from, nt) )
+        raise ValueError( f"save_from must be <= nt, otherwise nothing to do; got save_from = {save_from}, nt = {nt}" )
     if interp < 1:
-        raise ValueError( "interp must be >= 1, got %d" % (interp) )
+        raise ValueError( f"interp must be >= 1, got {interp}" )
     if maxit < 1:
-        raise ValueError( "maxit must be >= 1, got %d" % (maxit) )
+        raise ValueError( f"maxit must be >= 1, got {maxit}" )
 
     cdef int n_slots      = result_len( nt, save_from, interp )
     cdef int n_space_dofs = w0.shape[0]
     if ww is not None:
         if ww.shape[0] != n_slots:
-            raise ValueError( "shape of output array ww not compatible with length of output: shape(ww)[0] = %d, but %d values are to be saved" % (ww.shape[0], n_slots) )
+            raise ValueError( f"shape of output array ww not compatible with length of output: shape(ww)[0] = {ww.shape[0]}, but {n_slots} values are to be saved" )
         if ww.shape[1] != n_space_dofs:
-            raise ValueError( "shape of output array ww not compatible with n_space_dofs: shape(ww)[1] = %d, but n_space_dofs = %d" % (ww.shape[1], n_space_dofs) )
+            raise ValueError( f"shape of output array ww not compatible with n_space_dofs: shape(ww)[1] = {ww.shape[1]}, but n_space_dofs = {n_space_dofs}" )
 
     if ff is not None:
         if ff.shape[0] != n_slots:
-            raise ValueError( "shape of output array ff not compatible with length of output: shape(ff)[0] = %d, but %d timesteps are to be saved" % (ff.shape[0], n_slots) )
+            raise ValueError( f"shape of output array ff not compatible with length of output: shape(ff)[0] = {ff.shape[0]}, but {n_slots} timesteps are to be saved" )
         if ff.shape[1] != n_space_dofs:
-            raise ValueError( "shape of output array ff not compatible with n_space_dofs: shape(ff)[1] = %d, but n_space_dofs = %d" % (ff.shape[1], n_space_dofs) )
+            raise ValueError( f"shape of output array ff not compatible with n_space_dofs: shape(ff)[1] = {ff.shape[1]}, but n_space_dofs = {n_space_dofs}" )
 
     # Runtime sanity checking of the result
     #
@@ -618,7 +618,7 @@ Return value:
         # explicit integrators
         if integrator == "SE":  # symplectic Euler
             if n_space_dofs % 2 != 0:
-                raise ValueError("SE: Symplectic Euler (SE) only makes sense for second-order systems transformed to first-order ones, but got odd number of n_space_dofs = %d" % (n_space_dofs))
+                raise ValueError(f"SE: Symplectic Euler (SE) only makes sense for second-order systems transformed to first-order ones, but got odd number of n_space_dofs = {n_space_dofs}")
             algo = explicit.SE(rhs)
         elif integrator == "RK4":
             algo = explicit.RK4(rhs)  # classical fourth-order Runge-Kutta
@@ -697,7 +697,7 @@ Return value:
         # final sanity check
         #
         if galerkin.datamanager.nt_vis != interp:  # TODO: relax this implementation-technical limitation
-            raise NotImplementedError("%s: interp = %d, but galerkin.init() was last called with different nt_vis = %d; currently this is not supported." % (integrator, interp, galerkin.datamanager.nt_vis))
+            raise NotImplementedError(f"{integrator}: interp = {interp}, but galerkin.init() was last called with different nt_vis = {galerkin.datamanager.nt_vis}; currently this is not supported.")
 
         with nogil:
             for n in range(1,nt+1):

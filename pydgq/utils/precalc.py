@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Generate data file (pydgq_data.bin) for pydgq.
+"""Generate data file (pydgq_data.npz) for pydgq.
 
 The generation is very slow; MPI parallelization is supported to boost performance.
 
@@ -9,8 +9,6 @@ Command-line options are available; pass the standard --help flag to see them.
 
 
 import time
-
-import pickle
 
 import functools
 
@@ -174,7 +172,7 @@ class Precalc:
             elif RTYPE == np.float32:
                 MPI_datatype = mpi_shim.get_mpi().SINGLE
             else:
-                raise NotImplementedError("Unknown RTYPE %s, cannot transmit data buffer" % (RTYPE))
+                raise NotImplementedError(f"Unknown RTYPE {RTYPE}, cannot transmit data buffer")
             recvbuf = [ recv, counts, disps, MPI_datatype ]  # data, counts, displacements, mpi_datatype
             comm = mpi_shim.get_comm_world()
             comm.Allgatherv( sendbuf, recvbuf )
@@ -342,13 +340,19 @@ def main(q, nx, **kwargs):
     # In the root process: save results to disk
     #
     if mpi_shim.get_rank() == 0:
-        # http://stackoverflow.com/questions/10075661/how-to-save-dictionaries-and-arrays-in-the-same-archive-with-numpy-savez
-        with open('pydgq_data.bin', 'wb') as outfile:
-            pickle.dump( data, outfile, protocol=pickle.HIGHEST_PROTOCOL )
-        print( "Wrote pydgq_data.bin" )
-
-# TODO: how to find the data file in an actual installation? (need to save it relative to the package directory)
-# TODO: change to .mat format to make the data file more self-documenting?
+        # Flatten nested dict into npz-compatible flat keys.
+        arrays = {}
+        arrays['maxq'] = np.array(data['maxq'])
+        arrays['integ/maxrule'] = np.array(data['integ']['maxrule'])
+        arrays['vis/maxnx'] = np.array(data['vis']['maxnx'])
+        for rule_key in sorted(k for k in data['integ'] if isinstance(k, int)):
+            for arr_key in ('x', 'w', 'y'):
+                arrays[f'integ/{rule_key}/{arr_key}'] = data['integ'][rule_key][arr_key]
+        for nx_key in sorted(k for k in data['vis'] if isinstance(k, int)):
+            for arr_key in ('x', 'y'):
+                arrays[f'vis/{nx_key}/{arr_key}'] = data['vis'][nx_key][arr_key]
+        np.savez_compressed('pydgq_data.npz', **arrays)
+        print("Wrote pydgq_data.npz")
 
 
 ############################################################################################################

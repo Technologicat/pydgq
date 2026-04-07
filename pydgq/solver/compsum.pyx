@@ -41,7 +41,7 @@ Implemented only for rank-1 np.arrays of dtypes double (np.float64) and double c
 
     if isinstance(data, np.ndarray):
         if data.ndim != 1:
-            raise ValueError("This function supports only rank-1 arrays, got an array of rank %d" % (data.ndim))
+            raise ValueError(f"This function supports only rank-1 arrays, got an array of rank {data.ndim}")
 
         if data.dtype == ZTYPE:
             inz  = data
@@ -54,9 +54,9 @@ Implemented only for rank-1 np.arrays of dtypes double (np.float64) and double c
             cs1dr( &inr[0], &outr[0], data.shape[0] )  # modifies outr in-place
             return np.asanyarray(outr)
         else:
-            raise TypeError("Unsupported dtype '%s' for cumsum1d_compensated() with np.ndarray; valid: %s, %s" % (data.dtype, ZTYPE, RTYPE))
+            raise TypeError(f"Unsupported dtype '{data.dtype}' for cumsum1d_compensated() with np.ndarray; valid: {ZTYPE}, {RTYPE}")
     else:
-        raise TypeError("Unsupported argument type '%s' for cumsum1d_compensated(); %s" % (type(data), np.ndarray))
+        raise TypeError(f"Unsupported argument type '{type(data)}' for cumsum1d_compensated(); {np.ndarray}")
 
 
 #########################################################################################

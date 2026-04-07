@@ -211,7 +211,7 @@ Trivial example to invoke this kernel:
     ivp( ..., rhs=rhs, w0=w0 )
 """
         if n % 2 != 0:
-            raise ValueError("For a 2nd-order problem reduced to a 1st-order one, n must be even; got %d" % (n))
+            raise ValueError(f"For a 2nd-order problem reduced to a 1st-order one, n must be even; got {n}")
 
         # super
         CythonKernel.__init__(self, n)

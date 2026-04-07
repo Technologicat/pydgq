@@ -95,7 +95,7 @@ def discontify( DTYPE_t[::1] data, int[::1] idxs, str fill="nan" ):
     elif fill == "prev":
         fill_mode = MODE_PREV
     else:
-        raise ValueError("Unknown fill '%s'; available: 'nan', 'prev'" % (fill))
+        raise ValueError(f"Unknown fill '{fill}'; available: 'nan', 'prev'")
 
     with nogil:
         # copy data up to first discontinuity
