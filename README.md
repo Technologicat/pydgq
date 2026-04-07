@@ -15,7 +15,9 @@
 
 Solve ordinary differential equation (ODE) systems using the time-discontinuous Galerkin method, with Cython acceleration.
 
-We use [semantic versioning](https://semver.org/). For my stance on AI contributions, see the [collaboration guidelines](https://github.com/Technologicat/substrate-independent/blob/main/collaboration.md).
+We use [semantic versioning](https://semver.org/).
+
+For my stance on AI contributions, see the [collaboration guidelines](https://github.com/Technologicat/substrate-independent/blob/main/collaboration.md).
 
 ![Lorenz attractor, dG(2)](example.png)
 
@@ -58,7 +60,7 @@ pip install .
 The default build uses meson's release optimization (`-O2`). For numerically intensive workloads, you can enable architecture-specific optimizations:
 
 ```bash
-CFLAGS="-march=native -mfma" pip install --no-build-isolation .
+CFLAGS="-march=native -O2 -msse -msse2 -mfma -mfpmath=sse" pip install --no-build-isolation .
 ```
 
 Note: wheels on PyPI are built without `-march=native` for portability. Build from source if you want maximum performance on your specific hardware.
@@ -66,12 +68,18 @@ Note: wheels on PyPI are built without `-march=native` for portability. Build fr
 ### Development
 
 ```bash
-pdm install                                                  # creates venv, installs dev deps
-pip install --no-build-isolation -e .                        # editable install (needs venv activated)
-pdm run pytest tests/ -v                                     # run tests
+pdm install                              # creates venv, installs dev deps
+pip install --no-build-isolation -e .    # editable install (needs venv activated)
+pdm run pytest tests/ -v                 # run tests
 ```
 
 The `--no-build-isolation` flag is required for editable installs with meson-python — the on-import rebuild mechanism needs build dependencies to remain available in the environment.
+
+**PATH note:** The meson-python editable loader needs `meson` and `ninja` on `PATH`. If you get rebuild errors, ensure the venv's `bin/` is on the path:
+
+```bash
+export PATH="$(pwd)/.venv/bin:$PATH"
+```
 
 
 ## Usage summary

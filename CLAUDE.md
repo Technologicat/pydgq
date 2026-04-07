@@ -19,6 +19,8 @@ pip install --no-build-isolation -e .    # editable install (needs venv activate
 
 The `--no-build-isolation` flag is required for editable installs with meson-python — the on-import rebuild mechanism needs build dependencies to remain available in the environment.
 
+**PATH note:** The editable loader needs `meson` and `ninja` on `PATH`. If you get rebuild errors: `export PATH="$(pwd)/.venv/bin:$PATH"`.
+
 **Version:** single source of truth is `pydgq/VERSION`. Read by `meson.build` (build-time), `pyproject.toml` (dynamic), and `__init__.py` (runtime). Only edit `pydgq/VERSION` when bumping.
 
 ## Running Tests
