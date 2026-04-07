@@ -1,4 +1,4 @@
-Copyright (c) 2016-2017, Juha Jeronen and University of Jyväskylä.
+Copyright (c) 2016-2026, Juha Jeronen, University of Jyväskylä, and JAMK University of Applied Sciences.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -19,4 +19,3 @@ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
 ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-

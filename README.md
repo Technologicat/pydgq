@@ -1,6 +1,12 @@
 # pydgq
 
-Python dG(q): Solve ordinary differential equation (ODE) systems using the time-discontinuous Galerkin method.
+Solve ordinary differential equation (ODE) systems using the time-discontinuous Galerkin method, with Cython acceleration.
+
+![CI status](https://img.shields.io/github/actions/workflow/status/Technologicat/pydgq/ci.yml?branch=master)
+![supported Python versions](https://img.shields.io/pypi/pyversions/pydgq)
+![version on PyPI](https://img.shields.io/pypi/v/pydgq)
+![license](https://img.shields.io/pypi/l/pydgq)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](http://makeapullrequest.com/)
 
 ![Lorenz attractor, dG(2)](example.png)
 
@@ -22,46 +28,50 @@ For supplying the user code implementing the right-hand side (RHS) `f(u, t)` for
 For material on the algorithms used, see the [user manual](doc/pydgq_user_manual.pdf).
 
 
+## Installation
+
+### From PyPI
+
+```bash
+pip install pydgq
+```
+
+### From source
+
+```bash
+git clone https://github.com/Technologicat/pydgq.git
+cd pydgq
+pip install .
+```
+
+### Performance builds
+
+The default build uses meson's release optimization (`-O2`). For numerically intensive workloads, you can enable architecture-specific optimizations:
+
+```bash
+CFLAGS="-march=native -mfma" pip install --no-build-isolation .
+```
+
+Note: wheels on PyPI are built without `-march=native` for portability. Build from source if you want maximum performance on your specific hardware.
+
+### Development
+
+```bash
+pdm install                                                  # creates venv, installs dev deps
+pip install --no-build-isolation -e .                        # editable install (needs venv activated)
+pdm run pytest tests/ -v                                     # run tests
+```
+
+The `--no-build-isolation` flag is required for editable installs with meson-python — the on-import rebuild mechanism needs build dependencies to remain available in the environment.
+
+
 ## Usage summary
 
 The user is expected to provide a custom kernel, which computes the RHS `f(u, t)` for the specific problem to be solved.
 
 The problem is solved by instantiating this custom kernel, and passing the instance to the `ivp()` function of the [`pydgq.solver.odesolve`](pydgq/solver/odesolve.pyx) module (along with solver options).
 
-Code examples are provided the [`test`](test/) subdirectory. For compiling the Cython example, the test subdirectory contains its own [`setup.py`](test/setup.py) that is only used for this purpose.
-
-
-## Installation
-
-### From PyPI
-
-Install as user:
-
-```bash
-pip install pydgq --user
-```
-
-Install as admin:
-
-```bash
-sudo pip install pydgq
-```
-
-### From GitHub
-
-As user:
-
-```bash
-git clone https://github.com/Technologicat/pydgq.git
-cd pydgq
-python setup.py install --user
-```
-
-As admin, change the last command to
-
-```bash
-sudo python setup.py install
-```
+Example kernels are provided in [`pydgq.examples`](pydgq/examples/). For a Cython example with detailed comments, see [`example_kernel.pyx`](pydgq/examples/example_kernel.pyx). Visualization scripts (Lorenz attractor, etc.) are in the [`examples`](examples/) directory.
 
 
 ## Software architecture
@@ -82,7 +92,7 @@ The design of pydgq is based on two main class hierarchies, consisting of Cython
        - _DG_: discontinuous Galerkin
        - _CG_: continuous Galerkin
  - [**KernelBase**](pydgq/solver/kernel_interface.pyx): interface class for RHS kernels
-   - [**CythonKernel**](pydgq/solver/kernel_interface.pyx): base class for kernels implemented in Cython, see [`pydgq.solver.builtin_kernels`](pydgq/solver/builtin_kernels.pyx) for examples (and the [`test`](test/) subdirectory for their usage):
+   - [**CythonKernel**](pydgq/solver/kernel_interface.pyx): base class for kernels implemented in Cython, see [`pydgq.solver.builtin_kernels`](pydgq/solver/builtin_kernels.pyx) for examples:
      - _Linear1stOrderKernel_: `w' = M w`
      - _Linear1stOrderKernelWithMassMatrix_: `A w' = M w`
      - _Linear2ndOrderKernel_: `u'' = M0 u + M1 u'`
@@ -92,8 +102,6 @@ The design of pydgq is based on two main class hierarchies, consisting of Cython
        - solved as `u' = v` and `M2 v' = M0 u + M1 v` similarly as above
      - CythonKernel acts as a base class for your own Cython-based kernels
    - [**PythonKernel**](pydgq/solver/kernel_interface.pyx): base class for kernels implemented in Python
-     - [minimal example](test/python_kernel_test.py)
-     - [Lorenz system](test/lorenz_example.py)
      - PythonKernel acts as a base class for your own Python-based kernels
 
 The `ivp()` function of [`pydgq.solver.odesolve`](pydgq/solver/odesolve.pyx) understands the `IntegratorBase` and `KernelBase` interfaces, and acts as the driver routine.
@@ -114,47 +122,54 @@ Be aware that due to this choice of approach, the usual stability results for in
 
 ## Lobatto basis functions / precalculation
 
-The numerical evaluation of the Lobatto basis functions is numerically highly sensitive to catastrophic cancellation (see the [user manual](doc/pydgq_user_manual.pdf)); IEEE-754 double precision is insufficient to compute the intermediate results. To work around this issue, the basis functions are pre-evaluated once, by the module [`pydgq.utils.precalc`](pydgq/utils/precalc.py), using higher precision in software (via `sympy.mpmath`).
+The numerical evaluation of the Lobatto basis functions is numerically highly sensitive to catastrophic cancellation (see the [user manual](doc/pydgq_user_manual.pdf)); IEEE-754 double precision is insufficient to compute the intermediate results. To work around this issue, the basis functions are pre-evaluated once, by the module [`pydgq.utils.precalc`](pydgq/utils/precalc.py), using higher precision in software (via [mpmath](https://mpmath.org/)).
 
 The precalculation can be run again by running the module as the main program, e.g. `python -m pydgq.utils.precalc`. The module has some command-line options; use the standard `--help` option to see them.
 
-The precalc module stores the values of the basis functions (at quadrature points and at visualization points, both on the reference element `[-1,1]`) into a binary data file called `pydgq_data.bin`, by pickling the computed `np.ndarray` objects.
+The precalc module stores the values of the basis functions (at quadrature points and at visualization points, both on the reference element `[-1,1]`) into `pydgq_data.npz`, a compressed NumPy archive.
 
-A data file with default precalc settings, that works at least with the `x86_64` architecture, is installed by `setup.py` as `pydgq/pydgq_data.bin` (for the code to access via `pkg_resources`).
-
-At `install` time, `setup.py` expects to find, in the source tree, the data file to be installed as `pydgq/pydgq_data_VV.bin`, where `VV` is either `27` or `34`, depending on whether `setup.py` is running under Python 2.7 or Python 3. It will create a symlink `pydgq/pydgq_data.bin` pointing the correct version of the file, install the package, and then delete the symlink. When generating an sdist, the distribution will contain both of the actual data files, and no symlink.
-
-The data files provided with the sources have been generated using the default settings of `pydgq.utils.precalc` (`q = 10`, `nx = 101`).
+A data file with default precalc settings (`q = 10`, `nx = 101`) is included in the package. It is architecture-independent.
 
 When running the solver, to use Galerkin methods, [`pydgq.solver.galerkin.init()`](pydgq/solver/galerkin.pyx) must be called before calling [`pydgq.solver.odesolve.ivp()`](pydgq/solver/odesolve.pyx).
 
 
 ## Data file location
 
-During `pydgq.solver.galerkin.init()`, the solver attempts to load `pydgq_data.bin` from these locations, in this order:
+During `pydgq.solver.galerkin.init()`, the solver attempts to load `pydgq_data.npz` from these locations, in this order:
 
- 1. `./pydgq_data.bin` (local override),
- 2. `~/.config/pydgq/pydgq_data.bin` (user override),
- 3. `pydgq` package, via `pkg_resources` (likely installed in `/usr/local/lib/python3.4/dist-packages/pydgq...` or similar).
+ 1. `./pydgq_data.npz` (local override),
+ 2. `~/.config/pydgq/pydgq_data.npz` (user override),
+ 3. Installed package data, via `importlib.resources`.
 
-If all three steps fail, `IOError` is raised.
+If all three steps fail, an error is raised.
 
 
 ## Dependencies
 
-- [NumPy](http://www.numpy.org)
-- [Cython](http://www.cython.org)
-- [PyLU](https://github.com/Technologicat/pylu) or `pip install pylu`
-- [SymPy](http://www.sympy.org) (for precalculating the data file)
-- [Matplotlib](http://www.matplotlib.org) (for examples in the [`test`](test/) subdirectory)
+**Runtime:** [NumPy](http://www.numpy.org), [PyLU](https://github.com/Technologicat/pylu)
+
+**Build:** [Cython](http://www.cython.org) (≥ 3.0), [meson-python](https://mesonbuild.com/meson-python/)
+
+**Precalculation only:** [mpmath](https://mpmath.org/) (extended-precision arithmetic for Lobatto basis evaluation)
+
+**Examples:** [Matplotlib](http://www.matplotlib.org) (visualization scripts in [`examples/`](examples/))
+
+
+## Versioning
+
+This project uses [Semantic Versioning](https://semver.org/). The public API consists of the Python-level symbols in `pydgq.solver.odesolve`, `pydgq.solver.kernel_interface`, `pydgq.solver.builtin_kernels`, and the Cython `cimport` interface provided by the `.pxd` files.
 
 
 ## License
 
-[BSD](LICENSE.md). Copyright 2016-2017 Juha Jeronen and University of Jyväskylä.
+[BSD](LICENSE.md). Copyright 2016-2026 Juha Jeronen and University of Jyväskylä / JAMK University of Applied Sciences.
 
 
 #### Acknowledgement
 
 This work was financially supported by the Jenny and Antti Wihuri Foundation.
 
+
+#### AI contributions
+
+Parts of the v1.0.0 modernization were written with [Claude Code](https://claude.ai/code) (Anthropic). The numerical algorithms and the original library design are human-authored.
