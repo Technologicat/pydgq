@@ -19,10 +19,7 @@ from pydgq.solver.types cimport RTYPE_t, DTYPE_t
 from pydgq.solver.types  import RTYPE,   DTYPE
 from pydgq.solver.kernel_interface cimport CythonKernel
 
-from libc.math cimport sin, cos
-
-cdef extern from "math.h":
-    double M_PI
+from libc.math cimport sin, cos, M_PI
 
 
 cdef class MyKernel(CythonKernel):
