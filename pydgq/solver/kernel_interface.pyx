@@ -117,7 +117,7 @@ pydgq.solvers.kernel_interface.pyx for details.
 
 Basically, in your cdef class, override the method
 
-    cdef void callback(self, RTYPE_t t) nogil:
+    cdef void callback(self, RTYPE_t t) noexcept nogil:
 
 The necessary arrays can be accessed as self.w and self.out.
 Both arrays have self.n elements.

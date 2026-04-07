@@ -70,7 +70,7 @@ pydgq.solvers.integrator_interface.pyx for details.
 Basically, when implementing a new algorithm, the derived cdef class
 should override the method:
 
-    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) nogil:
+    cdef int call(self, DTYPE_t* w, RTYPE_t t, RTYPE_t dt) noexcept nogil:
 
 where the parameters are:
     w  : in/out
