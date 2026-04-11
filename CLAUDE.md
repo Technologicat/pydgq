@@ -14,8 +14,10 @@ Uses meson-python as build backend, PDM for dependency management. Python ≥ 3.
 
 ```bash
 pdm install                              # creates venv, installs dev deps
-pip install --no-build-isolation -e .    # editable install (needs venv activated)
+pip install --no-build-isolation -e .    # editable install
 ```
+
+Prefix commands with `pdm run` if the venv is not active.
 
 The `--no-build-isolation` flag is required for editable installs with meson-python — the on-import rebuild mechanism needs build dependencies to remain available in the environment.
 
