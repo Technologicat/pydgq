@@ -18,19 +18,10 @@ jobs:
           python-version: "3.14"
 
       - name: Install linters
-        run: pip install flake8 cython-lint
+        run: pip install ruff cython-lint
 
-      - name: Lint Python (hard errors)
-        run: >
-          flake8 tests/ pydgq/__init__.py pydgq/data.py pydgq/utils/precalc.py
-          pydgq/utils/listutils.py pydgq/utils/mpi_shim.py pydgq/examples/__init__.py
-          --select=E9,F63,F7,F82 --show-source
-
-      - name: Lint Python (warnings)
-        run: >
-          flake8 tests/ pydgq/__init__.py pydgq/data.py pydgq/utils/precalc.py
-          pydgq/utils/listutils.py pydgq/utils/mpi_shim.py pydgq/examples/__init__.py
-          --exit-zero --max-line-length=200
+      - name: Lint Python with ruff
+        run: ruff check .
 
       - name: Lint Cython
         run: >

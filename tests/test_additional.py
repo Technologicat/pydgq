@@ -2,11 +2,9 @@
 """Additional tests for coverage gaps: SE integrator, interp>1, save_from>0, data loading."""
 
 import numpy as np
-import pytest
-
 from pydgq.solver.types import DTYPE
 from pydgq.solver.galerkin import init as galerkin_init
-from pydgq.solver.odesolve import ivp, n_saved_timesteps, result_len, timestep_boundaries
+from pydgq.solver.odesolve import ivp, n_saved_timesteps, result_len, timestep_boundaries  # noqa: F401 -- documents API surface
 import pydgq.solver.builtin_kernels as builtin_kernels
 from pydgq.solver.kernel_interface import PythonKernel
 
@@ -38,8 +36,8 @@ def test_symplectic_euler():
     dt = 0.01
     nt = 200
 
-    n_saved = n_saved_timesteps(nt, 0)
-    rlen = result_len(nt, 0)
+    n_saved = n_saved_timesteps(nt, 0)  # noqa: F841 -- documents API return
+    rlen = result_len(nt, 0)  # noqa: F841 -- documents API return
 
     ww, tt = ivp(integrator="SE", allow_denormals=False,
                  w0=w0, dt=dt, nt=nt,
@@ -110,8 +108,8 @@ def test_galerkin_interp():
 
     galerkin_init(q=2, method="dG", nt_vis=interp, rule=None)
 
-    rlen = result_len(nt, save_from, interp=interp)
-    n_saved = n_saved_timesteps(nt, save_from)
+    rlen = result_len(nt, save_from, interp=interp)  # noqa: F841 -- documents API return
+    n_saved = n_saved_timesteps(nt, save_from)  # noqa: F841 -- documents API return
 
     ww, tt = ivp(integrator="dG", allow_denormals=False,
                  w0=w0, dt=dt, nt=nt,

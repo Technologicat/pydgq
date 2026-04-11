@@ -5,7 +5,7 @@ import numpy as np
 
 from pydgq.solver.types import DTYPE
 from pydgq.solver.galerkin import init as galerkin_init
-from pydgq.solver.kernel_interface import PythonKernel
+from pydgq.solver.kernel_interface import PythonKernel  # noqa: F401 -- documents API surface
 from pydgq.solver.odesolve import ivp, n_saved_timesteps, result_len
 import pydgq.solver.builtin_kernels as builtin_kernels
 

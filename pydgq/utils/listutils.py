@@ -15,7 +15,7 @@ def load_balance_list(L, n):
 
     If n > len(L), the items will be distributed on an item-by-item basis to the
     first len(L) parts, and the rest of the parts will get an empty list.
-    
+
     Examples:
         load_balance_list(range(14), 2)
             =>  [[0, 1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12, 13]]

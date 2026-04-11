@@ -8,8 +8,6 @@ Command-line options are available; pass the standard --help flag to see them.
 """
 
 
-import time
-
 import functools
 
 import numpy as np

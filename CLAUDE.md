@@ -73,12 +73,13 @@ pdm run python -c "import pydgq; from pathlib import Path; print(list((Path(pydg
 
 ## Linting
 
-**Python files** (flake8):
+**Python files** (ruff):
 
 ```bash
-pdm run flake8 tests/ pydgq/__init__.py pydgq/data.py --select=E9,F63,F7,F82 --show-source
-pdm run flake8 tests/ pydgq/__init__.py pydgq/data.py --exit-zero --max-line-length=200
+ruff check <changed .py files>   # primary linter (config in pyproject.toml)
 ```
+
+Legacy flake8 available for Emacs flycheck (no flake8rc — uses global config).
 
 **Cython files** (cython-lint; config in `pyproject.toml` under `[tool.cython-lint]`):
 
