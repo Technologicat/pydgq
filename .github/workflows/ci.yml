@@ -21,7 +21,9 @@ jobs:
         run: pip install ruff cython-lint
 
       - name: Lint Python with ruff
-        run: ruff check .
+        run: ruff check . --ignore SIM103
+      - name: Lint advisories (non-blocking)
+        run: ruff check . --select SIM103 || true
 
       - name: Lint Cython
         run: >

@@ -76,7 +76,8 @@ ignore = [
     "E731",   # lambda assignment — closures are idiomatic in this codebase
     # flake8-simplify
     "SIM102",  # collapsible if — nested ifs often represent distinct semantic guards
-    "SIM103",  # return condition directly — multi-guard patterns; autofix breaks visual consistency
+    # Note: SIM103 (return condition directly) is intentionally NOT ignored here.
+    # It is enabled as an advisory — CI runs it in a non-failing second pass.
     "SIM105",  # contextlib.suppress — try/except/pass is more flexible and explicit
     "SIM108",  # ternary instead of if/else — often less readable, no real gain
     "SIM114",  # combine if branches — match-casing style; autofix would damage semantics
