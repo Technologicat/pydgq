@@ -48,11 +48,11 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install build dependencies
-        run: pip install meson-python meson ninja Cython numpy pylu
+      - name: Install build and test dependencies
+        run: pip install meson-python meson ninja Cython numpy pylu pytest
 
       - name: Install package
-        run: pip install --no-build-isolation -e ".[test]"
+        run: pip install --no-build-isolation -e .
 
       - name: Run tests
         run: pytest tests/ -v

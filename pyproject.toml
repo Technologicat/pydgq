@@ -40,9 +40,6 @@ dependencies = [
     "pylu>=1.0",
 ]
 
-[project.optional-dependencies]
-test = ["pytest>=8.0"]
-
 [project.urls]
 Homepage = "https://github.com/Technologicat/pydgq"
 Repository = "https://github.com/Technologicat/pydgq"
