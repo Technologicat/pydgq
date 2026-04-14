@@ -114,4 +114,9 @@ dev = [
     "importmagic",
     "epc",
     "jedi>=0.19.2",
+    # Needed in the venv (not just the isolated build env) so meson-python's
+    # editable loader can rebuild the extension on import after .pyx/.pxd edits.
+    "meson-python>=0.16",
+    "meson",
+    "ninja",
 ]
