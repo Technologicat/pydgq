@@ -65,6 +65,19 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      # Activate the MSVC toolchain on Windows so that meson picks up `cl.exe`
+      # rather than Strawberry Perl's bundled MinGW-w64 gcc, which comes first
+      # on the runner PATH. pydgq compiles no OpenMP of its own, so a MinGW
+      # build does import cleanly as things stand — delvewheel reports no
+      # external DLL dependencies for the .pyd files. That is a property of the
+      # current sources rather than of the setup, though: any module compiled
+      # with OpenMP links libgomp-1.dll, which is not on the DLL search path of
+      # the Python process, and fails to import with a bare "DLL load failed".
+      # MSVC-built extensions need only the universal CRT and vcomp140.dll,
+      # both always present. scipy and numpy activate MSVC the same way.
+      - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+        if: runner.os == 'Windows'
+
       - name: Install build and test dependencies
         run: pip install meson-python meson ninja Cython numpy pylu pytest
 
@@ -82,6 +95,13 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Same MSVC activation as in the test job, and needed separately here:
+      # cibuildwheel does not activate MSVC for meson-python projects (only
+      # distutils/setuptools builds get that detection for free), so without
+      # this step the published Windows wheels are gcc builds.
+      - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+        if: runner.os == 'Windows'
 
       - uses: pypa/cibuildwheel@1828c10ab37f080699c7b81cea34097c684a7074 # v4.2.0
         env:
