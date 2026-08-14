@@ -1,5 +1,9 @@
 ## Changelog
 
+### [v1.0.2] (in progress)
+
+*No user-visible changes yet.*
+
 ### [v1.0.1] — 2026-08-14
 
  - Windows wheels are now built with MSVC instead of MinGW-w64 gcc, matching the toolchain numpy and scipy ship. No API or behavior change — the full test suite passes on the new build at unchanged tolerances. Linux and macOS wheels are unaffected.
