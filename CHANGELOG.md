@@ -1,5 +1,9 @@
 ## Changelog
 
+### [v1.0.1] — 2026-08-14
+
+ - Windows wheels are now built with MSVC instead of MinGW-w64 gcc, matching the toolchain numpy and scipy ship. No API or behavior change — the full test suite passes on the new build at unchanged tolerances. Linux and macOS wheels are unaffected.
+
 ### [v1.0.0] — 2026-04-08
 
 Modernization release. The library now runs on Python ≥ 3.11 with Cython 3.x.
