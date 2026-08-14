@@ -5,6 +5,8 @@
 build/
 dist/
 *.egg-info/
+.pdm-python
+.python-version
 .venv/
 __pycache__/
 pdm.lock
