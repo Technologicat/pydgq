@@ -94,6 +94,7 @@ ignore = ["E115", "E201", "E202", "E221", "E231", "E302", "W293", "W391"]
 
 [tool.cibuildwheel]
 build = "cp311-* cp312-* cp313-* cp314-*"
+skip = "*-win32 *-manylinux_i686 *-musllinux*"
 test-command = "pytest {project}/tests -v"
 test-requires = ["pytest", "numpy", "pylu"]
 
