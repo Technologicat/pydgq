@@ -47,11 +47,11 @@ jobs:
         # on every (Python × OS) combination anyway.  Duplicating the full
         # 12-job matrix here would re-find the same issues in parallel.
         # Trimming keeps broad Linux coverage (where most contributors
-        # develop), smoke-tests macOS and Windows on the newest Python, and
-        # leaves cibuildwheel as the comprehensive backstop for ABI/build
+        # develop), smoke-tests macOS and Windows on the newest stable Python,
+        # and leaves cibuildwheel as the comprehensive backstop for ABI/build
         # regressions on older Pythons across all three OSes.
         os: [ubuntu-latest]
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
         include:
           - os: macos-latest
             python-version: "3.14"
@@ -64,6 +64,11 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ matrix.python-version }}
+          # 3.15 is at rc1, which the setup-python manifest marks unstable, so a bare
+          # "3.15" resolves to nothing without this. Versions with a stable release
+          # are unaffected — the prerelease is only a fallback when no stable one
+          # satisfies the request. Becomes a no-op once 3.15 final ships.
+          allow-prereleases: true
 
       # Activate the MSVC toolchain on Windows so that meson picks up `cl.exe`
       # rather than Strawberry Perl's bundled MinGW-w64 gcc, which comes first

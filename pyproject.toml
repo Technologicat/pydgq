@@ -31,6 +31,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Mathematics",
     "Topic :: Software Development :: Libraries",
@@ -93,7 +94,9 @@ max-line-length = 200
 ignore = ["E115", "E201", "E202", "E221", "E231", "E302", "W293", "W391"]
 
 [tool.cibuildwheel]
-build = "cp311-* cp312-* cp313-* cp314-*"
+# cibuildwheel gates only cp316 behind `enable = ["cpython-prerelease"]` as of
+# 4.2.0, so cp315 needs no opt-in beyond naming it here.
+build = "cp311-* cp312-* cp313-* cp314-* cp315-*"
 skip = "*-win32 *-manylinux_i686 *-musllinux*"
 test-command = "pytest {project}/tests -v"
 test-requires = ["pytest", "numpy", "pylu"]
