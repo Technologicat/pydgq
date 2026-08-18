@@ -1,6 +1,6 @@
 ## Changelog
 
-### [v1.1.0] (in progress)
+### [v1.1.0] — 2026-08-18
 
  - Python 3.15 is now supported and tested, and wheels are built for it.
 
